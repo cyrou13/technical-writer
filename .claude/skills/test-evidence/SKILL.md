@@ -45,7 +45,7 @@ Méthode :
 
 ## Plan de vérification (agrégat)
 
-`docs/generated/30_test_evidence.md` est produit par le build. Il
+`docs/generated/30_STD.md` est produit par le build. Il
 contient :
 
 - liste des outils de test détectés et commandes pour les exécuter,

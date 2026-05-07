@@ -11,7 +11,7 @@ rôle est de produire un rapport listant les gaps et incohérences.
 
 Lire :
 - `docs/generated/_codemap.md`
-- `docs/generated/{10_SRS,20_SDS,30_test_evidence,40_traceability,50_risk_analysis,60_cyber_risk_analysis,_to_implement}.md`
+- `docs/generated/{10_SRS,20_SDS,30_STD,40_traceability,50_risk_analysis,60_cyber_risk_analysis,_to_implement}.md`
 - `docs/generated/coverage.json` (si présent)
 - Spot-check d'items dans `docs/items/{SRS,SDS,TC,RSK,THR}/`
 

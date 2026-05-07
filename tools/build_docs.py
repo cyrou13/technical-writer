@@ -5,7 +5,7 @@ Build doc agrégés à partir de l'item-store local.
 Lit `docs/items/<CAT>/*.md`, parse le frontmatter YAML, produit :
   - docs/generated/10_SRS.md
   - docs/generated/20_SDS.md
-  - docs/generated/30_test_evidence.md
+  - docs/generated/30_STD.md                 (Software Test Description, IEEE 829)
   - docs/generated/40_traceability.md
   - docs/generated/50_risk_analysis.md       (safety - ISO 14971 / 62304 §7)
   - docs/generated/60_cyber_risk_analysis.md (cyber - IEC 81001-5-1 / STRIDE)
@@ -840,6 +840,229 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
     }
 
 
+def detect_test_frameworks() -> list[str]:
+    """Inspecte les manifests pour lister les frameworks de test détectés."""
+    found: list[str] = []
+    pkg = ROOT / "package.json"
+    if pkg.exists():
+        try:
+            data = json.loads(pkg.read_text(encoding="utf-8"))
+            deps: dict[str, str] = {
+                **(data.get("devDependencies") or {}),
+                **(data.get("dependencies") or {}),
+            }
+            for name in (
+                "vitest", "jest", "mocha", "ava",
+                "playwright", "@playwright/test", "cypress",
+                "@testing-library/react", "@testing-library/vue",
+            ):
+                if name in deps:
+                    found.append(f"{name} ({deps[name]})")
+        except Exception:  # noqa: BLE001 — JSON cassé : ne pas bloquer le build
+            pass
+    pyproj = ROOT / "pyproject.toml"
+    py_text = ""
+    if pyproj.exists():
+        py_text += pyproj.read_text(encoding="utf-8")
+    for r in ROOT.glob("requirements*.txt"):
+        py_text += "\n" + r.read_text(encoding="utf-8")
+    for name in ("pytest", "unittest", "tox", "hypothesis", "nose"):
+        if re.search(rf"(^|[\s\"'\b])({re.escape(name)})([\s\"'\[<>=!~]|$)", py_text):
+            found.append(name)
+    return found
+
+
+def read_test_plan_intro() -> dict[str, str]:
+    """Parse `docs/test_plan_intro.md` ; renvoie {section_id: contenu}."""
+    p = ROOT / "docs" / "test_plan_intro.md"
+    if not p.exists():
+        return {}
+    text = p.read_text(encoding="utf-8")
+    sections: dict[str, str] = {}
+    cur_id: str | None = None
+    cur_lines: list[str] = []
+    for line in text.splitlines():
+        m = re.match(r"^##\s+([\w-]+)\s*$", line)
+        if m:
+            if cur_id is not None:
+                sections[cur_id] = "\n".join(cur_lines).strip()
+            cur_id = m.group(1)
+            cur_lines = []
+        elif cur_id is not None:
+            cur_lines.append(line)
+    if cur_id is not None:
+        sections[cur_id] = "\n".join(cur_lines).strip()
+    return sections
+
+
+def build_std(by_cat) -> str:
+    """Software Test Description — IEEE 829 / IEC 62304 §5.5/§5.7."""
+    tcs = [t for t in by_cat["TC"] if t.status != "Deprecated"]
+    srs = [s for s in by_cat["SRS"] if s.status != "Deprecated"]
+    must = [s for s in srs if s.frontmatter.get("priority", "Must") == "Must"]
+
+    by_level: dict[str, list[Item]] = defaultdict(list)
+    for t in tcs:
+        by_level[t.frontmatter.get("type", "Unit")].append(t)
+
+    intro = read_test_plan_intro()
+    frameworks = detect_test_frameworks()
+
+    lines: list[str] = [
+        "# Software Test Description (STD)",
+        "",
+        f"_Class A · IEC 62304 §5.5/§5.7 · IEEE 829 · "
+        f"Généré le {date.today().isoformat()}_",
+        "",
+        "## 1. Introduction",
+        "",
+        "### 1.1 Objet",
+        "",
+        "Ce document décrit l'environnement, la stratégie et les cas de test",
+        "pour la vérification du logiciel selon IEC 62304 §5.5 (vérification",
+        "unitaire) et §5.7 (test système). Les cas de test sont produits depuis",
+        "`docs/items/TC/` ; ce STD est régénéré à chaque build.",
+        "",
+        "### 1.2 Documents de référence",
+        "",
+        "- SRS — `docs/generated/10_SRS.md`",
+        "- SDS — `docs/generated/20_SDS.md`",
+        "- Matrice de traçabilité — `docs/generated/40_traceability.md`",
+        "- Analyse de risques (safety) — `docs/generated/50_risk_analysis.md`",
+        "- Analyse cyber — `docs/generated/60_cyber_risk_analysis.md`",
+        "- IEC 62304:2006/AMD1:2015",
+        "- IEEE 829-2008 (Standard for Software and System Test Documentation)",
+        "",
+        "### 1.3 Niveaux de test couverts",
+        "",
+    ]
+    for lvl in ("Unit", "Integration", "System"):
+        n = len(by_level.get(lvl, []))
+        lines.append(f"- **{lvl}** — {n} TC")
+    lines.append("")
+
+    # 2. Environnement
+    lines += ["## 2. Environnement de test", ""]
+    if frameworks:
+        lines.append("Frameworks détectés depuis les manifests :")
+        lines.append("")
+        for f in frameworks:
+            lines.append(f"- {f}")
+    else:
+        lines.append(
+            "_Aucun framework de test détecté automatiquement. Compléter via "
+            "`docs/test_plan_intro.md`._"
+        )
+    lines.append("")
+
+    # 3. Stratégie
+    lines += ["## 3. Stratégie de test", ""]
+    if intro.get("test-strategy"):
+        lines.append(intro["test-strategy"])
+    else:
+        lines.append(
+            "_[TODO] Renseigner la stratégie dans "
+            "`docs/test_plan_intro.md` section `## test-strategy` "
+            "(méthode, outillage, fréquence, automatisation)._"
+        )
+    lines.append("")
+
+    # 4. Critères de pass/fail
+    lines += ["## 4. Critères de pass/fail", ""]
+    if intro.get("test-pass-fail"):
+        lines.append(intro["test-pass-fail"])
+    else:
+        lines += [
+            "- **PASS** — tous les TC vérifiant un SRS `priority: Must` sont",
+            "  exécutés et passants ; aucun TC orphelin (sans `verifies`).",
+            "- **FAIL** — ≥ 1 TC vérifiant un SRS Must est en échec.",
+            "- **Skipped** — tracé dans le rapport, ne compte pas comme pass.",
+        ]
+    lines.append("")
+
+    # 5. Couverture
+    lines += [
+        "## 5. Couverture",
+        "",
+        "| Niveau | # TC | SRS Must couverts |",
+        "|---|---|---|",
+    ]
+    for lvl in ("Unit", "Integration", "System"):
+        tcs_lvl = by_level.get(lvl, [])
+        verifies_set: set[str] = set()
+        for t in tcs_lvl:
+            for sid in t.links.get("verifies") or []:
+                verifies_set.add(sid)
+        must_covered = sum(1 for s in must if s.id in verifies_set)
+        rate = (must_covered / len(must)) if must else 0.0
+        lines.append(
+            f"| {lvl} | {len(tcs_lvl)} | {must_covered}/{len(must)} ({rate:.0%}) |"
+        )
+    lines.append("")
+
+    # 6. Cas de test (table)
+    lines += ["## 6. Cas de test", ""]
+    section_idx = 0
+    for lvl in ("Unit", "Integration", "System"):
+        tcs_lvl = sorted(by_level.get(lvl, []), key=lambda x: x.id)
+        if not tcs_lvl:
+            continue
+        section_idx += 1
+        lines.append(f"### 6.{section_idx} {lvl}")
+        lines.append("")
+        lines.append("| ID | Titre | Vérifie | Auto |")
+        lines.append("|---|---|---|---|")
+        for t in tcs_lvl:
+            verifies = ", ".join(t.links.get("verifies") or []) or "—"
+            auto = t.frontmatter.get("automated", "?")
+            lines.append(f"| {t.id} | {t.title} | {verifies} | {auto} |")
+        lines.append("")
+
+    # 7. Exclusions
+    lines += ["## 7. Exclusions", ""]
+    if intro.get("test-exclusions"):
+        lines.append(intro["test-exclusions"])
+    else:
+        lines.append(
+            "_[TODO] Renseigner les exclusions dans "
+            "`docs/test_plan_intro.md` section `## test-exclusions` "
+            "(composants non testés et justification)._"
+        )
+    lines.append("")
+
+    # Annexe A — détail
+    lines += ["---", "", "# Annexe A — Détail des cas de test", ""]
+    if not tcs:
+        lines += ["_(aucun TC enregistré)_", ""]
+    for t in sorted(tcs, key=lambda x: x.id):
+        lines.append(f"## {t.id} — {t.title}")
+        lines.append("")
+        lines.append(
+            f"**Statut :** {t.status} · **Version :** "
+            f"{t.frontmatter.get('version', '?')}"
+        )
+        lines.append(
+            f"**Type :** {t.frontmatter.get('type', '?')} · "
+            f"**Auto :** {t.frontmatter.get('automated', '?')}"
+        )
+        verif = t.links.get("verifies") or []
+        if verif:
+            lines.append(f"**Vérifie :** {', '.join(verif)}")
+        mit = t.mitigates
+        if mit:
+            lines.append(f"**Mitige :** {', '.join(mit)}")
+        srcs = t.frontmatter.get("source") or []
+        if srcs:
+            lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+        lines.append("")
+        lines.append(t.body.strip())
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 def find_todo_markers() -> list[tuple[Path, int, str]]:
     hits: list[tuple[Path, int, str]] = []
     if not ITEMS_DIR.exists():
@@ -869,12 +1092,7 @@ def main() -> int:
         ),
         encoding="utf-8",
     )
-    (OUT_DIR / "30_test_evidence.md").write_text(
-        render_aggregate(
-            "Plan & preuves de vérification", by_cat["TC"], "TC"
-        ),
-        encoding="utf-8",
-    )
+    (OUT_DIR / "30_STD.md").write_text(build_std(by_cat), encoding="utf-8")
 
     matrix_md, coverage = build_traceability(by_cat, impl_by_srs, verif_by_srs)
     (OUT_DIR / "40_traceability.md").write_text(matrix_md, encoding="utf-8")

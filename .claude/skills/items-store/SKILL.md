@@ -178,7 +178,7 @@ formelle, utiliser des commits signés (`git commit -S`).
 
 `python tools/build_docs.py` (déclenché par `/doc-build`) produit :
 
-- `docs/generated/{10_SRS,20_SDS,30_test_evidence}.md` (agrégats triés par
+- `docs/generated/{10_SRS,20_SDS,30_STD}.md` (agrégats triés par
   ID),
 - `docs/generated/40_traceability.md` (matrice de couverture + orphelins),
 - `docs/generated/50_risk_analysis.md` (RSK safety + contrôles),

@@ -29,6 +29,7 @@ Sortie : `docs/items/` (source de vérité, item-par-fichier) +
 | `sds-generate` | Extraction de design et architecture |
 | `test-evidence` | Découverte des tests, formalisation en TC |
 | `traceability-matrix` | Spec de la matrice de couverture |
+| `test-plan` | Convention Software Test Description (STD) IEEE 829 |
 | `risk-analysis` | ISO 14971 + 62304 §7, hazards safety, sévérité, contrôles |
 | `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57, STRIDE, modèle d'attaquant |
 
@@ -96,7 +97,7 @@ docs/
 └── generated/  # produit par /doc-build (NE PAS éditer à la main)
     ├── 10_SRS.md
     ├── 20_SDS.md
-    ├── 30_test_evidence.md
+    ├── 30_STD.md                # Software Test Description (IEEE 829)
     ├── 40_traceability.md
     ├── 50_risk_analysis.md       # safety
     ├── 60_cyber_risk_analysis.md # cyber (STRIDE)
