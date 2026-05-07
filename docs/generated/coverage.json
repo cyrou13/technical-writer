@@ -1,0 +1,13 @@
+{
+  "srs_count": 1,
+  "sds_count": 1,
+  "tc_count": 1,
+  "implementation_rate": 1.0,
+  "verification_rate_must": 1.0,
+  "orphans": {
+    "sds": [],
+    "tc": [],
+    "srs_no_impl": [],
+    "srs_no_verif_must": []
+  }
+}

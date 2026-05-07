@@ -1,0 +1,17 @@
+# Doc agrégés — régénérables, mais on les commit pour les revues PR
+# Décommenter si tu préfères ne pas versionner les agrégats :
+# docs/generated/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+.npm/
+
+# OS
+.DS_Store
+Thumbs.db
