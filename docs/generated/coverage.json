@@ -9,5 +9,33 @@
     "tc": [],
     "srs_no_impl": [],
     "srs_no_verif_must": []
+  },
+  "risks": {
+    "rsk_count": 1,
+    "rsk_unmitigated": [],
+    "rsk_residual_unacceptable": [],
+    "rsk_class_a_invalidating": [],
+    "rsk_summary": [
+      {
+        "id": "RSK-EXAMPLE-001",
+        "title": "Exemple — détournement de session via state OAuth2 prévisible",
+        "severity": "Serious",
+        "probability": "Remote",
+        "level": "Medium",
+        "acceptable_initial": false,
+        "residual_acceptable": true,
+        "controls": [
+          "SDS-EXAMPLE-001",
+          "TC-EXAMPLE-001"
+        ]
+      }
+    ]
+  },
+  "to_implement": {
+    "mitigations_to_implement": [],
+    "mitigations_to_verify": [],
+    "must_to_implement": [],
+    "must_to_verify": [],
+    "nothing_left": true
   }
 }

@@ -11,9 +11,9 @@ rôle est de produire un rapport listant les gaps et incohérences.
 
 Lire :
 - `docs/generated/_codemap.md`
-- `docs/generated/{10_SRS,20_SDS,30_test_evidence,40_traceability}.md`
+- `docs/generated/{10_SRS,20_SDS,30_test_evidence,40_traceability,50_risk_analysis,_to_implement}.md`
 - `docs/generated/coverage.json` (si présent)
-- Spot-check d'items dans `docs/items/{SRS,SDS,TC}/`
+- Spot-check d'items dans `docs/items/{SRS,SDS,TC,RSK}/`
 
 ## Checklist de revue
 
@@ -40,6 +40,18 @@ Lire :
 - [ ] Couverture implémentation ≥ 80 % (Class A — recommandé, pas
       requis).
 - [ ] Couverture vérification ≥ 70 % pour les exigences `Must`.
+
+### Risques (§7, Classe A)
+- [ ] Aucun RSK avec `severity: Critical` ou `Catastrophic` (sinon
+      Classe A invalide → bloquant).
+- [ ] Tout RSK avec `acceptable: false` a au moins un contrôle
+      (`links.mitigates` pointe ce RSK depuis ≥ 1 item).
+- [ ] Tout RSK avec `residual_acceptable: false` est listé comme
+      bloquant.
+- [ ] Toute SRS de mitigation (item avec `links.mitigates` non vide) a
+      au moins un SDS qui l'implémente ET un TC qui la vérifie.
+- [ ] Aucune mitigation orpheline (pointe un RSK inexistant ou
+      `Deprecated`).
 
 ## Sortie
 

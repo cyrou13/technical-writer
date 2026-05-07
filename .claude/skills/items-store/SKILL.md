@@ -87,6 +87,24 @@ interfaces:
     - openid-client (npm)
 ```
 
+## RSK — frontmatter spécifique
+
+```yaml
+hazard: state OAuth2 prévisible permettant CSRF
+hazardous_situation: |
+  L'utilisateur clique sur un lien forgé alors qu'il est connecté à l'IdP.
+harm: Détournement de session, accès non autorisé au compte
+severity: Serious                # Negligible | Minor | Serious | Critical | Catastrophic
+probability: Remote              # Improbable | Remote | Occasional | Probable | Frequent
+risk_level: Medium               # Low | Medium | High
+acceptable: false                # avant mitigation
+residual_acceptable: true        # après mitigation
+```
+
+Les contrôles ne sont **pas** stockés sur le RSK : ils sont calculés au
+build à partir des items qui ont `RSK-XXX` dans `links.mitigates`. Voir
+le skill `risk-analysis`.
+
 ## TC — frontmatter spécifique
 
 ```yaml
@@ -142,4 +160,8 @@ formelle, utiliser des commits signés (`git commit -S`).
 - `docs/generated/{10_SRS,20_SDS,30_test_evidence}.md` (agrégats triés par
   ID),
 - `docs/generated/40_traceability.md` (matrice de couverture + orphelins),
+- `docs/generated/50_risk_analysis.md` (RSK + contrôles, statut
+  d'implémentation/vérification de chaque contrôle),
+- `docs/generated/_to_implement.md` (backlog actionnable des mitigations
+  et exigences Must non encore implémentées/vérifiées),
 - `docs/generated/coverage.json` (métriques machine-readable).

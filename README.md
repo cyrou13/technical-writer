@@ -29,6 +29,7 @@ Sortie : `docs/items/` (source de vérité, item-par-fichier) +
 | `sds-generate` | Extraction de design et architecture |
 | `test-evidence` | Découverte des tests, formalisation en TC |
 | `traceability-matrix` | Spec de la matrice de couverture |
+| `risk-analysis` | ISO 14971 + 62304 §7, hazards, sévérité, contrôles |
 
 ### Sub-agents (un par étape lourde, contexte isolé)
 
@@ -38,6 +39,7 @@ Sortie : `docs/items/` (source de vérité, item-par-fichier) +
 | `requirements-writer` | Génère `docs/items/SRS/*.md` |
 | `architecture-writer` | Génère `docs/items/SDS/*.md` |
 | `test-evidence-collector` | Génère `docs/items/TC/*.md` |
+| `risk-analyst` | Génère `docs/items/RSK/*.md` + dérive les SRS de mitigation |
 | `compliance-reviewer` | Revue 62304 Classe A → `99_compliance_review.md` |
 
 ### Slash commands
@@ -85,9 +87,19 @@ docs/
 ├── items/
 │   ├── SRS/    # exigences logicielles
 │   ├── SDS/    # design & architecture
-│   └── TC/     # cas de test
+│   ├── TC/     # cas de test
+│   └── RSK/    # risques (ISO 14971 + 62304 §7)
 ├── templates/  # squelettes pour /doc-item
 └── generated/  # produit par /doc-build (NE PAS éditer à la main)
+    ├── 10_SRS.md
+    ├── 20_SDS.md
+    ├── 30_test_evidence.md
+    ├── 40_traceability.md
+    ├── 50_risk_analysis.md
+    ├── _to_implement.md       # backlog actionnable (mitigations + Must)
+    ├── _codemap.md
+    ├── 99_compliance_review.md
+    └── coverage.json
 tools/
 └── build_docs.py    # agrégation + matrice de traçabilité
 ```
@@ -132,6 +144,35 @@ Le système doit ...
 - **`docs/generated/` est régénérable.** Ne pas l'éditer à la main —
   toute modification doit passer par `docs/items/`.
 
+## Analyse de risques & "à implémenter"
+
+Le pipeline inclut une étape **`risk-analyst`** qui :
+
+- identifie les hazards à partir du codemap (catégories : sécurité,
+  intégrité, défaillance, auth/autz, confidentialité, disponibilité…) ;
+- crée des items `RSK-<DOMAIN>-<NNN>` avec sévérité, probabilité,
+  niveau, acceptabilité initiale et résiduelle ;
+- pour chaque RSK, identifie les contrôles déjà en place et **ajoute
+  `links.mitigates`** aux items SRS/SDS/TC concernés (édition
+  idempotente) ;
+- crée les **SRS de mitigation manquantes** (`priority: Must`,
+  `links.mitigates: [RSK-XXX]`).
+
+Le fichier **`docs/generated/_to_implement.md`** est le **backlog
+actionnable** : six sections triées par priorité de blocage.
+
+| # | Section | Origine |
+|---|---|---|
+| 1 | Risques sans contrôle (BLOQUANT) | RSK avec `acceptable: false` et 0 item `mitigates` |
+| 2 | Résiduel non acceptable (BLOQUANT) | RSK avec `residual_acceptable: false` |
+| 3 | Mitigations à implémenter | SRS avec `mitigates` non vide, sans SDS qui implémente |
+| 4 | Mitigations à vérifier | SRS de mitigation implémentée mais sans TC |
+| 5 | Must hors mitigation à implémenter | autres SRS Must sans SDS |
+| 6 | Must hors mitigation à vérifier | autres SRS Must sans TC |
+
+Si toutes les sections sont vides → message "doc en bon état pour
+publication".
+
 ## CI
 
 Pour valider la doc en CI sans dépendance :
@@ -140,17 +181,27 @@ Pour valider la doc en CI sans dépendance :
 - run: python tools/build_docs.py --strict
 ```
 
-`--strict` échoue dès qu'un `[TODO]` ou `[GAP-62304]` traîne.
+`--strict` échoue si :
+
+- un marqueur `[TODO]` ou `[GAP-62304]` subsiste,
+- un RSK a `severity: Critical` ou `Catastrophic` (Classe A invalide),
+- un RSK a `residual_acceptable: false`,
+- un RSK a `acceptable: false` sans aucun contrôle.
+
+Le `_to_implement.md` reste informatif (pas de fail CI sur les sections
+3-6) — il liste ce qu'il reste à faire sans bloquer le merge.
 
 ## Limites v1
 
 - Classe A uniquement. Pour B/C, créer un skill `iec62304-class-b` et
   étendre les agents (intégration §5.6, gestion plus stricte des SOUP,
-  risque détaillé §7).
+  matrice risque sévérité×probabilité plus fine).
 - Pas d'export DOCX/PDF intégré — utiliser `pandoc` à la main si besoin
   d'un livrable réglementaire formaté.
-- Pas de gestion des risques détaillée — la catégorie `RSK` est
-  réservée mais pas peuplée par les agents v1.
 - Le statut d'exécution des tests (`Passing`/`Failing`) n'est pas mis à
   jour automatiquement par défaut — fournir un rapport JUnit/pytest pour
   l'enrichir.
+- L'analyse de risques s'appuie sur les hazards inférables depuis le
+  code et son contexte explicite. Les hazards d'usage clinique restent
+  à apporter par le système qualité — le risk-analyst ne les invente
+  pas.

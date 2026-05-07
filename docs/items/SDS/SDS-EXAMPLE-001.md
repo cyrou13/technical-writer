@@ -12,7 +12,8 @@ links:
   parent: []
   implements:
     - SRS-EXAMPLE-001
-  mitigates: []
+  mitigates:
+    - RSK-EXAMPLE-001
 interfaces:
   inputs:
     - HTTP GET /auth/login

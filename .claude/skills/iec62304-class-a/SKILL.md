@@ -23,6 +23,8 @@ allégé, mais structure documentaire conservée.
 | §5.3–§5.4 | Software Design / Architecture (SDS) | `SDS` | `docs/generated/20_SDS.md` |
 | §5.5 / §5.7 | Vérification (test plan + preuves) | `TC` | `docs/generated/30_test_evidence.md` |
 | §5.1.1 / §5.2.6 | Matrice de traçabilité | (calculée) | `docs/generated/40_traceability.md` |
+| §7 | Analyse de risques (Class A : justification) | `RSK` | `docs/generated/50_risk_analysis.md` |
+| — | Backlog actionnable des mitigations à implémenter | (calculé) | `docs/generated/_to_implement.md` |
 
 ## Règles de rédaction
 
@@ -57,9 +59,20 @@ Le `compliance-reviewer` agrège ces marqueurs.
 
 ## Ce qui n'est PAS couvert v1
 
-- Gestion des risques détaillée (§7) — Classe A : identification suffisante.
 - Gestion de configuration (§8) — assurée par git.
 - Résolution des problèmes (§9) — assurée par l'issue tracker.
+
+## Risques (§7) — périmètre Classe A
+
+L'analyse de risques EST couverte (skill `risk-analysis`, agent
+`risk-analyst`). En Classe A elle vise à **justifier la classification** :
+
+- tout risque doit finir `risk_level: Low` et `acceptable: true`, OU
+- avoir au moins un contrôle (SRS/SDS/TC `links.mitigates`) ramenant à
+  `residual_acceptable: true`.
+
+Tout risque résiduel non acceptable, ou tout hazard avec
+`severity: Critical/Catastrophic`, **invalide la Classe A** — alerter.
 
 Si le périmètre évolue (Classe B/C, gestion des SOUP), créer un skill
 `iec62304-class-b` ou étendre celui-ci.

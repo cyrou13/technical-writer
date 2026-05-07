@@ -13,7 +13,8 @@ source:
 links:
   verifies:
     - SRS-EXAMPLE-001
-  mitigates: []
+  mitigates:
+    - RSK-EXAMPLE-001
 preconditions:
   - IdP de test démarré sur localhost:9000
 steps:

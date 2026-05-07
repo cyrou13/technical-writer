@@ -7,15 +7,20 @@ Lit `docs/items/<CAT>/*.md`, parse le frontmatter YAML, produit :
   - docs/generated/20_SDS.md
   - docs/generated/30_test_evidence.md
   - docs/generated/40_traceability.md
+  - docs/generated/50_risk_analysis.md
+  - docs/generated/_to_implement.md
   - docs/generated/coverage.json
 
-Ne dépend que de la stdlib (pas de PyYAML — parser inline simple suffit
-pour le sous-ensemble YAML utilisé par les frontmatters).
+Ne dépend que de la stdlib.
 
 Usage:
     python tools/build_docs.py [--strict]
 
-`--strict` => exit ≠ 0 si tout [TODO] ou [GAP-62304] non résolu.
+`--strict` => exit ≠ 0 si :
+  - tout marqueur [TODO] ou [GAP-62304] dans les items,
+  - tout RSK avec `severity: Critical|Catastrophic`,
+  - tout RSK avec `residual_acceptable: false`,
+  - tout RSK avec `acceptable: false` sans aucun contrôle.
 """
 
 from __future__ import annotations
@@ -24,7 +29,7 @@ import json
 import re
 import sys
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
@@ -34,6 +39,8 @@ OUT_DIR = ROOT / "docs" / "generated"
 
 CATEGORIES = ("SRS", "SDS", "TC", "RSK")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.DOTALL)
+
+CLASS_A_INVALIDATING_SEVERITY = {"Critical", "Catastrophic"}
 
 
 @dataclass
@@ -56,13 +63,17 @@ class Item:
     def links(self) -> dict:
         return self.frontmatter.get("links") or {}
 
+    @property
+    def mitigates(self) -> list[str]:
+        return list(self.links.get("mitigates") or [])
+
+
+# ---------------------------------------------------------------------------
+# YAML mini-parser (sous-ensemble utilisé par les frontmatters)
+# ---------------------------------------------------------------------------
+
 
 def parse_yaml_frontmatter(text: str) -> dict:
-    """Parser YAML minimaliste pour le sous-ensemble utilisé.
-
-    Supporte: scalaires, listes inline `[a, b]`, listes en blocs `- x`,
-    blocs imbriqués sur 2 niveaux, scalaires `|` (multi-ligne).
-    """
     result: dict = {}
     lines = text.splitlines()
     i = 0
@@ -81,7 +92,6 @@ def parse_yaml_frontmatter(text: str) -> dict:
             continue
         key, raw = m.group(1), m.group(2).strip()
         if raw == "" or raw == "|":
-            # Bloc — soit liste de "- ...", soit dict imbriqué, soit "|" multi-ligne.
             block_lines: list[str] = []
             i += 1
             while i < len(lines):
@@ -95,11 +105,9 @@ def parse_yaml_frontmatter(text: str) -> dict:
                 block_lines.append(nxt)
                 i += 1
             if raw == "|":
-                # multi-ligne scalaire — dédent commun
                 stripped = [bl[2:] if bl.startswith("  ") else bl for bl in block_lines]
                 result[key] = "\n".join(stripped).rstrip("\n")
             elif block_lines and block_lines[0].lstrip(" ").startswith("- "):
-                # liste
                 items = []
                 for bl in block_lines:
                     s = bl.strip()
@@ -107,31 +115,25 @@ def parse_yaml_frontmatter(text: str) -> dict:
                         items.append(_coerce_scalar(s[2:].strip()))
                 result[key] = items
             else:
-                # dict imbriqué — un niveau
                 sub: dict = {}
+                cur_key = None
                 for bl in block_lines:
                     if not bl.strip() or bl.strip().startswith("#"):
                         continue
                     sm = re.match(r"^\s+([A-Za-z_][\w\-]*)\s*:\s*(.*)$", bl)
-                    if not sm:
-                        continue
-                    sk, sv = sm.group(1), sm.group(2).strip()
-                    if sv == "":
-                        sub[sk] = []
-                    elif sv.startswith("[") and sv.endswith("]"):
-                        sub[sk] = _parse_inline_list(sv)
-                    else:
-                        sub[sk] = _coerce_scalar(sv)
-                # second pass : listes en bloc à l'intérieur du dict imbriqué
-                cur_key = None
-                for bl in block_lines:
-                    if re.match(r"^\s+[A-Za-z_][\w\-]*\s*:\s*$", bl):
-                        cur_key = bl.strip().rstrip(":")
-                        sub.setdefault(cur_key, [])
+                    if sm:
+                        sk, sv = sm.group(1), sm.group(2).strip()
+                        if sv == "":
+                            sub[sk] = []
+                            cur_key = sk
+                        elif sv.startswith("[") and sv.endswith("]"):
+                            sub[sk] = _parse_inline_list(sv)
+                            cur_key = None
+                        else:
+                            sub[sk] = _coerce_scalar(sv)
+                            cur_key = None
                     elif cur_key and bl.strip().startswith("- "):
                         sub[cur_key].append(_coerce_scalar(bl.strip()[2:].strip()))
-                    elif bl.strip() and not re.match(r"^\s+[A-Za-z_][\w\-]*\s*:", bl):
-                        cur_key = None
                 result[key] = sub
         elif raw.startswith("[") and raw.endswith("]"):
             result[key] = _parse_inline_list(raw)
@@ -167,6 +169,11 @@ def _coerce_scalar(s: str):
     return s
 
 
+# ---------------------------------------------------------------------------
+# Chargement
+# ---------------------------------------------------------------------------
+
+
 def load_items() -> dict[str, list[Item]]:
     out: dict[str, list[Item]] = {c: [] for c in CATEGORIES}
     if not ITEMS_DIR.exists():
@@ -195,6 +202,47 @@ def load_items() -> dict[str, list[Item]]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Calculs de liens / couvertures
+# ---------------------------------------------------------------------------
+
+
+def reverse_index(items: dict[str, list[Item]]):
+    """Calcule plusieurs index inverses :
+    - impl_by_srs[srs_id]   = liste d'IDs SDS qui implémentent
+    - verif_by_srs[srs_id]  = liste d'IDs TC qui vérifient
+    - controls_by_rsk[rsk_id] = liste d'Items (toutes cat) qui mitigent
+    """
+    impl_by_srs: dict[str, list[str]] = defaultdict(list)
+    for s in items["SDS"]:
+        if s.status == "Deprecated":
+            continue
+        for srs_id in s.links.get("implements") or []:
+            impl_by_srs[srs_id].append(s.id)
+
+    verif_by_srs: dict[str, list[str]] = defaultdict(list)
+    for t in items["TC"]:
+        if t.status == "Deprecated":
+            continue
+        for srs_id in t.links.get("verifies") or []:
+            verif_by_srs[srs_id].append(t.id)
+
+    controls_by_rsk: dict[str, list[Item]] = defaultdict(list)
+    for cat in ("SRS", "SDS", "TC"):
+        for it in items[cat]:
+            if it.status == "Deprecated":
+                continue
+            for rsk_id in it.mitigates:
+                controls_by_rsk[rsk_id].append(it)
+
+    return impl_by_srs, verif_by_srs, controls_by_rsk
+
+
+# ---------------------------------------------------------------------------
+# Rendu
+# ---------------------------------------------------------------------------
+
+
 def render_aggregate(title: str, items: list[Item], category: str) -> str:
     lines = [f"# {title}", "", f"_Généré le {date.today().isoformat()}_", ""]
     if not items:
@@ -205,18 +253,26 @@ def render_aggregate(title: str, items: list[Item], category: str) -> str:
             continue
         lines.append(f"## {it.id} — {it.title}")
         lines.append("")
-        lines.append(f"**Statut :** {it.status} · **Version :** "
-                     f"{it.frontmatter.get('version', '?')}")
+        lines.append(
+            f"**Statut :** {it.status} · **Version :** "
+            f"{it.frontmatter.get('version', '?')}"
+        )
         if category == "SRS":
             lines.append(
                 f"**Vérification :** {it.frontmatter.get('verification', '?')} · "
                 f"**Priorité :** {it.frontmatter.get('priority', '?')}"
             )
+            mit = it.mitigates
+            if mit:
+                lines.append(f"**Mitigation de :** {', '.join(mit)}")
         if category == "SDS":
             lines.append(f"**Module :** `{it.frontmatter.get('module', '?')}`")
             impls = it.links.get("implements") or []
             if impls:
                 lines.append(f"**Implémente :** {', '.join(impls)}")
+            mit = it.mitigates
+            if mit:
+                lines.append(f"**Mitige :** {', '.join(mit)}")
         if category == "TC":
             verif = it.links.get("verifies") or []
             lines.append(
@@ -225,6 +281,9 @@ def render_aggregate(title: str, items: list[Item], category: str) -> str:
             )
             if verif:
                 lines.append(f"**Vérifie :** {', '.join(verif)}")
+            mit = it.mitigates
+            if mit:
+                lines.append(f"**Mitige :** {', '.join(mit)}")
         srcs = it.frontmatter.get("source") or []
         if srcs:
             lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
@@ -236,20 +295,10 @@ def render_aggregate(title: str, items: list[Item], category: str) -> str:
     return "\n".join(lines)
 
 
-def build_traceability(by_cat: dict[str, list[Item]]) -> tuple[str, dict]:
+def build_traceability(by_cat, impl_by_srs, verif_by_srs):
     srs = [i for i in by_cat["SRS"] if i.status != "Deprecated"]
     sds = [i for i in by_cat["SDS"] if i.status != "Deprecated"]
     tc = [i for i in by_cat["TC"] if i.status != "Deprecated"]
-
-    impl_by_srs: dict[str, list[str]] = defaultdict(list)
-    for s in sds:
-        for srs_id in s.links.get("implements") or []:
-            impl_by_srs[srs_id].append(s.id)
-
-    verif_by_srs: dict[str, list[str]] = defaultdict(list)
-    for t in tc:
-        for srs_id in t.links.get("verifies") or []:
-            verif_by_srs[srs_id].append(t.id)
 
     must = [s for s in srs if s.frontmatter.get("priority", "Must") == "Must"]
     impl_count = sum(1 for s in srs if impl_by_srs[s.id])
@@ -306,6 +355,285 @@ def build_traceability(by_cat: dict[str, list[Item]]) -> tuple[str, dict]:
     return "\n".join(lines) + "\n", coverage
 
 
+def build_risk_analysis(by_cat, controls_by_rsk, impl_by_srs, verif_by_srs):
+    """Renvoie (markdown, dict d'analyse pour coverage et to_implement)."""
+    rsks = [r for r in by_cat["RSK"] if r.status != "Deprecated"]
+
+    lines = [
+        "# Analyse de risques (IEC 62304 §7 — Classe A)",
+        "",
+        f"_Généré le {date.today().isoformat()}_",
+        "",
+    ]
+
+    if not rsks:
+        lines += ["_(aucun risque enregistré)_", ""]
+        return "\n".join(lines), {
+            "rsk_count": 0,
+            "rsk_unmitigated": [],
+            "rsk_residual_unacceptable": [],
+            "rsk_class_a_invalidating": [],
+            "rsk_summary": [],
+        }
+
+    summary: list[dict] = []
+    unmitigated: list[str] = []
+    residual_unacceptable: list[str] = []
+    class_a_invalidating: list[str] = []
+
+    lines += [
+        "## Synthèse",
+        "",
+        "| RSK | Titre | Sévérité | Niveau | Initial OK | Résiduel OK | # Contrôles |",
+        "|---|---|---|---|---|---|---|",
+    ]
+
+    for rsk in rsks:
+        fm = rsk.frontmatter
+        sev = fm.get("severity", "Negligible")
+        prob = fm.get("probability", "Remote")
+        level = fm.get("risk_level", "Low")
+        init_ok = bool(fm.get("acceptable", True))
+        res_ok = bool(fm.get("residual_acceptable", True))
+        controls = controls_by_rsk.get(rsk.id, [])
+
+        if sev in CLASS_A_INVALIDATING_SEVERITY:
+            class_a_invalidating.append(rsk.id)
+        if not init_ok and not controls:
+            unmitigated.append(rsk.id)
+        if not res_ok:
+            residual_unacceptable.append(rsk.id)
+
+        summary.append(
+            {
+                "id": rsk.id,
+                "title": rsk.title,
+                "severity": sev,
+                "probability": prob,
+                "level": level,
+                "acceptable_initial": init_ok,
+                "residual_acceptable": res_ok,
+                "controls": [c.id for c in controls],
+            }
+        )
+
+        lines.append(
+            f"| {rsk.id} | {rsk.title} | {sev} | {level} | "
+            f"{'✓' if init_ok else '✗'} | {'✓' if res_ok else '✗'} | "
+            f"{len(controls)} |"
+        )
+
+    lines += ["", "## Détail par RSK", ""]
+
+    for rsk in rsks:
+        fm = rsk.frontmatter
+        lines.append(f"### {rsk.id} — {rsk.title}")
+        lines.append("")
+        lines.append(
+            f"**Statut :** {rsk.status} · **Version :** {fm.get('version', '?')}"
+        )
+        lines.append(
+            f"**Sévérité :** {fm.get('severity', '?')} · "
+            f"**Probabilité :** {fm.get('probability', '?')} · "
+            f"**Niveau :** {fm.get('risk_level', '?')}"
+        )
+        lines.append(
+            f"**Acceptable (initial) :** "
+            f"{'oui' if fm.get('acceptable', True) else 'non'} · "
+            f"**Résiduel acceptable :** "
+            f"{'oui' if fm.get('residual_acceptable', True) else 'non'}"
+        )
+        srcs = fm.get("source") or []
+        if srcs:
+            lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+        lines.append("")
+
+        controls = controls_by_rsk.get(rsk.id, [])
+        if controls:
+            lines.append("**Contrôles :**")
+            lines.append("")
+            lines.append("| Item | Catégorie | Implémenté | Vérifié |")
+            lines.append("|---|---|---|---|")
+            for c in controls:
+                if c.category == "SRS":
+                    impl = "✓" if impl_by_srs.get(c.id) else "✗"
+                    verif = "✓" if verif_by_srs.get(c.id) else "✗"
+                elif c.category == "SDS":
+                    impl = "✓ (design)"
+                    verif = "n/a"
+                else:  # TC
+                    impl = "n/a"
+                    verif = "✓ (test)"
+                lines.append(f"| {c.id} | {c.category} | {impl} | {verif} |")
+            lines.append("")
+        else:
+            lines.append("_Aucun contrôle enregistré._")
+            lines.append("")
+        lines.append(rsk.body.strip())
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    if class_a_invalidating:
+        lines += [
+            "## ⚠ Risques invalidant la Classe A",
+            "",
+            "Les RSK suivants ont une sévérité `Critical` ou `Catastrophic`. La",
+            "classification Class A est probablement incorrecte — revoir la",
+            "classification avec le système qualité.",
+            "",
+        ] + [f"- {r}" for r in class_a_invalidating]
+
+    return "\n".join(lines) + "\n", {
+        "rsk_count": len(rsks),
+        "rsk_unmitigated": unmitigated,
+        "rsk_residual_unacceptable": residual_unacceptable,
+        "rsk_class_a_invalidating": class_a_invalidating,
+        "rsk_summary": summary,
+    }
+
+
+def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_rsk, risk_data):
+    """Backlog actionnable — qu'est-ce qu'il reste à faire."""
+    srs = [s for s in by_cat["SRS"] if s.status != "Deprecated"]
+    rsks = [r for r in by_cat["RSK"] if r.status != "Deprecated"]
+
+    # 1. Risques sans contrôle (acceptable=false ET aucun contrôle)
+    rsk_unmit = []
+    for r in rsks:
+        if not r.frontmatter.get("acceptable", True) and not controls_by_rsk.get(r.id):
+            rsk_unmit.append(r)
+
+    # 2. Risques avec résiduel non acceptable
+    rsk_res_bad = [
+        r for r in rsks if not r.frontmatter.get("residual_acceptable", True)
+    ]
+
+    # 3 & 4. Mitigation SRS à implémenter / vérifier
+    mit_to_impl: list[Item] = []
+    mit_to_verif: list[Item] = []
+    for s in srs:
+        if not s.mitigates:
+            continue
+        if not impl_by_srs.get(s.id):
+            mit_to_impl.append(s)
+        elif not verif_by_srs.get(s.id):
+            mit_to_verif.append(s)
+
+    # 5 & 6. Must SRS hors mitigation à implémenter / vérifier
+    must_to_impl: list[Item] = []
+    must_to_verif: list[Item] = []
+    for s in srs:
+        if s.frontmatter.get("priority", "Must") != "Must":
+            continue
+        if s.mitigates:
+            continue  # déjà couvert sections 3/4
+        if not impl_by_srs.get(s.id):
+            must_to_impl.append(s)
+        elif not verif_by_srs.get(s.id):
+            must_to_verif.append(s)
+
+    lines = [
+        "# À implémenter — backlog actionnable",
+        "",
+        f"_Généré le {date.today().isoformat()}_",
+        "",
+        "> Source de vérité pour les actions concrètes : que reste-t-il à coder,",
+        "> tester ou analyser pour atteindre la conformité IEC 62304 Classe A.",
+        "> Ce fichier est régénéré à chaque `python tools/build_docs.py`.",
+        "",
+    ]
+
+    def _section(title: str, rows: list[tuple[str, ...]], headers: tuple[str, ...]):
+        lines.append(f"## {title}")
+        lines.append("")
+        if not rows:
+            lines.append("_Rien à signaler._")
+            lines.append("")
+            return
+        lines.append("| " + " | ".join(headers) + " |")
+        lines.append("|" + "|".join(["---"] * len(headers)) + "|")
+        for r in rows:
+            lines.append("| " + " | ".join(r) + " |")
+        lines.append("")
+
+    _section(
+        "1. Risques sans contrôle (BLOQUANT)",
+        [
+            (
+                r.id,
+                r.title,
+                r.frontmatter.get("severity", "?"),
+                r.frontmatter.get("risk_level", "?"),
+                "Définir au moins un contrôle (SRS/SDS/TC `mitigates`)",
+            )
+            for r in rsk_unmit
+        ],
+        ("RSK", "Titre", "Sévérité", "Niveau", "Action"),
+    )
+
+    _section(
+        "2. Risques avec résiduel non acceptable (BLOQUANT)",
+        [
+            (
+                r.id,
+                r.title,
+                r.frontmatter.get("risk_level", "?"),
+                "Renforcer les contrôles ou revoir la classification",
+            )
+            for r in rsk_res_bad
+        ],
+        ("RSK", "Titre", "Niveau", "Action"),
+    )
+
+    _section(
+        "3. Mitigations à implémenter (SRS de mitigation sans SDS)",
+        [
+            (s.id, s.title, ", ".join(s.mitigates), "Écrire le module qui réalise cette exigence")
+            for s in mit_to_impl
+        ],
+        ("Mitigation SRS", "Titre", "RSK adressé(s)", "Action"),
+    )
+
+    _section(
+        "4. Mitigations à vérifier (SRS de mitigation sans TC)",
+        [
+            (s.id, s.title, ", ".join(s.mitigates), "Écrire un test de vérification")
+            for s in mit_to_verif
+        ],
+        ("Mitigation SRS", "Titre", "RSK adressé(s)", "Action"),
+    )
+
+    _section(
+        "5. Exigences Must hors mitigation à implémenter",
+        [(s.id, s.title) for s in must_to_impl],
+        ("SRS", "Titre"),
+    )
+
+    _section(
+        "6. Exigences Must hors mitigation à vérifier",
+        [(s.id, s.title) for s in must_to_verif],
+        ("SRS", "Titre"),
+    )
+
+    nothing_left = not (
+        rsk_unmit or rsk_res_bad or mit_to_impl or mit_to_verif or must_to_impl or must_to_verif
+    )
+    if nothing_left:
+        lines.append(
+            "**Toutes les sections sont vides — la doc est en bon état pour publication.**"
+        )
+        lines.append("")
+
+    return "\n".join(lines), {
+        "mitigations_to_implement": [s.id for s in mit_to_impl],
+        "mitigations_to_verify": [s.id for s in mit_to_verif],
+        "must_to_implement": [s.id for s in must_to_impl],
+        "must_to_verify": [s.id for s in must_to_verif],
+        "nothing_left": nothing_left,
+    }
+
+
 def find_todo_markers() -> list[tuple[Path, int, str]]:
     hits: list[tuple[Path, int, str]] = []
     if not ITEMS_DIR.exists():
@@ -321,43 +649,84 @@ def main() -> int:
     strict = "--strict" in sys.argv[1:]
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     by_cat = load_items()
+    impl_by_srs, verif_by_srs, controls_by_rsk = reverse_index(by_cat)
 
     (OUT_DIR / "10_SRS.md").write_text(
-        render_aggregate("Software Requirements Specification (SRS)",
-                         by_cat["SRS"], "SRS"),
+        render_aggregate(
+            "Software Requirements Specification (SRS)", by_cat["SRS"], "SRS"
+        ),
         encoding="utf-8",
     )
     (OUT_DIR / "20_SDS.md").write_text(
-        render_aggregate("Software Design Specification (SDS)",
-                         by_cat["SDS"], "SDS"),
+        render_aggregate(
+            "Software Design Specification (SDS)", by_cat["SDS"], "SDS"
+        ),
         encoding="utf-8",
     )
     (OUT_DIR / "30_test_evidence.md").write_text(
-        render_aggregate("Plan & preuves de vérification",
-                         by_cat["TC"], "TC"),
+        render_aggregate(
+            "Plan & preuves de vérification", by_cat["TC"], "TC"
+        ),
         encoding="utf-8",
     )
 
-    matrix_md, coverage = build_traceability(by_cat)
+    matrix_md, coverage = build_traceability(by_cat, impl_by_srs, verif_by_srs)
     (OUT_DIR / "40_traceability.md").write_text(matrix_md, encoding="utf-8")
+
+    risk_md, risk_data = build_risk_analysis(
+        by_cat, controls_by_rsk, impl_by_srs, verif_by_srs
+    )
+    (OUT_DIR / "50_risk_analysis.md").write_text(risk_md, encoding="utf-8")
+
+    todo_md, todo_data = build_to_implement(
+        by_cat, impl_by_srs, verif_by_srs, controls_by_rsk, risk_data
+    )
+    (OUT_DIR / "_to_implement.md").write_text(todo_md, encoding="utf-8")
+
+    coverage["risks"] = risk_data
+    coverage["to_implement"] = todo_data
     (OUT_DIR / "coverage.json").write_text(
         json.dumps(coverage, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    print(f"OK — items SRS={len(by_cat['SRS'])} SDS={len(by_cat['SDS'])} "
-          f"TC={len(by_cat['TC'])}")
-    print(f"  impl={coverage['implementation_rate']:.0%} "
-          f"verif_must={coverage['verification_rate_must']:.0%}")
+    print(
+        f"OK — items SRS={len(by_cat['SRS'])} SDS={len(by_cat['SDS'])} "
+        f"TC={len(by_cat['TC'])} RSK={len(by_cat['RSK'])}"
+    )
+    print(
+        f"  impl={coverage['implementation_rate']:.0%} "
+        f"verif_must={coverage['verification_rate_must']:.0%} "
+        f"rsk_open={len(risk_data['rsk_unmitigated']) + len(risk_data['rsk_residual_unacceptable'])}"
+    )
     print(f"  → {OUT_DIR}")
 
     if strict:
+        problems: list[str] = []
         todos = find_todo_markers()
         if todos:
-            print(f"STRICT — {len(todos)} marqueur(s) [TODO]/[GAP-62304] :",
-                  file=sys.stderr)
+            problems.append(f"{len(todos)} marqueur(s) [TODO]/[GAP-62304]")
             for path, n, line in todos:
                 rel = path.relative_to(ROOT)
-                print(f"  {rel}:{n}: {line}", file=sys.stderr)
+                print(f"  TODO {rel}:{n}: {line}", file=sys.stderr)
+        if risk_data["rsk_class_a_invalidating"]:
+            problems.append(
+                f"{len(risk_data['rsk_class_a_invalidating'])} RSK avec sévérité "
+                f"Critical/Catastrophic — Classe A invalide"
+            )
+        if risk_data["rsk_residual_unacceptable"]:
+            problems.append(
+                f"{len(risk_data['rsk_residual_unacceptable'])} RSK avec "
+                f"residual_acceptable=false"
+            )
+        if risk_data["rsk_unmitigated"]:
+            problems.append(
+                f"{len(risk_data['rsk_unmitigated'])} RSK sans contrôle "
+                f"(acceptable=false)"
+            )
+        if problems:
+            print("STRICT — problèmes :", file=sys.stderr)
+            for p in problems:
+                print(f"  - {p}", file=sys.stderr)
             return 2
     return 0
 

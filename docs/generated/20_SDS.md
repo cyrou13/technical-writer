@@ -7,6 +7,7 @@ _Généré le 2026-05-07_
 **Statut :** Draft · **Version :** 1.0.0
 **Module :** `src/auth/oauth`
 **Implémente :** SRS-EXAMPLE-001
+**Mitige :** RSK-EXAMPLE-001
 **Source :** `src/auth/oauth.ts`
 
 ## Responsabilité
