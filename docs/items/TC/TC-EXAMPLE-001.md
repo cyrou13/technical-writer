@@ -15,6 +15,7 @@ links:
     - SRS-EXAMPLE-001
   mitigates:
     - RSK-EXAMPLE-001
+    - THR-EXAMPLE-001
 preconditions:
   - IdP de test démarré sur localhost:9000
 steps:

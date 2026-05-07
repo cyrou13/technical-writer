@@ -11,9 +11,9 @@ rôle est de produire un rapport listant les gaps et incohérences.
 
 Lire :
 - `docs/generated/_codemap.md`
-- `docs/generated/{10_SRS,20_SDS,30_test_evidence,40_traceability,50_risk_analysis,_to_implement}.md`
+- `docs/generated/{10_SRS,20_SDS,30_test_evidence,40_traceability,50_risk_analysis,60_cyber_risk_analysis,_to_implement}.md`
 - `docs/generated/coverage.json` (si présent)
-- Spot-check d'items dans `docs/items/{SRS,SDS,TC,RSK}/`
+- Spot-check d'items dans `docs/items/{SRS,SDS,TC,RSK,THR}/`
 
 ## Checklist de revue
 
@@ -41,7 +41,7 @@ Lire :
       requis).
 - [ ] Couverture vérification ≥ 70 % pour les exigences `Must`.
 
-### Risques (§7, Classe A)
+### Risques safety (§7, Classe A)
 - [ ] Aucun RSK avec `severity: Critical` ou `Catastrophic` (sinon
       Classe A invalide → bloquant).
 - [ ] Tout RSK avec `acceptable: false` a au moins un contrôle
@@ -50,8 +50,18 @@ Lire :
       bloquant.
 - [ ] Toute SRS de mitigation (item avec `links.mitigates` non vide) a
       au moins un SDS qui l'implémente ET un TC qui la vérifie.
-- [ ] Aucune mitigation orpheline (pointe un RSK inexistant ou
+- [ ] Aucune mitigation orpheline (pointe un RSK/THR inexistant ou
       `Deprecated`).
+
+### Risques cyber (IEC 81001-5-1)
+- [ ] Tout THR avec `acceptable: false` a au moins un contrôle.
+- [ ] Tout THR avec `residual_acceptable: false` est listé comme
+      bloquant.
+- [ ] Tout THR `risk_level: High` est résolu (controls + résiduel
+      acceptable) ou explicitement accepté avec justification.
+- [ ] Tout THR avec `links.triggers: [RSK-XXX]` pointe un RSK
+      existant (sinon flag : risk-analyst doit créer le RSK lié).
+- [ ] STRIDE + attaquant + asset renseignés sur chaque THR.
 
 ## Sortie
 

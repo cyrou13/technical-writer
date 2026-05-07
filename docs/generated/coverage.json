@@ -31,7 +31,36 @@
       }
     ]
   },
+  "threats": {
+    "thr_count": 1,
+    "thr_unmitigated": [],
+    "thr_residual_unacceptable": [],
+    "thr_high_risk": [],
+    "thr_summary": [
+      {
+        "id": "THR-EXAMPLE-001",
+        "title": "Exemple — vol de session via XSS dans la SPA",
+        "stride": [
+          "S",
+          "I"
+        ],
+        "attacker": "external_unauth",
+        "level": "High",
+        "acceptable_initial": false,
+        "residual_acceptable": true,
+        "controls": [
+          "SDS-EXAMPLE-001",
+          "TC-EXAMPLE-001"
+        ],
+        "triggers": []
+      }
+    ]
+  },
   "to_implement": {
+    "rsk_unmitigated": [],
+    "rsk_residual_unacceptable": [],
+    "thr_unmitigated": [],
+    "thr_residual_unacceptable": [],
     "mitigations_to_implement": [],
     "mitigations_to_verify": [],
     "must_to_implement": [],

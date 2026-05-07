@@ -29,7 +29,8 @@ Sortie : `docs/items/` (source de vérité, item-par-fichier) +
 | `sds-generate` | Extraction de design et architecture |
 | `test-evidence` | Découverte des tests, formalisation en TC |
 | `traceability-matrix` | Spec de la matrice de couverture |
-| `risk-analysis` | ISO 14971 + 62304 §7, hazards, sévérité, contrôles |
+| `risk-analysis` | ISO 14971 + 62304 §7, hazards safety, sévérité, contrôles |
+| `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57, STRIDE, modèle d'attaquant |
 
 ### Sub-agents (un par étape lourde, contexte isolé)
 
@@ -39,7 +40,8 @@ Sortie : `docs/items/` (source de vérité, item-par-fichier) +
 | `requirements-writer` | Génère `docs/items/SRS/*.md` |
 | `architecture-writer` | Génère `docs/items/SDS/*.md` |
 | `test-evidence-collector` | Génère `docs/items/TC/*.md` |
-| `risk-analyst` | Génère `docs/items/RSK/*.md` + dérive les SRS de mitigation |
+| `risk-analyst` | Génère `docs/items/RSK/*.md` + dérive les SRS de mitigation safety |
+| `security-analyst` | Threat modeling STRIDE → `docs/items/THR/*.md` + mitigations cyber |
 | `compliance-reviewer` | Revue 62304 Classe A → `99_compliance_review.md` |
 
 ### Slash commands
@@ -88,15 +90,17 @@ docs/
 │   ├── SRS/    # exigences logicielles
 │   ├── SDS/    # design & architecture
 │   ├── TC/     # cas de test
-│   └── RSK/    # risques (ISO 14971 + 62304 §7)
+│   ├── RSK/    # risques safety (ISO 14971 + 62304 §7)
+│   └── THR/    # menaces cyber  (IEC 81001-5-1 / STRIDE)
 ├── templates/  # squelettes pour /doc-item
 └── generated/  # produit par /doc-build (NE PAS éditer à la main)
     ├── 10_SRS.md
     ├── 20_SDS.md
     ├── 30_test_evidence.md
     ├── 40_traceability.md
-    ├── 50_risk_analysis.md
-    ├── _to_implement.md       # backlog actionnable (mitigations + Must)
+    ├── 50_risk_analysis.md       # safety
+    ├── 60_cyber_risk_analysis.md # cyber (STRIDE)
+    ├── _to_implement.md          # backlog A/B/C/D : safety, cyber, mitigations, Must
     ├── _codemap.md
     ├── 99_compliance_review.md
     └── coverage.json
@@ -146,29 +150,41 @@ Le système doit ...
 
 ## Analyse de risques & "à implémenter"
 
-Le pipeline inclut une étape **`risk-analyst`** qui :
+Le pipeline distingue **safety** (ISO 14971 / 62304 §7) et **cyber**
+(IEC 81001-5-1 / STRIDE), avec deux agents dédiés et deux catégories
+d'items disjointes (`RSK` vs `THR`).
 
-- identifie les hazards à partir du codemap (catégories : sécurité,
-  intégrité, défaillance, auth/autz, confidentialité, disponibilité…) ;
+### Safety — `risk-analyst`
+
+- identifie les hazards à partir du codemap (catégories : intégrité,
+  disponibilité, données, comportement) ;
 - crée des items `RSK-<DOMAIN>-<NNN>` avec sévérité, probabilité,
   niveau, acceptabilité initiale et résiduelle ;
-- pour chaque RSK, identifie les contrôles déjà en place et **ajoute
-  `links.mitigates`** aux items SRS/SDS/TC concernés (édition
-  idempotente) ;
-- crée les **SRS de mitigation manquantes** (`priority: Must`,
-  `links.mitigates: [RSK-XXX]`).
+- ajoute `links.mitigates` aux items SRS/SDS/TC qui contrôlent déjà ;
+- crée les SRS de mitigation manquantes (`priority: Must`).
 
-Le fichier **`docs/generated/_to_implement.md`** est le **backlog
-actionnable** : six sections triées par priorité de blocage.
+### Cyber — `security-analyst`
 
-| # | Section | Origine |
-|---|---|---|
-| 1 | Risques sans contrôle (BLOQUANT) | RSK avec `acceptable: false` et 0 item `mitigates` |
-| 2 | Résiduel non acceptable (BLOQUANT) | RSK avec `residual_acceptable: false` |
-| 3 | Mitigations à implémenter | SRS avec `mitigates` non vide, sans SDS qui implémente |
-| 4 | Mitigations à vérifier | SRS de mitigation implémentée mais sans TC |
-| 5 | Must hors mitigation à implémenter | autres SRS Must sans SDS |
-| 6 | Must hors mitigation à vérifier | autres SRS Must sans TC |
+- applique **STRIDE** par entry point + asset, pour chaque
+  combinaison (S/T/R/I/D/E) ;
+- modèle d'attaquant explicite : `external_unauth` /
+  `external_auth` / `internal` / `supply_chain` / `physical` ;
+- crée des items `THR-<DOMAIN>-<NNN>` avec stride, attacker, asset,
+  likelihood × impact = risk_level (matrice 3×3) ;
+- ajoute `links.mitigates` (vers THR) aux items qui contrôlent ;
+- pose `links.triggers: [RSK-XXX]` sur le THR quand l'exploit
+  déclenche un hazard safety.
+
+### `_to_implement.md` — backlog actionnable
+
+Régénéré à chaque build, structuré en quatre groupes :
+
+| Groupe | Contenu |
+|---|---|
+| **A. Safety** | A.1 RSK sans contrôle (BLOQUANT) · A.2 RSK résiduel non acceptable (BLOQUANT) |
+| **B. Cyber** | B.1 THR sans contrôle (BLOQUANT) · B.2 THR résiduel non acceptable (BLOQUANT) |
+| **C. Mitigations** | C.1 mitigations à implémenter (SRS sans SDS) · C.2 à vérifier (sans TC) — colonne `Type: safety/cyber/mixed` |
+| **D. Autres Must** | D.1 à implémenter · D.2 à vérifier |
 
 Si toutes les sections sont vides → message "doc en bon état pour
 publication".
@@ -183,13 +199,14 @@ Pour valider la doc en CI sans dépendance :
 
 `--strict` échoue si :
 
-- un marqueur `[TODO]` ou `[GAP-62304]` subsiste,
+- un marqueur `[TODO]`, `[GAP-62304]` ou `[GAP-CYBER]` subsiste,
 - un RSK a `severity: Critical` ou `Catastrophic` (Classe A invalide),
-- un RSK a `residual_acceptable: false`,
-- un RSK a `acceptable: false` sans aucun contrôle.
+- un RSK ou un THR a `residual_acceptable: false`,
+- un RSK ou un THR a `acceptable: false` sans aucun contrôle.
 
-Le `_to_implement.md` reste informatif (pas de fail CI sur les sections
-3-6) — il liste ce qu'il reste à faire sans bloquer le merge.
+Le `_to_implement.md` reste informatif sur les sections C et D — il
+liste ce qu'il reste à faire sans bloquer le merge. Les sections A et
+B (BLOQUANT) sont gardées par `--strict`.
 
 ## Limites v1
 

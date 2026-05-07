@@ -20,7 +20,8 @@ docs/
 │   ├── SRS/         # exigences logicielles  (62304 §5.2)
 │   ├── SDS/         # design & architecture  (62304 §5.3-§5.4)
 │   ├── TC/          # cas de test            (62304 §5.5/§5.7)
-│   └── RSK/         # risques (optionnel)    (62304 §7)
+│   ├── RSK/         # risques safety         (ISO 14971 / 62304 §7)
+│   └── THR/         # menaces cyber          (IEC 81001-5-1 / STRIDE)
 ├── generated/       # produit par /doc-build — NE PAS éditer à la main
 └── templates/       # squelettes des items
 ```
@@ -29,10 +30,10 @@ Un fichier par item. Nom du fichier = `<ID>.md`.
 
 ## Format des IDs
 
-`<CAT>-<DOMAIN>-<NNN>` — `CAT` ∈ {SRS, SDS, TC, RSK}, `DOMAIN` court (≤ 8
-car., MAJ), `NNN` zéro-paddé sur 3 chiffres.
+`<CAT>-<DOMAIN>-<NNN>` — `CAT` ∈ {SRS, SDS, TC, RSK, THR}, `DOMAIN` court
+(≤ 8 car., MAJ), `NNN` zéro-paddé sur 3 chiffres.
 
-Exemples : `SRS-AUTH-001`, `SDS-API-014`, `TC-PAY-003`.
+Exemples : `SRS-AUTH-001`, `SDS-API-014`, `TC-PAY-003`, `THR-AUTH-002`.
 
 **IDs immuables.** Pour retirer un item : `status: Deprecated`, on ne
 supprime ni ne renumérote jamais.
@@ -51,10 +52,11 @@ source:                          # fichiers code/tests qui justifient l'item
   - src/auth/oauth.ts
   - src/auth/oauth.test.ts
 links:                           # traces sortantes
-  parent: []                     # SRS générique → SRS détaillé, SDS → SDS
+  parent: []                     # item → item de même catégorie
   implements: []                 # SDS → SRS qu'il réalise
   verifies: []                   # TC → SRS qu'il vérifie
-  mitigates: []                  # SDS/TC → RSK qu'il atténue
+  mitigates: []                  # SRS/SDS/TC → RSK ou THR qu'il atténue
+  triggers: []                   # THR → RSK que l'exploit déclenche
 ---
 ```
 
@@ -105,6 +107,24 @@ Les contrôles ne sont **pas** stockés sur le RSK : ils sont calculés au
 build à partir des items qui ont `RSK-XXX` dans `links.mitigates`. Voir
 le skill `risk-analysis`.
 
+## THR — frontmatter spécifique
+
+```yaml
+stride: [S, I]                    # S | T | R | I | D | E (combinable)
+attacker: external_unauth         # external_unauth | external_auth | internal | supply_chain | physical
+asset: Cookie de session
+likelihood: Medium                # Low | Medium | High
+impact: High                      # Low | Medium | High
+risk_level: High                  # matrice 3×3 du skill cyber-risk-analysis
+acceptable: false
+residual_acceptable: true
+```
+
+Les contrôles d'un THR sont calculés comme pour un RSK : items dont
+`links.mitigates` contient l'ID du THR. Le lien `links.triggers:
+[RSK-XXX]` (sortant depuis le THR) signale qu'une exploitation
+déclenche un hazard safety.
+
 ## TC — frontmatter spécifique
 
 ```yaml
@@ -128,7 +148,8 @@ Tous les liens sont **sortants** et stockés dans `links:` du fichier source.
 | `parent` | item → item de même catégorie | hiérarchie SRS / décomposition |
 | `implements` | SDS → SRS | "ce module réalise l'exigence X" |
 | `verifies` | TC → SRS | "ce test vérifie l'exigence X" |
-| `mitigates` | SDS/TC → RSK | "ce design/test atténue le risque X" |
+| `mitigates` | SRS/SDS/TC → RSK ou THR | "ce design/test atténue ce risque/menace" |
+| `triggers` | THR → RSK | "exploiter cette menace cyber déclenche ce hazard safety" |
 
 Le build calcule les liens **entrants** (couverture) automatiquement.
 
@@ -160,8 +181,8 @@ formelle, utiliser des commits signés (`git commit -S`).
 - `docs/generated/{10_SRS,20_SDS,30_test_evidence}.md` (agrégats triés par
   ID),
 - `docs/generated/40_traceability.md` (matrice de couverture + orphelins),
-- `docs/generated/50_risk_analysis.md` (RSK + contrôles, statut
-  d'implémentation/vérification de chaque contrôle),
-- `docs/generated/_to_implement.md` (backlog actionnable des mitigations
-  et exigences Must non encore implémentées/vérifiées),
+- `docs/generated/50_risk_analysis.md` (RSK safety + contrôles),
+- `docs/generated/60_cyber_risk_analysis.md` (THR cyber + contrôles),
+- `docs/generated/_to_implement.md` (backlog actionnable structuré en
+  groupes A. Safety / B. Cyber / C. Mitigations / D. Autres Must),
 - `docs/generated/coverage.json` (métriques machine-readable).

@@ -7,7 +7,7 @@ _Généré le 2026-05-07_
 **Statut :** Draft · **Version :** 1.0.0
 **Type :** Integration · **Auto :** True
 **Vérifie :** SRS-EXAMPLE-001
-**Mitige :** RSK-EXAMPLE-001
+**Mitige :** RSK-EXAMPLE-001, THR-EXAMPLE-001
 **Source :** `src/auth/oauth.test.ts`
 
 ## Préconditions

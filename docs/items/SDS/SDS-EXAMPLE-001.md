@@ -14,6 +14,7 @@ links:
     - SRS-EXAMPLE-001
   mitigates:
     - RSK-EXAMPLE-001
+    - THR-EXAMPLE-001
 interfaces:
   inputs:
     - HTTP GET /auth/login

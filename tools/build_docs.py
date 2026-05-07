@@ -7,7 +7,8 @@ Lit `docs/items/<CAT>/*.md`, parse le frontmatter YAML, produit :
   - docs/generated/20_SDS.md
   - docs/generated/30_test_evidence.md
   - docs/generated/40_traceability.md
-  - docs/generated/50_risk_analysis.md
+  - docs/generated/50_risk_analysis.md       (safety - ISO 14971 / 62304 §7)
+  - docs/generated/60_cyber_risk_analysis.md (cyber - IEC 81001-5-1 / STRIDE)
   - docs/generated/_to_implement.md
   - docs/generated/coverage.json
 
@@ -17,10 +18,10 @@ Usage:
     python tools/build_docs.py [--strict]
 
 `--strict` => exit ≠ 0 si :
-  - tout marqueur [TODO] ou [GAP-62304] dans les items,
+  - tout marqueur [TODO], [GAP-62304] ou [GAP-CYBER] dans les items,
   - tout RSK avec `severity: Critical|Catastrophic`,
-  - tout RSK avec `residual_acceptable: false`,
-  - tout RSK avec `acceptable: false` sans aucun contrôle.
+  - tout RSK ou THR avec `residual_acceptable: false`,
+  - tout RSK ou THR avec `acceptable: false` sans aucun contrôle.
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ITEMS_DIR = ROOT / "docs" / "items"
 OUT_DIR = ROOT / "docs" / "generated"
 
-CATEGORIES = ("SRS", "SDS", "TC", "RSK")
+CATEGORIES = ("SRS", "SDS", "TC", "RSK", "THR")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.DOTALL)
 
 CLASS_A_INVALIDATING_SEVERITY = {"Critical", "Catastrophic"}
@@ -208,10 +209,10 @@ def load_items() -> dict[str, list[Item]]:
 
 
 def reverse_index(items: dict[str, list[Item]]):
-    """Calcule plusieurs index inverses :
-    - impl_by_srs[srs_id]   = liste d'IDs SDS qui implémentent
-    - verif_by_srs[srs_id]  = liste d'IDs TC qui vérifient
-    - controls_by_rsk[rsk_id] = liste d'Items (toutes cat) qui mitigent
+    """Calcule les index inverses :
+    - impl_by_srs[srs_id]      = IDs SDS qui implémentent
+    - verif_by_srs[srs_id]     = IDs TC qui vérifient
+    - controls_by_target[id]   = Items (SRS/SDS/TC) qui mitigent ce RSK ou THR
     """
     impl_by_srs: dict[str, list[str]] = defaultdict(list)
     for s in items["SDS"]:
@@ -227,15 +228,15 @@ def reverse_index(items: dict[str, list[Item]]):
         for srs_id in t.links.get("verifies") or []:
             verif_by_srs[srs_id].append(t.id)
 
-    controls_by_rsk: dict[str, list[Item]] = defaultdict(list)
+    controls_by_target: dict[str, list[Item]] = defaultdict(list)
     for cat in ("SRS", "SDS", "TC"):
         for it in items[cat]:
             if it.status == "Deprecated":
                 continue
-            for rsk_id in it.mitigates:
-                controls_by_rsk[rsk_id].append(it)
+            for tgt_id in it.mitigates:
+                controls_by_target[tgt_id].append(it)
 
-    return impl_by_srs, verif_by_srs, controls_by_rsk
+    return impl_by_srs, verif_by_srs, controls_by_target
 
 
 # ---------------------------------------------------------------------------
@@ -355,7 +356,7 @@ def build_traceability(by_cat, impl_by_srs, verif_by_srs):
     return "\n".join(lines) + "\n", coverage
 
 
-def build_risk_analysis(by_cat, controls_by_rsk, impl_by_srs, verif_by_srs):
+def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
     """Renvoie (markdown, dict d'analyse pour coverage et to_implement)."""
     rsks = [r for r in by_cat["RSK"] if r.status != "Deprecated"]
 
@@ -395,7 +396,7 @@ def build_risk_analysis(by_cat, controls_by_rsk, impl_by_srs, verif_by_srs):
         level = fm.get("risk_level", "Low")
         init_ok = bool(fm.get("acceptable", True))
         res_ok = bool(fm.get("residual_acceptable", True))
-        controls = controls_by_rsk.get(rsk.id, [])
+        controls = controls_by_target.get(rsk.id, [])
 
         if sev in CLASS_A_INVALIDATING_SEVERITY:
             class_a_invalidating.append(rsk.id)
@@ -448,7 +449,7 @@ def build_risk_analysis(by_cat, controls_by_rsk, impl_by_srs, verif_by_srs):
             lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
         lines.append("")
 
-        controls = controls_by_rsk.get(rsk.id, [])
+        controls = controls_by_target.get(rsk.id, [])
         if controls:
             lines.append("**Contrôles :**")
             lines.append("")
@@ -493,23 +494,181 @@ def build_risk_analysis(by_cat, controls_by_rsk, impl_by_srs, verif_by_srs):
     }
 
 
-def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_rsk, risk_data):
-    """Backlog actionnable — qu'est-ce qu'il reste à faire."""
+def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
+    """Renvoie (markdown, dict d'analyse cyber)."""
+    thrs = [t for t in by_cat["THR"] if t.status != "Deprecated"]
+
+    lines = [
+        "# Analyse de risques cyber (IEC 81001-5-1 / STRIDE)",
+        "",
+        f"_Généré le {date.today().isoformat()}_",
+        "",
+    ]
+
+    if not thrs:
+        lines += ["_(aucune menace enregistrée)_", ""]
+        return "\n".join(lines), {
+            "thr_count": 0,
+            "thr_unmitigated": [],
+            "thr_residual_unacceptable": [],
+            "thr_high_risk": [],
+            "thr_summary": [],
+        }
+
+    summary: list[dict] = []
+    unmitigated: list[str] = []
+    residual_unacceptable: list[str] = []
+    high_risk: list[str] = []
+
+    lines += [
+        "## Synthèse",
+        "",
+        "| THR | Titre | STRIDE | Attaquant | Niveau | Initial OK | Résiduel OK | # Contrôles | RSK déclenchés |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+
+    for thr in thrs:
+        fm = thr.frontmatter
+        stride = fm.get("stride") or []
+        if isinstance(stride, str):
+            stride = [stride]
+        attacker = fm.get("attacker", "?")
+        level = fm.get("risk_level", "Low")
+        init_ok = bool(fm.get("acceptable", True))
+        res_ok = bool(fm.get("residual_acceptable", True))
+        controls = controls_by_target.get(thr.id, [])
+        triggers = thr.links.get("triggers") or []
+
+        if not init_ok and not controls:
+            unmitigated.append(thr.id)
+        if not res_ok:
+            residual_unacceptable.append(thr.id)
+        if level == "High" and not res_ok:
+            high_risk.append(thr.id)
+
+        summary.append({
+            "id": thr.id,
+            "title": thr.title,
+            "stride": stride,
+            "attacker": attacker,
+            "level": level,
+            "acceptable_initial": init_ok,
+            "residual_acceptable": res_ok,
+            "controls": [c.id for c in controls],
+            "triggers": triggers,
+        })
+
+        lines.append(
+            f"| {thr.id} | {thr.title} | {','.join(stride)} | {attacker} | "
+            f"{level} | {'✓' if init_ok else '✗'} | {'✓' if res_ok else '✗'} | "
+            f"{len(controls)} | {', '.join(triggers) or '—'} |"
+        )
+
+    lines += ["", "## Détail par THR", ""]
+
+    for thr in thrs:
+        fm = thr.frontmatter
+        stride = fm.get("stride") or []
+        if isinstance(stride, str):
+            stride = [stride]
+        lines.append(f"### {thr.id} — {thr.title}")
+        lines.append("")
+        lines.append(
+            f"**Statut :** {thr.status} · **Version :** {fm.get('version', '?')}"
+        )
+        lines.append(
+            f"**STRIDE :** {','.join(stride) or '?'} · "
+            f"**Attaquant :** {fm.get('attacker', '?')} · "
+            f"**Asset :** {fm.get('asset', '?')}"
+        )
+        lines.append(
+            f"**Likelihood :** {fm.get('likelihood', '?')} · "
+            f"**Impact :** {fm.get('impact', '?')} · "
+            f"**Niveau :** {fm.get('risk_level', '?')}"
+        )
+        lines.append(
+            f"**Acceptable (initial) :** "
+            f"{'oui' if fm.get('acceptable', True) else 'non'} · "
+            f"**Résiduel acceptable :** "
+            f"{'oui' if fm.get('residual_acceptable', True) else 'non'}"
+        )
+        triggers = thr.links.get("triggers") or []
+        if triggers:
+            lines.append(f"**Déclenche (RSK) :** {', '.join(triggers)}")
+        srcs = fm.get("source") or []
+        if srcs:
+            lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+        lines.append("")
+
+        controls = controls_by_target.get(thr.id, [])
+        if controls:
+            lines.append("**Contrôles :**")
+            lines.append("")
+            lines.append("| Item | Catégorie | Implémenté | Vérifié |")
+            lines.append("|---|---|---|---|")
+            for c in controls:
+                if c.category == "SRS":
+                    impl = "✓" if impl_by_srs.get(c.id) else "✗"
+                    verif = "✓" if verif_by_srs.get(c.id) else "✗"
+                elif c.category == "SDS":
+                    impl = "✓ (design)"
+                    verif = "n/a"
+                else:
+                    impl = "n/a"
+                    verif = "✓ (test)"
+                lines.append(f"| {c.id} | {c.category} | {impl} | {verif} |")
+            lines.append("")
+        else:
+            lines.append("_Aucun contrôle enregistré._")
+            lines.append("")
+        lines.append(thr.body.strip())
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    if high_risk:
+        lines += [
+            "## ⚠ Threats à risque élevé non résolus",
+            "",
+            "Les THR suivants ont `risk_level: High` ET `residual_acceptable: false`.",
+            "Renforcer les contrôles avant publication.",
+            "",
+        ] + [f"- {t}" for t in high_risk]
+
+    return "\n".join(lines) + "\n", {
+        "thr_count": len(thrs),
+        "thr_unmitigated": unmitigated,
+        "thr_residual_unacceptable": residual_unacceptable,
+        "thr_high_risk": high_risk,
+        "thr_summary": summary,
+    }
+
+
+def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
+    """Backlog actionnable — structuré en groupes A/B/C/D."""
     srs = [s for s in by_cat["SRS"] if s.status != "Deprecated"]
     rsks = [r for r in by_cat["RSK"] if r.status != "Deprecated"]
+    thrs = [t for t in by_cat["THR"] if t.status != "Deprecated"]
 
-    # 1. Risques sans contrôle (acceptable=false ET aucun contrôle)
-    rsk_unmit = []
-    for r in rsks:
-        if not r.frontmatter.get("acceptable", True) and not controls_by_rsk.get(r.id):
-            rsk_unmit.append(r)
-
-    # 2. Risques avec résiduel non acceptable
+    # A. Safety (RSK)
+    rsk_unmit = [
+        r for r in rsks
+        if not r.frontmatter.get("acceptable", True) and not controls_by_target.get(r.id)
+    ]
     rsk_res_bad = [
         r for r in rsks if not r.frontmatter.get("residual_acceptable", True)
     ]
 
-    # 3 & 4. Mitigation SRS à implémenter / vérifier
+    # B. Cyber (THR)
+    thr_unmit = [
+        t for t in thrs
+        if not t.frontmatter.get("acceptable", True) and not controls_by_target.get(t.id)
+    ]
+    thr_res_bad = [
+        t for t in thrs if not t.frontmatter.get("residual_acceptable", True)
+    ]
+
+    # C. Mitigations à compléter (toutes catégories — RSK ou THR)
     mit_to_impl: list[Item] = []
     mit_to_verif: list[Item] = []
     for s in srs:
@@ -520,27 +679,40 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_rsk, risk_
         elif not verif_by_srs.get(s.id):
             mit_to_verif.append(s)
 
-    # 5 & 6. Must SRS hors mitigation à implémenter / vérifier
+    # D. Autres exigences Must (hors mitigation)
     must_to_impl: list[Item] = []
     must_to_verif: list[Item] = []
     for s in srs:
         if s.frontmatter.get("priority", "Must") != "Must":
             continue
         if s.mitigates:
-            continue  # déjà couvert sections 3/4
+            continue
         if not impl_by_srs.get(s.id):
             must_to_impl.append(s)
         elif not verif_by_srs.get(s.id):
             must_to_verif.append(s)
+
+    def _kind(targets: list[str]) -> str:
+        has_rsk = any(t.startswith("RSK-") for t in targets)
+        has_thr = any(t.startswith("THR-") for t in targets)
+        if has_rsk and has_thr:
+            return "mixed"
+        if has_thr:
+            return "cyber"
+        return "safety"
 
     lines = [
         "# À implémenter — backlog actionnable",
         "",
         f"_Généré le {date.today().isoformat()}_",
         "",
-        "> Source de vérité pour les actions concrètes : que reste-t-il à coder,",
-        "> tester ou analyser pour atteindre la conformité IEC 62304 Classe A.",
-        "> Ce fichier est régénéré à chaque `python tools/build_docs.py`.",
+        "> Source de vérité pour les actions concrètes. Régénéré à chaque",
+        "> `python tools/build_docs.py`. Sections **BLOQUANT** = empêchent la",
+        "> publication ; les autres sont informatives.",
+        "",
+        "---",
+        "",
+        "# A. Safety — ISO 14971 / IEC 62304 §7",
         "",
     ]
 
@@ -558,66 +730,96 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_rsk, risk_
         lines.append("")
 
     _section(
-        "1. Risques sans contrôle (BLOQUANT)",
+        "A.1 RSK sans contrôle (BLOQUANT)",
         [
             (
-                r.id,
-                r.title,
+                r.id, r.title,
                 r.frontmatter.get("severity", "?"),
                 r.frontmatter.get("risk_level", "?"),
-                "Définir au moins un contrôle (SRS/SDS/TC `mitigates`)",
-            )
-            for r in rsk_unmit
+                "Définir au moins un contrôle (`links.mitigates`)",
+            ) for r in rsk_unmit
         ],
         ("RSK", "Titre", "Sévérité", "Niveau", "Action"),
     )
 
     _section(
-        "2. Risques avec résiduel non acceptable (BLOQUANT)",
+        "A.2 RSK avec résiduel non acceptable (BLOQUANT)",
         [
             (
-                r.id,
-                r.title,
+                r.id, r.title,
                 r.frontmatter.get("risk_level", "?"),
                 "Renforcer les contrôles ou revoir la classification",
-            )
-            for r in rsk_res_bad
+            ) for r in rsk_res_bad
         ],
         ("RSK", "Titre", "Niveau", "Action"),
     )
 
+    lines += ["---", "", "# B. Cyber — IEC 81001-5-1 / STRIDE", ""]
+
     _section(
-        "3. Mitigations à implémenter (SRS de mitigation sans SDS)",
+        "B.1 THR sans contrôle (BLOQUANT)",
         [
-            (s.id, s.title, ", ".join(s.mitigates), "Écrire le module qui réalise cette exigence")
+            (
+                t.id, t.title,
+                ",".join(t.frontmatter.get("stride") or []) or "?",
+                t.frontmatter.get("risk_level", "?"),
+                "Définir au moins un contrôle (`links.mitigates`)",
+            ) for t in thr_unmit
+        ],
+        ("THR", "Titre", "STRIDE", "Niveau", "Action"),
+    )
+
+    _section(
+        "B.2 THR avec résiduel non acceptable (BLOQUANT)",
+        [
+            (
+                t.id, t.title,
+                t.frontmatter.get("risk_level", "?"),
+                "Renforcer les contrôles ou accepter le résiduel",
+            ) for t in thr_res_bad
+        ],
+        ("THR", "Titre", "Niveau", "Action"),
+    )
+
+    lines += ["---", "", "# C. Mitigations à compléter (safety + cyber)", ""]
+
+    _section(
+        "C.1 Mitigations à implémenter (SRS sans SDS)",
+        [
+            (s.id, s.title, _kind(s.mitigates), ", ".join(s.mitigates),
+             "Écrire le module qui réalise cette exigence")
             for s in mit_to_impl
         ],
-        ("Mitigation SRS", "Titre", "RSK adressé(s)", "Action"),
+        ("Mitigation SRS", "Titre", "Type", "Cible(s)", "Action"),
     )
 
     _section(
-        "4. Mitigations à vérifier (SRS de mitigation sans TC)",
+        "C.2 Mitigations à vérifier (SRS sans TC)",
         [
-            (s.id, s.title, ", ".join(s.mitigates), "Écrire un test de vérification")
+            (s.id, s.title, _kind(s.mitigates), ", ".join(s.mitigates),
+             "Écrire un test de vérification")
             for s in mit_to_verif
         ],
-        ("Mitigation SRS", "Titre", "RSK adressé(s)", "Action"),
+        ("Mitigation SRS", "Titre", "Type", "Cible(s)", "Action"),
     )
 
+    lines += ["---", "", "# D. Autres exigences Must", ""]
+
     _section(
-        "5. Exigences Must hors mitigation à implémenter",
+        "D.1 À implémenter",
         [(s.id, s.title) for s in must_to_impl],
         ("SRS", "Titre"),
     )
 
     _section(
-        "6. Exigences Must hors mitigation à vérifier",
+        "D.2 À vérifier",
         [(s.id, s.title) for s in must_to_verif],
         ("SRS", "Titre"),
     )
 
     nothing_left = not (
-        rsk_unmit or rsk_res_bad or mit_to_impl or mit_to_verif or must_to_impl or must_to_verif
+        rsk_unmit or rsk_res_bad or thr_unmit or thr_res_bad
+        or mit_to_impl or mit_to_verif or must_to_impl or must_to_verif
     )
     if nothing_left:
         lines.append(
@@ -626,6 +828,10 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_rsk, risk_
         lines.append("")
 
     return "\n".join(lines), {
+        "rsk_unmitigated": [r.id for r in rsk_unmit],
+        "rsk_residual_unacceptable": [r.id for r in rsk_res_bad],
+        "thr_unmitigated": [t.id for t in thr_unmit],
+        "thr_residual_unacceptable": [t.id for t in thr_res_bad],
         "mitigations_to_implement": [s.id for s in mit_to_impl],
         "mitigations_to_verify": [s.id for s in mit_to_verif],
         "must_to_implement": [s.id for s in must_to_impl],
@@ -640,7 +846,7 @@ def find_todo_markers() -> list[tuple[Path, int, str]]:
         return hits
     for path in ITEMS_DIR.rglob("*.md"):
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            if "[TODO]" in line or "[GAP-62304]" in line:
+            if "[TODO]" in line or "[GAP-62304]" in line or "[GAP-CYBER]" in line:
                 hits.append((path, n, line.strip()))
     return hits
 
@@ -649,7 +855,7 @@ def main() -> int:
     strict = "--strict" in sys.argv[1:]
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     by_cat = load_items()
-    impl_by_srs, verif_by_srs, controls_by_rsk = reverse_index(by_cat)
+    impl_by_srs, verif_by_srs, controls_by_target = reverse_index(by_cat)
 
     (OUT_DIR / "10_SRS.md").write_text(
         render_aggregate(
@@ -674,16 +880,22 @@ def main() -> int:
     (OUT_DIR / "40_traceability.md").write_text(matrix_md, encoding="utf-8")
 
     risk_md, risk_data = build_risk_analysis(
-        by_cat, controls_by_rsk, impl_by_srs, verif_by_srs
+        by_cat, controls_by_target, impl_by_srs, verif_by_srs
     )
     (OUT_DIR / "50_risk_analysis.md").write_text(risk_md, encoding="utf-8")
 
+    cyber_md, cyber_data = build_cyber_risk_analysis(
+        by_cat, controls_by_target, impl_by_srs, verif_by_srs
+    )
+    (OUT_DIR / "60_cyber_risk_analysis.md").write_text(cyber_md, encoding="utf-8")
+
     todo_md, todo_data = build_to_implement(
-        by_cat, impl_by_srs, verif_by_srs, controls_by_rsk, risk_data
+        by_cat, impl_by_srs, verif_by_srs, controls_by_target
     )
     (OUT_DIR / "_to_implement.md").write_text(todo_md, encoding="utf-8")
 
     coverage["risks"] = risk_data
+    coverage["threats"] = cyber_data
     coverage["to_implement"] = todo_data
     (OUT_DIR / "coverage.json").write_text(
         json.dumps(coverage, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -691,12 +903,13 @@ def main() -> int:
 
     print(
         f"OK — items SRS={len(by_cat['SRS'])} SDS={len(by_cat['SDS'])} "
-        f"TC={len(by_cat['TC'])} RSK={len(by_cat['RSK'])}"
+        f"TC={len(by_cat['TC'])} RSK={len(by_cat['RSK'])} THR={len(by_cat['THR'])}"
     )
     print(
         f"  impl={coverage['implementation_rate']:.0%} "
         f"verif_must={coverage['verification_rate_must']:.0%} "
-        f"rsk_open={len(risk_data['rsk_unmitigated']) + len(risk_data['rsk_residual_unacceptable'])}"
+        f"rsk_open={len(risk_data['rsk_unmitigated']) + len(risk_data['rsk_residual_unacceptable'])} "
+        f"thr_open={len(cyber_data['thr_unmitigated']) + len(cyber_data['thr_residual_unacceptable'])}"
     )
     print(f"  → {OUT_DIR}")
 
@@ -704,7 +917,9 @@ def main() -> int:
         problems: list[str] = []
         todos = find_todo_markers()
         if todos:
-            problems.append(f"{len(todos)} marqueur(s) [TODO]/[GAP-62304]")
+            problems.append(
+                f"{len(todos)} marqueur(s) [TODO]/[GAP-62304]/[GAP-CYBER]"
+            )
             for path, n, line in todos:
                 rel = path.relative_to(ROOT)
                 print(f"  TODO {rel}:{n}: {line}", file=sys.stderr)
@@ -720,8 +935,16 @@ def main() -> int:
             )
         if risk_data["rsk_unmitigated"]:
             problems.append(
-                f"{len(risk_data['rsk_unmitigated'])} RSK sans contrôle "
-                f"(acceptable=false)"
+                f"{len(risk_data['rsk_unmitigated'])} RSK sans contrôle"
+            )
+        if cyber_data["thr_residual_unacceptable"]:
+            problems.append(
+                f"{len(cyber_data['thr_residual_unacceptable'])} THR avec "
+                f"residual_acceptable=false"
+            )
+        if cyber_data["thr_unmitigated"]:
+            problems.append(
+                f"{len(cyber_data['thr_unmitigated'])} THR sans contrôle"
             )
         if problems:
             print("STRICT — problèmes :", file=sys.stderr)
