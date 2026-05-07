@@ -1,0 +1,9 @@
+{
+  "name": "iec62304-writer",
+  "version": "0.1.0",
+  "description": "Pipeline de documentation technique IEC 62304 Classe A — SRS, SDS, STD, traçabilité, analyse de risques safety + cyber. Reproduit localement les features utiles de Matrix Requirements (items à ID stable, traçabilité N:N, matrice de couverture).",
+  "author": {
+    "name": "cyrou13"
+  },
+  "repository": "https://github.com/cyrou13/technical-writer-"
+}

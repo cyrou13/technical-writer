@@ -1,39 +1,59 @@
-# Technical writer — IEC 62304 Class A
+# iec62304-writer
 
-Set d'agents, skills et workflows Claude Code pour générer la
-documentation technique IEC 62304 (Classe A) à partir d'un codebase
-TypeScript/JavaScript + Python — **sans dépendre d'un outil externe**
-(reproduction locale des features utiles de Matrix Requirements).
+Plugin Claude Code pour générer et maintenir la documentation technique
+IEC 62304 (Classe A) à partir d'un codebase TypeScript/JavaScript +
+Python — **sans dépendance à un service externe**. Reproduit localement
+les features utiles de Matrix Requirements (items à ID stable,
+traçabilité N:N, matrice de couverture, statuts), avec analyses de
+risques **safety** (ISO 14971) et **cyber** (IEC 81001-5-1 / STRIDE)
+séparées.
 
-## TL;DR
+## Installation locale
 
 ```bash
-# Dans Claude Code, à la racine du projet à documenter :
-/doc-62304            # pipeline complet
-/doc-item SRS-AUTH-001 OAuth2 login    # créer/éditer un seul item
-/doc-build            # ré-agréger les items en docs imprimables
+# Dans Claude Code, depuis le dépôt cible :
+/plugin install /chemin/vers/technical-writer-
 ```
 
-Sortie : `docs/items/` (source de vérité, item-par-fichier) +
-`docs/generated/` (agrégats SRS/SDS/Tests/Traçabilité).
+Puis dans le repo cible :
 
-## Architecture
+```bash
+/doc-init                  # scaffolde tools/build_docs.py + docs/templates/
+/doc-init --with-examples  # idem + items d'exemple liés
+/doc-62304                 # pipeline complet : codemap → SRS/SDS/TC/RSK/THR → build → revue
+```
+
+## Livrables produits
+
+| # | Fichier | Norme | Contenu |
+|---|---|---|---|
+| 10 | `docs/generated/10_SRS.md` | IEC 62304 §5.2 | Software Requirements |
+| 20 | `docs/generated/20_SDS.md` | IEC 62304 §5.3-§5.4 | Design & architecture |
+| 30 | `docs/generated/30_STD.md` | IEEE 829 / §5.5/§5.7 | Software Test Description |
+| 40 | `docs/generated/40_traceability.md` | §5.1.1 / §5.2.6 | Matrice SRS↔SDS↔TC |
+| 50 | `docs/generated/50_risk_analysis.md` | ISO 14971 / §7 | Risques safety |
+| 60 | `docs/generated/60_cyber_risk_analysis.md` | IEC 81001-5-1 / STRIDE | Risques cyber |
+| — | `docs/generated/_to_implement.md` | — | Backlog actionnable A/B/C/D |
+| — | `docs/generated/coverage.json` | — | Métriques machine-readable |
+| 99 | `docs/generated/99_compliance_review.md` | — | Revue de conformité |
+
+## Composants du plugin
 
 ### Skills (référentiels et règles)
 
 | Skill | Rôle |
 |---|---|
 | `iec62304-class-a` | Livrables 62304 Classe A et leur contenu minimal |
-| `items-store` | Convention de stockage local (item-par-fichier, IDs, liens) |
+| `items-store` | Stockage local item-par-fichier (équivalent Matrix Requirements) |
 | `srs-extract` | Extraction d'exigences depuis le code |
 | `sds-generate` | Extraction de design et architecture |
 | `test-evidence` | Découverte des tests, formalisation en TC |
-| `traceability-matrix` | Spec de la matrice de couverture |
 | `test-plan` | Convention Software Test Description (STD) IEEE 829 |
-| `risk-analysis` | ISO 14971 + 62304 §7, hazards safety, sévérité, contrôles |
-| `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57, STRIDE, modèle d'attaquant |
+| `traceability-matrix` | Spec de la matrice de couverture |
+| `risk-analysis` | ISO 14971 + 62304 §7, hazards safety |
+| `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57 + STRIDE |
 
-### Sub-agents (un par étape lourde, contexte isolé)
+### Sub-agents
 
 | Agent | Rôle |
 |---|---|
@@ -49,9 +69,42 @@ Sortie : `docs/items/` (source de vérité, item-par-fichier) +
 
 | Commande | Effet |
 |---|---|
-| `/doc-62304 [scope]` | Pipeline complet (cartographie → rédaction → build → revue) |
-| `/doc-item <ID> [titre]` | CRUD d'un item unique avec template |
+| `/doc-init [--update] [--with-examples]` | Scaffolde le repo cible |
+| `/doc-62304 [scope]` | Pipeline complet |
+| `/doc-item <ID> [titre]` | CRUD d'un item unique |
 | `/doc-build [--strict]` | Lance `tools/build_docs.py` |
+
+## Layout du plugin
+
+```
+iec62304-writer/
+├── .claude-plugin/
+│   └── plugin.json
+├── skills/                    # 9 skills
+├── agents/                    # 7 sub-agents
+├── commands/                  # 4 slash commands (dont /doc-init)
+├── scaffold/                  # assets copiés par /doc-init
+│   ├── tools/build_docs.py
+│   └── docs/
+│       ├── templates/         # 5 squelettes (SRS/SDS/TC/RSK/THR)
+│       └── test_plan_intro.md # narrative STD (maintenu à la main)
+└── examples/                  # items démo (copiés via --with-examples)
+    ├── SRS/  SDS/  TC/  RSK/  THR/
+```
+
+## Layout produit dans le repo cible (après `/doc-init`)
+
+```
+mon-projet/
+├── tools/
+│   └── build_docs.py
+└── docs/
+    ├── templates/            # squelettes
+    ├── items/                # source de vérité (édités à la main ou par les agents)
+    │   ├── SRS/  SDS/  TC/  RSK/  THR/
+    ├── test_plan_intro.md    # narrative du STD — édité à la main
+    └── generated/            # produit par /doc-build (NE PAS éditer)
+```
 
 ## Reproduction des features Matrix Requirements
 
@@ -59,84 +112,11 @@ Sortie : `docs/items/` (source de vérité, item-par-fichier) +
 |---|---|
 | Items à ID stable, catégories | `docs/items/<CAT>/<ID>.md` |
 | Liens UP/DOWN, traçabilité N:N | `links:` en frontmatter YAML |
-| Coverage views | `docs/generated/40_traceability.md` + `coverage.json` |
+| Coverage views | `40_traceability.md` + `coverage.json` |
 | Item revisions / audit log | git history + commits signés |
 | Workflow review/approve | `status: Draft → Approved`, PR + reviewers |
 | Export DOCX/PDF | `pandoc docs/generated/*.md -o doc.pdf` |
 | Item DOORS-like editing | `/doc-item <ID>` |
-
-## Structure du repo
-
-```
-.claude/
-├── skills/
-│   ├── iec62304-class-a/SKILL.md
-│   ├── items-store/SKILL.md
-│   ├── srs-extract/SKILL.md
-│   ├── sds-generate/SKILL.md
-│   ├── test-evidence/SKILL.md
-│   └── traceability-matrix/SKILL.md
-├── agents/
-│   ├── code-archeologist.md
-│   ├── requirements-writer.md
-│   ├── architecture-writer.md
-│   ├── test-evidence-collector.md
-│   └── compliance-reviewer.md
-└── commands/
-    ├── doc-62304.md
-    ├── doc-item.md
-    └── doc-build.md
-docs/
-├── items/
-│   ├── SRS/    # exigences logicielles
-│   ├── SDS/    # design & architecture
-│   ├── TC/     # cas de test
-│   ├── RSK/    # risques safety (ISO 14971 + 62304 §7)
-│   └── THR/    # menaces cyber  (IEC 81001-5-1 / STRIDE)
-├── templates/  # squelettes pour /doc-item
-└── generated/  # produit par /doc-build (NE PAS éditer à la main)
-    ├── 10_SRS.md
-    ├── 20_SDS.md
-    ├── 30_STD.md                # Software Test Description (IEEE 829)
-    ├── 40_traceability.md
-    ├── 50_risk_analysis.md       # safety
-    ├── 60_cyber_risk_analysis.md # cyber (STRIDE)
-    ├── _to_implement.md          # backlog A/B/C/D : safety, cyber, mitigations, Must
-    ├── _codemap.md
-    ├── 99_compliance_review.md
-    └── coverage.json
-tools/
-└── build_docs.py    # agrégation + matrice de traçabilité
-```
-
-## Schéma d'un item
-
-```yaml
----
-id: SRS-AUTH-001
-title: Authentification OAuth2
-status: Draft           # Draft | Approved | Deprecated
-version: 1.0.0
-created: 2026-05-07
-updated: 2026-05-07
-verification: Test
-priority: Must
-source:
-  - src/auth/oauth.ts
-  - src/auth/oauth.test.ts
-links:
-  parent: []
-  implements: []        # rempli sur les SDS
-  verifies: []          # rempli sur les TC
-  mitigates: []
----
-
-## Description
-Le système doit ...
-
-## Critères d'acceptation
-- [ ] ...
-```
 
 ## Conventions clés
 
@@ -146,80 +126,34 @@ Le système doit ...
   Sinon `[TODO]` explicite.
 - **Idempotence.** Les agents préservent les IDs existants et bumpent
   `version` uniquement quand le contenu de fond change.
-- **`docs/generated/` est régénérable.** Ne pas l'éditer à la main —
-  toute modification doit passer par `docs/items/`.
-
-## Analyse de risques & "à implémenter"
-
-Le pipeline distingue **safety** (ISO 14971 / 62304 §7) et **cyber**
-(IEC 81001-5-1 / STRIDE), avec deux agents dédiés et deux catégories
-d'items disjointes (`RSK` vs `THR`).
-
-### Safety — `risk-analyst`
-
-- identifie les hazards à partir du codemap (catégories : intégrité,
-  disponibilité, données, comportement) ;
-- crée des items `RSK-<DOMAIN>-<NNN>` avec sévérité, probabilité,
-  niveau, acceptabilité initiale et résiduelle ;
-- ajoute `links.mitigates` aux items SRS/SDS/TC qui contrôlent déjà ;
-- crée les SRS de mitigation manquantes (`priority: Must`).
-
-### Cyber — `security-analyst`
-
-- applique **STRIDE** par entry point + asset, pour chaque
-  combinaison (S/T/R/I/D/E) ;
-- modèle d'attaquant explicite : `external_unauth` /
-  `external_auth` / `internal` / `supply_chain` / `physical` ;
-- crée des items `THR-<DOMAIN>-<NNN>` avec stride, attacker, asset,
-  likelihood × impact = risk_level (matrice 3×3) ;
-- ajoute `links.mitigates` (vers THR) aux items qui contrôlent ;
-- pose `links.triggers: [RSK-XXX]` sur le THR quand l'exploit
+- **`docs/generated/` est régénérable.** Toute modification doit passer
+  par `docs/items/`.
+- **Safety vs cyber séparés.** RSK = ISO 14971 / patient ; THR =
+  IEC 81001-5-1 / STRIDE. Lien `triggers` THR→RSK quand l'exploit cyber
   déclenche un hazard safety.
 
-### `_to_implement.md` — backlog actionnable
-
-Régénéré à chaque build, structuré en quatre groupes :
-
-| Groupe | Contenu |
-|---|---|
-| **A. Safety** | A.1 RSK sans contrôle (BLOQUANT) · A.2 RSK résiduel non acceptable (BLOQUANT) |
-| **B. Cyber** | B.1 THR sans contrôle (BLOQUANT) · B.2 THR résiduel non acceptable (BLOQUANT) |
-| **C. Mitigations** | C.1 mitigations à implémenter (SRS sans SDS) · C.2 à vérifier (sans TC) — colonne `Type: safety/cyber/mixed` |
-| **D. Autres Must** | D.1 à implémenter · D.2 à vérifier |
-
-Si toutes les sections sont vides → message "doc en bon état pour
-publication".
-
 ## CI
-
-Pour valider la doc en CI sans dépendance :
 
 ```yaml
 - run: python tools/build_docs.py --strict
 ```
 
-`--strict` échoue si :
+`--strict` échoue sur :
 
-- un marqueur `[TODO]`, `[GAP-62304]` ou `[GAP-CYBER]` subsiste,
-- un RSK a `severity: Critical` ou `Catastrophic` (Classe A invalide),
-- un RSK ou un THR a `residual_acceptable: false`,
-- un RSK ou un THR a `acceptable: false` sans aucun contrôle.
-
-Le `_to_implement.md` reste informatif sur les sections C et D — il
-liste ce qu'il reste à faire sans bloquer le merge. Les sections A et
-B (BLOQUANT) sont gardées par `--strict`.
+- marqueur `[TODO]`, `[GAP-62304]` ou `[GAP-CYBER]`,
+- RSK avec `severity: Critical` ou `Catastrophic` (Classe A invalide),
+- RSK ou THR avec `residual_acceptable: false`,
+- RSK ou THR avec `acceptable: false` sans aucun contrôle.
 
 ## Limites v1
 
-- Classe A uniquement. Pour B/C, créer un skill `iec62304-class-b` et
-  étendre les agents (intégration §5.6, gestion plus stricte des SOUP,
-  matrice risque sévérité×probabilité plus fine).
-- Pas d'export DOCX/PDF intégré — utiliser `pandoc` à la main si besoin
-  d'un livrable réglementaire formaté.
-- Le statut d'exécution des tests (`Passing`/`Failing`) n'est pas mis à
-  jour automatiquement par défaut — fournir un rapport JUnit/pytest pour
-  l'enrichir.
-- L'analyse de risques s'appuie sur les hazards inférables depuis le
-  code et son contexte explicite. Les hazards d'usage clinique restent
-  à apporter par le système qualité — le risk-analyst ne les invente
-  pas.
+- Classe A uniquement. Pour B/C, dériver un skill `iec62304-class-b` et
+  étendre les agents (intégration §5.6, gestion plus stricte des SOUP).
+- Pas d'export DOCX/PDF intégré (`pandoc` à brancher).
+- STD = description seule. Un Software Test Report (STR) parseur
+  `junit.xml` / `pytest --json` reste possible en v2.
+- Le `risk-analyst` infère les hazards depuis le code ; les hazards
+  d'usage clinique restent à apporter par le système qualité.
+- Le `security-analyst` ne lance pas de scan actif. Si un rapport
+  `npm audit` / `pip-audit` / Snyk est fourni, il l'ingère ; sinon il
+  recommande l'audit sans inventer de CVE.
