@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "iec62304-writer-marketplace",
+  "description": "Marketplace pour le plugin iec62304-writer (pipeline de doc IEC 62304 Classe A).",
+  "owner": {
+    "name": "cyrou13"
+  },
+  "plugins": [
+    {
+      "name": "iec62304-writer",
+      "description": "Pipeline de documentation IEC 62304 Classe A — SRS, SDS, STD, traçabilité, analyse de risques safety + cyber. Reproduit localement les features utiles de Matrix Requirements.",
+      "source": "."
+    }
+  ]
+}
