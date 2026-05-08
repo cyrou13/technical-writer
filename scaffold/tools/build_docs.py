@@ -840,35 +840,59 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
     }
 
 
+def _scan_dirs_for_manifests() -> list[Path]:
+    """Renvoie les bases à scanner : ROOT + sous-repos git de 1er niveau.
+
+    En multi-repo (front/, back/, …), chaque sous-dossier qui contient un
+    `.git/` est traité comme un composant indépendant.
+    """
+    bases = [ROOT]
+    try:
+        for child in sorted(ROOT.iterdir()):
+            if child.is_dir() and (child / ".git").exists():
+                bases.append(child)
+    except OSError:
+        pass
+    return bases
+
+
 def detect_test_frameworks() -> list[str]:
-    """Inspecte les manifests pour lister les frameworks de test détectés."""
+    """Inspecte les manifests pour lister les frameworks détectés.
+
+    En multi-repo, préfixe chaque entrée par le nom du composant
+    (ex. `front/: vitest 1.6.0`).
+    """
     found: list[str] = []
-    pkg = ROOT / "package.json"
-    if pkg.exists():
-        try:
-            data = json.loads(pkg.read_text(encoding="utf-8"))
-            deps: dict[str, str] = {
-                **(data.get("devDependencies") or {}),
-                **(data.get("dependencies") or {}),
-            }
-            for name in (
-                "vitest", "jest", "mocha", "ava",
-                "playwright", "@playwright/test", "cypress",
-                "@testing-library/react", "@testing-library/vue",
+    for base in _scan_dirs_for_manifests():
+        prefix = "" if base == ROOT else f"{base.name}/: "
+        pkg = base / "package.json"
+        if pkg.exists():
+            try:
+                data = json.loads(pkg.read_text(encoding="utf-8"))
+                deps: dict[str, str] = {
+                    **(data.get("devDependencies") or {}),
+                    **(data.get("dependencies") or {}),
+                }
+                for name in (
+                    "vitest", "jest", "mocha", "ava",
+                    "playwright", "@playwright/test", "cypress",
+                    "@testing-library/react", "@testing-library/vue",
+                ):
+                    if name in deps:
+                        found.append(f"{prefix}{name} ({deps[name]})")
+            except Exception:  # noqa: BLE001 — JSON cassé : ne pas bloquer
+                pass
+        py_text = ""
+        pyproj = base / "pyproject.toml"
+        if pyproj.exists():
+            py_text += pyproj.read_text(encoding="utf-8")
+        for r in base.glob("requirements*.txt"):
+            py_text += "\n" + r.read_text(encoding="utf-8")
+        for name in ("pytest", "unittest", "tox", "hypothesis", "nose"):
+            if re.search(
+                rf"(^|[\s\"'\b])({re.escape(name)})([\s\"'\[<>=!~]|$)", py_text
             ):
-                if name in deps:
-                    found.append(f"{name} ({deps[name]})")
-        except Exception:  # noqa: BLE001 — JSON cassé : ne pas bloquer le build
-            pass
-    pyproj = ROOT / "pyproject.toml"
-    py_text = ""
-    if pyproj.exists():
-        py_text += pyproj.read_text(encoding="utf-8")
-    for r in ROOT.glob("requirements*.txt"):
-        py_text += "\n" + r.read_text(encoding="utf-8")
-    for name in ("pytest", "unittest", "tox", "hypothesis", "nose"):
-        if re.search(rf"(^|[\s\"'\b])({re.escape(name)})([\s\"'\[<>=!~]|$)", py_text):
-            found.append(name)
+                found.append(f"{prefix}{name}")
     return found
 
 
