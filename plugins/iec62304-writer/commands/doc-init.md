@@ -13,40 +13,49 @@ Arguments possibles dans `$ARGUMENTS` :
 
 ### 1. Vérifications préalables
 
+**Git n'est PAS un prérequis.** Le scaffolding fonctionne dans n'importe
+quel dossier (workspace, monorepo, dossier nu). La détection ci-dessous
+est purement informationnelle.
+
 Lancer un bash bloc :
 
 ```bash
-# Ne pas s'auto-scaffolder dans le plugin
+# Seule erreur bloquante : on est DANS le plugin lui-même
 if [ -d .claude-plugin ]; then
   echo "ERREUR : ce répertoire est le plugin lui-même. Lance /doc-init dans le repo CIBLE." >&2
   exit 1
 fi
 
-# Détection multi-repo : git au CWD + sous-dossiers contenant .git/
+# Détection git — informationnelle uniquement. Scan jusqu'à 3 niveaux
+# (gère les layouts type cina-compose/apps/front/.git, monorepos, etc.).
 GIT_REPOS=()
 if git rev-parse --git-dir >/dev/null 2>&1; then
   GIT_REPOS+=("$(pwd) (top-level)")
 fi
-for d in */; do
-  d="${d%/}"
-  [ -d "$d/.git" ] && GIT_REPOS+=("$d/")
-done
+while IFS= read -r d; do
+  GIT_REPOS+=("${d%/.git}/")
+done < <(find . -maxdepth 3 -type d -name .git 2>/dev/null | grep -v "^\./\.git$" || true)
 
 if [ ${#GIT_REPOS[@]} -eq 0 ]; then
-  echo "AVERTISSEMENT : aucun repo git détecté ici ni dans les sous-dossiers." >&2
-  echo "  Le scaffolding va continuer ; tu voudras 'git init' à un moment pour" >&2
-  echo "  versionner docs/ (la traçabilité 62304 dépend de l'historique git)." >&2
-elif [ ${#GIT_REPOS[@]} -gt 1 ]; then
-  echo "Mode multi-repo détecté :"
+  echo "Info : aucun repo git détecté. Le scaffolding continue."
+  echo "  (Git est conseillé pour versionner docs/, mais pas exigé.)"
+else
+  echo "Repos git détectés :"
   printf '  - %s\n' "${GIT_REPOS[@]}"
-  echo
-  echo "Les items vivront à la racine du projet (ici : $(pwd))."
-  echo "Les agents écriront des chemins source: préfixés par le nom du sous-repo,"
-  echo "ex. 'front/src/auth/oauth.ts' ou 'back/src/api.py'."
+  if [ ${#GIT_REPOS[@]} -gt 1 ]; then
+    echo
+    echo "Mode multi-repo : les agents préfixeront les chemins source: par"
+    echo "le nom du composant (ex. 'front/src/auth/oauth.ts')."
+  fi
 fi
 
 echo "OK — repo cible : $(pwd)"
 ```
+
+**INSTRUCTION STRICTE pour Claude** : quel que soit le résultat de la
+détection git ci-dessus (aucun repo, un seul, plusieurs, info, warning),
+**passer à l'étape 2 sans demander confirmation**. La seule condition
+d'arrêt est l'erreur explicite `[ -d .claude-plugin ]`.
 
 ### 2. Copier les assets de scaffolding
 
