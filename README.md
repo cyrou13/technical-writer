@@ -8,11 +8,20 @@ traçabilité N:N, matrice de couverture, statuts), avec analyses de
 risques **safety** (ISO 14971) et **cyber** (IEC 81001-5-1 / STRIDE)
 séparées.
 
-## Installation locale
+## Installation
+
+### Depuis GitHub (recommandé)
 
 ```bash
-# Dans Claude Code, depuis le dépôt cible :
-/plugin install /chemin/vers/technical-writer-
+# Dans Claude Code, depuis n'importe quel repo :
+/plugin marketplace add cyrou13/technical-writer
+/plugin install iec62304-writer@iec62304-writer-marketplace
+```
+
+### Depuis un chemin local
+
+```bash
+/plugin install /chemin/vers/technical-writer
 ```
 
 Puis dans le repo cible :
@@ -105,6 +114,41 @@ mon-projet/
     ├── test_plan_intro.md    # narrative du STD — édité à la main
     └── generated/            # produit par /doc-build (NE PAS éditer)
 ```
+
+## Multi-repo (front + back, monorepo de repos)
+
+Lance `/doc-init` depuis le **dossier projet** qui contient les
+sous-repos git. Layout typique :
+
+```
+mon-projet/
+├── front/                    # repo git #1
+│   ├── .git/
+│   ├── package.json
+│   └── src/...
+├── back/                     # repo git #2
+│   ├── .git/
+│   ├── pyproject.toml
+│   └── api/...
+├── tools/build_docs.py       # créé par /doc-init
+└── docs/                     # créé par /doc-init
+    ├── items/                #   items partagés entre les deux composants
+    └── generated/
+```
+
+`/doc-init` détecte automatiquement les sous-dossiers contenant un
+`.git/` et passe en mode multi-repo. Le `code-archeologist` produit
+alors une code-map structurée par composant, et tous les agents
+préfixent les chemins `source:` par le nom du composant
+(`front/src/auth/oauth.ts`, `back/api/routes.py`).
+
+`build_docs.py` scanne `package.json` / `pyproject.toml` /
+`requirements*.txt` à la racine **et** dans chaque sous-repo détecté
+pour produire la liste des frameworks de test dans le STD.
+
+Le dossier projet n'a **pas besoin** d'être lui-même un repo git ; en
+revanche, versionner `docs/` quelque part (3ᵉ repo umbrella, ou inclus
+dans front/back) est conseillé pour la traçabilité 62304.
 
 ## Reproduction des features Matrix Requirements
 
