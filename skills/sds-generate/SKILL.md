@@ -7,6 +7,12 @@ description: Générer items de Software Design Specification & architecture (62
 
 ## Modules à identifier
 
+En **multi-repo** (codemap mode = `multi-repo`), traiter chaque
+composant séparément. Les modules d'un composant sont indépendants de
+ceux de l'autre, sauf interfaces explicites (HTTP, événements). Tout
+chemin `source:` ou `module:` doit être préfixé par le nom du
+composant : `front/src/auth`, `back/api/routes`.
+
 ### TypeScript / JavaScript
 
 - Workspaces / packages (`packages/*`, `apps/*`).

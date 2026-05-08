@@ -82,7 +82,10 @@ Pour chaque exigence détectée :
    `items-store`), ne pas créer un doublon.
 2. Sinon, créer `docs/items/SRS/SRS-<DOMAIN>-<NNN>.md` avec le prochain
    `NNN` libre dans le domaine.
-3. Remplir `source:` avec les chemins relatifs depuis la racine du repo.
+3. Remplir `source:` avec les chemins relatifs depuis la racine du
+   projet (où vit `docs/items/`). En **multi-repo**, préfixer par le
+   nom du composant : `front/src/auth/oauth.ts`, `back/api/routes.py`
+   (le codemap liste les composants détectés).
 4. Laisser `links:` vides — le linkage SDS→SRS et TC→SRS sera fait par
    les autres agents.
 

@@ -10,14 +10,35 @@ consommée par les rédacteurs SRS, SDS et tests.
 
 ## Méthode
 
-1. **Inventaire de surface**
+### 0. Détecter le mode mono ou multi-repo
+
+**Avant tout autre travail**, détecter si le CWD contient plusieurs
+sous-dossiers avec un `.git/`. Cas typique : un dossier projet
+contenant `front/` et `back/` comme git repos séparés.
+
+- **Mono-repo** : `.git/` au CWD, un seul codebase.
+- **Multi-repo** : ≥ 1 sous-dossier de premier niveau a un `.git/`.
+  Chaque sous-dossier est un **composant** indépendant.
+
+En multi-repo :
+- faire l'inventaire (étapes 1-5) **par composant**,
+- **préfixer tous les chemins `source:` par le nom du composant**
+  (ex. `front/src/auth/oauth.ts`, `back/api/routes.py`),
+- la section "Topologie" du codemap commence par la liste des
+  composants détectés.
+
+1. **Inventaire de surface** (par composant en multi-repo)
    - Lire `package.json`, `pyproject.toml`, `requirements*.txt`,
      `tsconfig.json`, `Dockerfile`, `docker-compose.*`, `serverless.yml`,
-     `pnpm-workspace.yaml`, `turbo.json`, `.github/workflows/*`.
-   - En déduire : langages, runtimes, frameworks, outils de test, CI.
+     `pnpm-workspace.yaml`, `turbo.json`, `.github/workflows/*` —
+     dans **chaque** composant.
+   - En déduire : langages, runtimes, frameworks, outils de test, CI,
+     **par composant**.
 
 2. **Topologie**
-   - Lister les workspaces / packages.
+   - En multi-repo : commencer par la table des **composants**
+     (nom = sous-dossier, langage principal, point d'entrée).
+   - Puis les workspaces / packages internes à chaque composant.
    - Pour chaque package : dossier racine, langage, points d'entrée (`main`
      / `bin` / `__main__.py` / `index.ts` / etc.).
 
@@ -45,22 +66,30 @@ Un rapport Markdown structuré, ≤ 400 lignes, écrit dans
 ```markdown
 # Code map — <date ISO>
 
-## Stack
+## Mode
+- mono-repo | multi-repo
+- Composants détectés (multi-repo) : `front/`, `back/`, ...
+
+## Stack (par composant en multi-repo)
+### front/
 - Langages : ...
 - Frameworks : ...
 - Test : ...
-- CI : ...
+### back/
+- ...
 
 ## Topologie
-| Package | Path | Langage | Entrée |
-|---|---|---|---|
+### Composants (multi-repo)
+| Composant | Langage principal | Entrée principale |
+|---|---|---|
 
-## API publique
-### Routes HTTP
-| Méthode | Path | Handler | Fichier |
+### Packages internes
+| Composant | Package | Path | Langage | Entrée |
+|---|---|---|---|---|
 
-### CLI
-### Exports publics
+## API publique (par composant)
+### front/ — Routes HTTP / CLI / Exports
+### back/ — Routes HTTP / CLI / Exports
 
 ## Persistance
 - ORM : ...
@@ -69,13 +98,16 @@ Un rapport Markdown structuré, ≤ 400 lignes, écrit dans
 ## I/O externe
 - ...
 
-## Tests
+## Tests (par composant)
 - Frameworks détectés : ...
 - Comptage : ...
 
 ## Zones d'ombre
 - <fichier ou dossier sans rôle clair, à clarifier avec l'équipe>
 ```
+
+En mono-repo, les sections "par composant" se réduisent à une seule
+entrée et la table "Composants" peut être omise.
 
 ## Règles
 

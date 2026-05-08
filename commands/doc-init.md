@@ -16,19 +16,36 @@ Arguments possibles dans `$ARGUMENTS` :
 Lancer un bash bloc :
 
 ```bash
-# Doit être dans un repo git
-if [ ! -d .git ] && ! git rev-parse --git-dir >/dev/null 2>&1; then
-  echo "ERREUR : pas dans un repo git. Lance 'git init' d'abord." >&2
-  exit 1
-fi
-
 # Ne pas s'auto-scaffolder dans le plugin
 if [ -d .claude-plugin ]; then
   echo "ERREUR : ce répertoire est le plugin lui-même. Lance /doc-init dans le repo CIBLE." >&2
   exit 1
 fi
 
-echo "OK — repo cible détecté : $(pwd)"
+# Détection multi-repo : git au CWD + sous-dossiers contenant .git/
+GIT_REPOS=()
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  GIT_REPOS+=("$(pwd) (top-level)")
+fi
+for d in */; do
+  d="${d%/}"
+  [ -d "$d/.git" ] && GIT_REPOS+=("$d/")
+done
+
+if [ ${#GIT_REPOS[@]} -eq 0 ]; then
+  echo "AVERTISSEMENT : aucun repo git détecté ici ni dans les sous-dossiers." >&2
+  echo "  Le scaffolding va continuer ; tu voudras 'git init' à un moment pour" >&2
+  echo "  versionner docs/ (la traçabilité 62304 dépend de l'historique git)." >&2
+elif [ ${#GIT_REPOS[@]} -gt 1 ]; then
+  echo "Mode multi-repo détecté :"
+  printf '  - %s\n' "${GIT_REPOS[@]}"
+  echo
+  echo "Les items vivront à la racine du projet (ici : $(pwd))."
+  echo "Les agents écriront des chemins source: préfixés par le nom du sous-repo,"
+  echo "ex. 'front/src/auth/oauth.ts' ou 'back/src/api.py'."
+fi
+
+echo "OK — repo cible : $(pwd)"
 ```
 
 ### 2. Copier les assets de scaffolding
