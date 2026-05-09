@@ -42,7 +42,8 @@ Puis dans le repo cible :
 | 40 | `docs/generated/40_traceability.md` | §5.1.1 / §5.2.6 | Matrice SRS↔SDS↔TC |
 | 50 | `docs/generated/50_risk_analysis.md` | ISO 14971 / §7 | Risques safety |
 | 60 | `docs/generated/60_cyber_risk_analysis.md` | IEC 81001-5-1 / STRIDE | Risques cyber |
-| — | `docs/generated/_to_implement.md` | — | Backlog actionnable A/B/C/D |
+| 70 | `docs/generated/70_usability_analysis.md` | IEC 62366-1 | Use scenarios + use-related risks |
+| — | `docs/generated/_to_implement.md` | — | Backlog actionnable A/B/C/D/E |
 | — | `docs/generated/coverage.json` | — | Métriques machine-readable |
 | 99 | `docs/generated/99_compliance_review.md` | — | Revue de conformité |
 
@@ -61,6 +62,7 @@ Puis dans le repo cible :
 | `traceability-matrix` | Spec de la matrice de couverture |
 | `risk-analysis` | ISO 14971 + 62304 §7, hazards safety |
 | `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57 + STRIDE |
+| `iec62366-usability` | IEC 62366-1 — use scenarios, use-related risks, summative validation |
 
 ### Sub-agents
 
@@ -72,6 +74,7 @@ Puis dans le repo cible :
 | `test-evidence-collector` | Génère `docs/items/TC/*.md` |
 | `risk-analyst` | Génère `docs/items/RSK/*.md` + dérive les SRS de mitigation safety |
 | `security-analyst` | Threat modeling STRIDE → `docs/items/THR/*.md` + mitigations cyber |
+| `usability-analyst` | Scan UI → `docs/items/USC/*.md` + `URSK/*.md` + SRS-VIEWER-* + TC E2E |
 | `doc-updater` | Détecte orphelins, items stale, gaps de couverture → `_update_diff.md` |
 | `compliance-reviewer` | Revue 62304 Classe A → `99_compliance_review.md` |
 

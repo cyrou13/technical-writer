@@ -9,6 +9,7 @@ Lit `docs/items/<CAT>/*.md`, parse le frontmatter YAML, produit :
   - docs/generated/40_traceability.md
   - docs/generated/50_risk_analysis.md       (safety - ISO 14971 / 62304 §7)
   - docs/generated/60_cyber_risk_analysis.md (cyber - IEC 81001-5-1 / STRIDE)
+  - docs/generated/70_usability_analysis.md  (usability - IEC 62366-1)
   - docs/generated/_to_implement.md
   - docs/generated/coverage.json
 
@@ -18,10 +19,10 @@ Usage:
     python tools/build_docs.py [--strict]
 
 `--strict` => exit ≠ 0 si :
-  - tout marqueur [TODO], [GAP-62304] ou [GAP-CYBER] dans les items,
-  - tout RSK avec `severity: Critical|Catastrophic`,
-  - tout RSK ou THR avec `residual_acceptable: false`,
-  - tout RSK ou THR avec `acceptable: false` sans aucun contrôle.
+  - tout marqueur [TODO], [GAP-62304], [GAP-CYBER] ou [GAP-USE],
+  - tout RSK ou URSK avec `severity: Critical|Catastrophic`,
+  - tout RSK / THR / URSK avec `residual_acceptable: false`,
+  - tout RSK / THR / URSK avec `acceptable: false` sans aucun contrôle.
 """
 
 from __future__ import annotations
@@ -38,7 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ITEMS_DIR = ROOT / "docs" / "items"
 OUT_DIR = ROOT / "docs" / "generated"
 
-CATEGORIES = ("SRS", "SDS", "TC", "RSK", "THR")
+CATEGORIES = ("SRS", "SDS", "TC", "RSK", "THR", "USC", "URSK")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.DOTALL)
 
 CLASS_A_INVALIDATING_SEVERITY = {"Critical", "Catastrophic"}
@@ -644,6 +645,215 @@ def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_
     }
 
 
+def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
+    """Renvoie (markdown, dict d'analyse usability IEC 62366-1)."""
+    uscs = [u for u in by_cat["USC"] if u.status != "Deprecated"]
+    ursks = [r for r in by_cat["URSK"] if r.status != "Deprecated"]
+
+    lines = [
+        "# Analyse usability (IEC 62366-1)",
+        "",
+        f"_Généré le {date.today().isoformat()}_",
+        "",
+    ]
+
+    if not uscs and not ursks:
+        lines += [
+            "_Pas de surface UI détectée — IEC 62366-1 non applicable_",
+            "",
+        ]
+        return "\n".join(lines), {
+            "usc_count": 0,
+            "ursk_count": 0,
+            "ursk_unmitigated": [],
+            "ursk_residual_unacceptable": [],
+            "ursk_class_a_invalidating": [],
+            "usc_summary": [],
+            "ursk_summary": [],
+        }
+
+    # Section USC
+    lines += ["## Use Scenarios (USC)", ""]
+    if uscs:
+        lines += [
+            "| USC | Titre | Persona | Environnement | Tâche | Fréquence | Criticité |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        for u in uscs:
+            fm = u.frontmatter
+            lines.append(
+                f"| {u.id} | {u.title} | {fm.get('persona', '?')} | "
+                f"{fm.get('environment', '?')} | {fm.get('task', '?')} | "
+                f"{fm.get('frequency', '?')} | {fm.get('criticality', '?')} |"
+            )
+        lines.append("")
+    else:
+        lines += ["_(aucun USC enregistré)_", ""]
+
+    # Section URSK
+    ursk_unmit: list[str] = []
+    ursk_res_bad: list[str] = []
+    ursk_class_a_invalid: list[str] = []
+    ursk_summary: list[dict] = []
+
+    if ursks:
+        lines += [
+            "## Use-Related Risks (URSK)",
+            "",
+            "| URSK | Titre | Persona-USC | Sévérité | Niveau | Initial OK | Résiduel OK | # Contrôles | RSK déclenchés |",
+            "|---|---|---|---|---|---|---|---|---|",
+        ]
+        for r in ursks:
+            fm = r.frontmatter
+            sev = fm.get("severity", "Negligible")
+            lvl = fm.get("risk_level", "Low")
+            init_ok = bool(fm.get("acceptable", True))
+            res_ok = bool(fm.get("residual_acceptable", True))
+            controls = controls_by_target.get(r.id, [])
+            triggers = r.links.get("triggers") or []
+            usc_parent = fm.get("use_scenario", "—")
+
+            if sev in CLASS_A_INVALIDATING_SEVERITY:
+                ursk_class_a_invalid.append(r.id)
+            if not init_ok and not controls:
+                ursk_unmit.append(r.id)
+            if not res_ok:
+                ursk_res_bad.append(r.id)
+
+            ursk_summary.append({
+                "id": r.id,
+                "title": r.title,
+                "use_scenario": usc_parent,
+                "severity": sev,
+                "level": lvl,
+                "acceptable_initial": init_ok,
+                "residual_acceptable": res_ok,
+                "controls": [c.id for c in controls],
+                "triggers": triggers,
+            })
+
+            lines.append(
+                f"| {r.id} | {r.title} | {usc_parent} | {sev} | {lvl} | "
+                f"{'✓' if init_ok else '✗'} | {'✓' if res_ok else '✗'} | "
+                f"{len(controls)} | {', '.join(triggers) or '—'} |"
+            )
+        lines.append("")
+    else:
+        lines += ["## Use-Related Risks (URSK)", "", "_(aucun URSK enregistré)_", ""]
+
+    # Détail par USC
+    if uscs:
+        lines += ["## Détail par USC", ""]
+        for u in uscs:
+            fm = u.frontmatter
+            lines.append(f"### {u.id} — {u.title}")
+            lines.append("")
+            lines.append(
+                f"**Statut :** {u.status} · **Version :** {fm.get('version', '?')}"
+            )
+            lines.append(
+                f"**Persona :** {fm.get('persona', '?')} · "
+                f"**Environnement :** {fm.get('environment', '?')}"
+            )
+            lines.append(
+                f"**Tâche :** {fm.get('task', '?')} · "
+                f"**Fréquence :** {fm.get('frequency', '?')} · "
+                f"**Criticité :** {fm.get('criticality', '?')}"
+            )
+            srcs = fm.get("source") or []
+            if srcs:
+                lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+            # URSK rattachés
+            children = [r for r in ursks if r.frontmatter.get("use_scenario") == u.id]
+            if children:
+                lines.append(
+                    f"**URSK rattachés :** {', '.join(c.id for c in children)}"
+                )
+            lines.append("")
+            lines.append(u.body.strip())
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+
+    # Détail par URSK
+    if ursks:
+        lines += ["## Détail par URSK", ""]
+        for r in ursks:
+            fm = r.frontmatter
+            lines.append(f"### {r.id} — {r.title}")
+            lines.append("")
+            lines.append(
+                f"**Statut :** {r.status} · **Version :** {fm.get('version', '?')}"
+            )
+            lines.append(
+                f"**USC parent :** {fm.get('use_scenario', '—')}"
+            )
+            lines.append(
+                f"**Sévérité :** {fm.get('severity', '?')} · "
+                f"**Likelihood :** {fm.get('likelihood', '?')} · "
+                f"**Niveau :** {fm.get('risk_level', '?')}"
+            )
+            lines.append(
+                f"**Acceptable (initial) :** "
+                f"{'oui' if fm.get('acceptable', True) else 'non'} · "
+                f"**Résiduel acceptable :** "
+                f"{'oui' if fm.get('residual_acceptable', True) else 'non'}"
+            )
+            triggers = r.links.get("triggers") or []
+            if triggers:
+                lines.append(f"**Déclenche (RSK) :** {', '.join(triggers)}")
+            srcs = fm.get("source") or []
+            if srcs:
+                lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+            lines.append("")
+
+            controls = controls_by_target.get(r.id, [])
+            if controls:
+                lines.append("**Contrôles :**")
+                lines.append("")
+                lines.append("| Item | Catégorie | Implémenté | Vérifié |")
+                lines.append("|---|---|---|---|")
+                for c in controls:
+                    if c.category == "SRS":
+                        impl = "✓" if impl_by_srs.get(c.id) else "✗"
+                        verif = "✓" if verif_by_srs.get(c.id) else "✗"
+                    elif c.category == "SDS":
+                        impl = "✓ (design)"
+                        verif = "n/a"
+                    else:
+                        impl = "n/a"
+                        verif = "✓ (test)"
+                    lines.append(f"| {c.id} | {c.category} | {impl} | {verif} |")
+                lines.append("")
+            else:
+                lines.append("_Aucun contrôle enregistré._")
+                lines.append("")
+            lines.append(r.body.strip())
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+
+    if ursk_class_a_invalid:
+        lines += [
+            "## ⚠ URSK invalidant la Classe A",
+            "",
+            "Les URSK suivants ont une sévérité `Critical` ou `Catastrophic`.",
+            "Une use error qui peut causer ce niveau de harm remet en cause la",
+            "Classe A — revoir la classification.",
+            "",
+        ] + [f"- {u}" for u in ursk_class_a_invalid]
+
+    return "\n".join(lines) + "\n", {
+        "usc_count": len(uscs),
+        "ursk_count": len(ursks),
+        "ursk_unmitigated": ursk_unmit,
+        "ursk_residual_unacceptable": ursk_res_bad,
+        "ursk_class_a_invalidating": ursk_class_a_invalid,
+        "usc_summary": [{"id": u.id, "title": u.title} for u in uscs],
+        "ursk_summary": ursk_summary,
+    }
+
+
 def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
     """Backlog actionnable — structuré en groupes A/B/C/D."""
     srs = [s for s in by_cat["SRS"] if s.status != "Deprecated"]
@@ -668,7 +878,17 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         t for t in thrs if not t.frontmatter.get("residual_acceptable", True)
     ]
 
-    # C. Mitigations à compléter (toutes catégories — RSK ou THR)
+    # C. Usability (URSK)
+    ursks = [r for r in by_cat["URSK"] if r.status != "Deprecated"]
+    ursk_unmit = [
+        r for r in ursks
+        if not r.frontmatter.get("acceptable", True) and not controls_by_target.get(r.id)
+    ]
+    ursk_res_bad = [
+        r for r in ursks if not r.frontmatter.get("residual_acceptable", True)
+    ]
+
+    # D. Mitigations à compléter (toutes catégories — RSK, THR ou URSK)
     mit_to_impl: list[Item] = []
     mit_to_verif: list[Item] = []
     for s in srs:
@@ -679,7 +899,7 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         elif not verif_by_srs.get(s.id):
             mit_to_verif.append(s)
 
-    # D. Autres exigences Must (hors mitigation)
+    # E. Autres exigences Must (hors mitigation)
     must_to_impl: list[Item] = []
     must_to_verif: list[Item] = []
     for s in srs:
@@ -695,11 +915,19 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
     def _kind(targets: list[str]) -> str:
         has_rsk = any(t.startswith("RSK-") for t in targets)
         has_thr = any(t.startswith("THR-") for t in targets)
-        if has_rsk and has_thr:
-            return "mixed"
+        has_ursk = any(t.startswith("URSK-") for t in targets)
+        kinds = []
+        if has_rsk:
+            kinds.append("safety")
         if has_thr:
-            return "cyber"
-        return "safety"
+            kinds.append("cyber")
+        if has_ursk:
+            kinds.append("usability")
+        if not kinds:
+            return "?"
+        if len(kinds) == 1:
+            return kinds[0]
+        return "mixed(" + "+".join(kinds) + ")"
 
     lines = [
         "# À implémenter — backlog actionnable",
@@ -781,10 +1009,37 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         ("THR", "Titre", "Niveau", "Action"),
     )
 
-    lines += ["---", "", "# C. Mitigations à compléter (safety + cyber)", ""]
+    lines += ["---", "", "# C. Usability — IEC 62366-1", ""]
 
     _section(
-        "C.1 Mitigations à implémenter (SRS sans SDS)",
+        "C.1 URSK sans contrôle (BLOQUANT)",
+        [
+            (
+                r.id, r.title,
+                r.frontmatter.get("severity", "?"),
+                r.frontmatter.get("risk_level", "?"),
+                "Définir au moins un contrôle (`links.mitigates`)",
+            ) for r in ursk_unmit
+        ],
+        ("URSK", "Titre", "Sévérité", "Niveau", "Action"),
+    )
+
+    _section(
+        "C.2 URSK avec résiduel non acceptable (BLOQUANT)",
+        [
+            (
+                r.id, r.title,
+                r.frontmatter.get("risk_level", "?"),
+                "Renforcer les contrôles UI ou accepter le résiduel",
+            ) for r in ursk_res_bad
+        ],
+        ("URSK", "Titre", "Niveau", "Action"),
+    )
+
+    lines += ["---", "", "# D. Mitigations à compléter (safety + cyber + usability)", ""]
+
+    _section(
+        "D.1 Mitigations à implémenter (SRS sans SDS)",
         [
             (s.id, s.title, _kind(s.mitigates), ", ".join(s.mitigates),
              "Écrire le module qui réalise cette exigence")
@@ -794,7 +1049,7 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
     )
 
     _section(
-        "C.2 Mitigations à vérifier (SRS sans TC)",
+        "D.2 Mitigations à vérifier (SRS sans TC)",
         [
             (s.id, s.title, _kind(s.mitigates), ", ".join(s.mitigates),
              "Écrire un test de vérification")
@@ -803,22 +1058,23 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         ("Mitigation SRS", "Titre", "Type", "Cible(s)", "Action"),
     )
 
-    lines += ["---", "", "# D. Autres exigences Must", ""]
+    lines += ["---", "", "# E. Autres exigences Must", ""]
 
     _section(
-        "D.1 À implémenter",
+        "E.1 À implémenter",
         [(s.id, s.title) for s in must_to_impl],
         ("SRS", "Titre"),
     )
 
     _section(
-        "D.2 À vérifier",
+        "E.2 À vérifier",
         [(s.id, s.title) for s in must_to_verif],
         ("SRS", "Titre"),
     )
 
     nothing_left = not (
         rsk_unmit or rsk_res_bad or thr_unmit or thr_res_bad
+        or ursk_unmit or ursk_res_bad
         or mit_to_impl or mit_to_verif or must_to_impl or must_to_verif
     )
     if nothing_left:
@@ -832,6 +1088,8 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         "rsk_residual_unacceptable": [r.id for r in rsk_res_bad],
         "thr_unmitigated": [t.id for t in thr_unmit],
         "thr_residual_unacceptable": [t.id for t in thr_res_bad],
+        "ursk_unmitigated": [r.id for r in ursk_unmit],
+        "ursk_residual_unacceptable": [r.id for r in ursk_res_bad],
         "mitigations_to_implement": [s.id for s in mit_to_impl],
         "mitigations_to_verify": [s.id for s in mit_to_verif],
         "must_to_implement": [s.id for s in must_to_impl],
@@ -960,7 +1218,7 @@ def build_std(by_cat) -> str:
         "### 1.3 Niveaux de test couverts",
         "",
     ]
-    for lvl in ("Unit", "Integration", "System"):
+    for lvl in ("Unit", "Integration", "System", "E2E"):
         n = len(by_level.get(lvl, []))
         lines.append(f"- **{lvl}** — {n} TC")
     lines.append("")
@@ -1011,7 +1269,7 @@ def build_std(by_cat) -> str:
         "| Niveau | # TC | SRS Must couverts |",
         "|---|---|---|",
     ]
-    for lvl in ("Unit", "Integration", "System"):
+    for lvl in ("Unit", "Integration", "System", "E2E"):
         tcs_lvl = by_level.get(lvl, [])
         verifies_set: set[str] = set()
         for t in tcs_lvl:
@@ -1027,7 +1285,7 @@ def build_std(by_cat) -> str:
     # 6. Cas de test (table)
     lines += ["## 6. Cas de test", ""]
     section_idx = 0
-    for lvl in ("Unit", "Integration", "System"):
+    for lvl in ("Unit", "Integration", "System", "E2E"):
         tcs_lvl = sorted(by_level.get(lvl, []), key=lambda x: x.id)
         if not tcs_lvl:
             continue
@@ -1093,7 +1351,12 @@ def find_todo_markers() -> list[tuple[Path, int, str]]:
         return hits
     for path in ITEMS_DIR.rglob("*.md"):
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            if "[TODO]" in line or "[GAP-62304]" in line or "[GAP-CYBER]" in line:
+            if (
+                "[TODO]" in line
+                or "[GAP-62304]" in line
+                or "[GAP-CYBER]" in line
+                or "[GAP-USE]" in line
+            ):
                 hits.append((path, n, line.strip()))
     return hits
 
@@ -1131,6 +1394,11 @@ def main() -> int:
     )
     (OUT_DIR / "60_cyber_risk_analysis.md").write_text(cyber_md, encoding="utf-8")
 
+    use_md, use_data = build_usability_analysis(
+        by_cat, controls_by_target, impl_by_srs, verif_by_srs
+    )
+    (OUT_DIR / "70_usability_analysis.md").write_text(use_md, encoding="utf-8")
+
     todo_md, todo_data = build_to_implement(
         by_cat, impl_by_srs, verif_by_srs, controls_by_target
     )
@@ -1138,6 +1406,7 @@ def main() -> int:
 
     coverage["risks"] = risk_data
     coverage["threats"] = cyber_data
+    coverage["usability"] = use_data
     coverage["to_implement"] = todo_data
     (OUT_DIR / "coverage.json").write_text(
         json.dumps(coverage, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -1145,13 +1414,15 @@ def main() -> int:
 
     print(
         f"OK — items SRS={len(by_cat['SRS'])} SDS={len(by_cat['SDS'])} "
-        f"TC={len(by_cat['TC'])} RSK={len(by_cat['RSK'])} THR={len(by_cat['THR'])}"
+        f"TC={len(by_cat['TC'])} RSK={len(by_cat['RSK'])} "
+        f"THR={len(by_cat['THR'])} USC={len(by_cat['USC'])} URSK={len(by_cat['URSK'])}"
     )
     print(
         f"  impl={coverage['implementation_rate']:.0%} "
         f"verif_must={coverage['verification_rate_must']:.0%} "
         f"rsk_open={len(risk_data['rsk_unmitigated']) + len(risk_data['rsk_residual_unacceptable'])} "
-        f"thr_open={len(cyber_data['thr_unmitigated']) + len(cyber_data['thr_residual_unacceptable'])}"
+        f"thr_open={len(cyber_data['thr_unmitigated']) + len(cyber_data['thr_residual_unacceptable'])} "
+        f"ursk_open={len(use_data['ursk_unmitigated']) + len(use_data['ursk_residual_unacceptable'])}"
     )
     print(f"  → {OUT_DIR}")
 
@@ -1160,7 +1431,7 @@ def main() -> int:
         todos = find_todo_markers()
         if todos:
             problems.append(
-                f"{len(todos)} marqueur(s) [TODO]/[GAP-62304]/[GAP-CYBER]"
+                f"{len(todos)} marqueur(s) [TODO]/[GAP-62304]/[GAP-CYBER]/[GAP-USE]"
             )
             for path, n, line in todos:
                 rel = path.relative_to(ROOT)
@@ -1187,6 +1458,20 @@ def main() -> int:
         if cyber_data["thr_unmitigated"]:
             problems.append(
                 f"{len(cyber_data['thr_unmitigated'])} THR sans contrôle"
+            )
+        if use_data["ursk_class_a_invalidating"]:
+            problems.append(
+                f"{len(use_data['ursk_class_a_invalidating'])} URSK avec sévérité "
+                f"Critical/Catastrophic — Classe A invalide"
+            )
+        if use_data["ursk_residual_unacceptable"]:
+            problems.append(
+                f"{len(use_data['ursk_residual_unacceptable'])} URSK avec "
+                f"residual_acceptable=false"
+            )
+        if use_data["ursk_unmitigated"]:
+            problems.append(
+                f"{len(use_data['ursk_unmitigated'])} URSK sans contrôle"
             )
         if problems:
             print("STRICT — problèmes :", file=sys.stderr)

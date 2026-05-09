@@ -11,9 +11,9 @@ rôle est de produire un rapport listant les gaps et incohérences.
 
 Lire :
 - `docs/generated/_codemap.md`
-- `docs/generated/{10_SRS,20_SDS,30_STD,40_traceability,50_risk_analysis,60_cyber_risk_analysis,_to_implement}.md`
+- `docs/generated/{10_SRS,20_SDS,30_STD,40_traceability,50_risk_analysis,60_cyber_risk_analysis,70_usability_analysis,_to_implement}.md`
 - `docs/generated/coverage.json` (si présent)
-- Spot-check d'items dans `docs/items/{SRS,SDS,TC,RSK,THR}/`
+- Spot-check d'items dans `docs/items/{SRS,SDS,TC,RSK,THR,USC,URSK}/`
 
 ## Checklist de revue
 
@@ -62,6 +62,22 @@ Lire :
 - [ ] Tout THR avec `links.triggers: [RSK-XXX]` pointe un RSK
       existant (sinon flag : risk-analyst doit créer le RSK lié).
 - [ ] STRIDE + attaquant + asset renseignés sur chaque THR.
+
+### Usability (IEC 62366-1)
+- [ ] Si l'application a une UI : au moins un USC existe et est
+      lié à un persona (sinon flag).
+- [ ] Tout USC `criticality: High` a au moins un URSK rattaché ou
+      une note explicite "aucune use error plausible" justifiée.
+- [ ] Tout URSK avec `acceptable: false` a au moins un contrôle
+      (`links.mitigates` pointe ce URSK depuis ≥ 1 item).
+- [ ] Tout URSK avec `residual_acceptable: false` est listé comme
+      bloquant.
+- [ ] Aucun URSK avec `severity: Critical` ou `Catastrophic` (sinon
+      Classe A invalide → bloquant).
+- [ ] Au moins un TC `usability_type: summative` existe par USC à
+      `criticality: High` (validation summative IEC 62366-1).
+- [ ] Tout URSK avec `links.triggers: [RSK-XXX]` pointe un RSK
+      existant.
 
 ## Sortie
 
