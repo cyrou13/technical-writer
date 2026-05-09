@@ -56,12 +56,36 @@ Tout autre H2 est ignoré silencieusement.
 
 ## Niveaux de test
 
-`type` valeurs admises : `Unit`, `Integration`, `System`. TC sans
-`type` = `Unit` par défaut.
+`type` valeurs admises : `Unit`, `Integration`, `System`, `E2E`. TC
+sans `type` = `Unit` par défaut.
+
+- **Unit** — composants isolés (mock dépendances).
+- **Integration** — interfaces entre modules backend (DB, API
+  internes).
+- **System** — bout-en-bout backend (HTTP from outside, sans UI).
+- **E2E** — bout-en-bout côté utilisateur via UI réelle (Playwright,
+  Cypress, Selenium). Distinct de System pour permettre le tracking
+  séparé des tests qui couvrent l'interaction utilisateur (cf. skill
+  `iec62366-usability`). Les TC E2E ont souvent
+  `links.mitigates: [URSK-XXX]` en plus de `links.verifies`.
 
 Class A — IEC 62304 §5.6 (intégration) est allégé. Si tu n'as pas
 encore de TC `Integration`, ce n'est pas bloquant ; le STD le reflète
 proprement (table de couverture vide pour ce niveau).
+
+## Sous-type Usability (IEC 62366-1)
+
+Pour les TC E2E pilotés par persona, ajouter au frontmatter :
+
+```yaml
+type: E2E
+usability_type: formative   # formative | summative
+```
+
+- **formative** — testing pendant le design, itératif.
+- **summative** — validation finale avant release. **Au moins un**
+  TC summative par USC `criticality: High` est attendu par
+  IEC 62366-1 (vérifié par `compliance-reviewer`).
 
 ## Critères de pass/fail par défaut
 

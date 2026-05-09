@@ -23,7 +23,9 @@ allégé, mais structure documentaire conservée.
 | §5.3–§5.4 | Software Design / Architecture (SDS) | `SDS` | `docs/generated/20_SDS.md` |
 | §5.5 / §5.7 | Software Test Description (STD) | `TC` | `docs/generated/30_STD.md` |
 | §5.1.1 / §5.2.6 | Matrice de traçabilité | (calculée) | `docs/generated/40_traceability.md` |
-| §7 | Analyse de risques (Class A : justification) | `RSK` | `docs/generated/50_risk_analysis.md` |
+| §7 | Analyse de risques safety (Class A : justification) | `RSK` | `docs/generated/50_risk_analysis.md` |
+| (cyber) | Analyse de risques cyber (IEC 81001-5-1) | `THR` | `docs/generated/60_cyber_risk_analysis.md` |
+| (use) | Analyse usability (IEC 62366-1) | `USC` + `URSK` | `docs/generated/70_usability_analysis.md` |
 | — | Backlog actionnable des mitigations à implémenter | (calculé) | `docs/generated/_to_implement.md` |
 
 ## Règles de rédaction

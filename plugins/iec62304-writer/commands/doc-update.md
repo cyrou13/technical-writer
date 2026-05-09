@@ -51,18 +51,25 @@ Ordre :
 ### 4. Re-évaluation des risques
 
 Si **n'importe quel** item SRS / SDS / TC a été modifié à l'étape 3,
-lancer **`risk-analyst`** PUIS **`security-analyst`** (séquence, pas
-parallèle — le security-analyst utilise les RSK pour le linkage
-`triggers`).
+lancer en séquence (chacun utilise les sorties du précédent pour ses
+liens) :
+1. **`risk-analyst`** — re-évalue les RSK safety
+2. **`security-analyst`** — re-évalue les THR cyber, peut trigger des
+   RSK
+3. **`usability-analyst`** — re-évalue les USC/URSK si des composants
+   UI ont changé, peut trigger des RSK
 
-Ces agents :
-- relisent les items modifiés,
-- vérifient si les contrôles existants (`links.mitigates`) tiennent
+Chaque agent :
+- relit les items modifiés,
+- vérifie si les contrôles existants (`links.mitigates`) tiennent
   toujours après les changements,
-- mettent à jour `residual_acceptable` si nécessaire,
-- ajoutent un GAP marker si un risque devient non-acceptable.
+- met à jour `residual_acceptable` si nécessaire,
+- ajoute un GAP marker (`[GAP-62304]` / `[GAP-CYBER]` / `[GAP-USE]`)
+  si un risque devient non-acceptable.
 
 Si **rien** n'a bougé en SRS/SDS/TC → sauter cette étape.
+Si rien n'a bougé en composants UI → sauter `usability-analyst`
+spécifiquement.
 
 ### 5. Bump majeur (si argument `Vx.y`)
 

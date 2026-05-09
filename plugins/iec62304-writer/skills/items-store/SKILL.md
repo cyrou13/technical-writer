@@ -21,7 +21,9 @@ docs/
 │   ├── SDS/         # design & architecture  (62304 §5.3-§5.4)
 │   ├── TC/          # cas de test            (62304 §5.5/§5.7)
 │   ├── RSK/         # risques safety         (ISO 14971 / 62304 §7)
-│   └── THR/         # menaces cyber          (IEC 81001-5-1 / STRIDE)
+│   ├── THR/         # menaces cyber          (IEC 81001-5-1 / STRIDE)
+│   ├── USC/         # use scenarios          (IEC 62366-1)
+│   └── URSK/        # use-related risks      (IEC 62366-1)
 ├── generated/       # produit par /doc-build — NE PAS éditer à la main
 └── templates/       # squelettes des items
 ```
@@ -30,10 +32,11 @@ Un fichier par item. Nom du fichier = `<ID>.md`.
 
 ## Format des IDs
 
-`<CAT>-<DOMAIN>-<NNN>` — `CAT` ∈ {SRS, SDS, TC, RSK, THR}, `DOMAIN` court
-(≤ 8 car., MAJ), `NNN` zéro-paddé sur 3 chiffres.
+`<CAT>-<DOMAIN>-<NNN>` — `CAT` ∈ {SRS, SDS, TC, RSK, THR, USC, URSK},
+`DOMAIN` court (≤ 8 car., MAJ), `NNN` zéro-paddé sur 3 chiffres.
 
-Exemples : `SRS-AUTH-001`, `SDS-API-014`, `TC-PAY-003`, `THR-AUTH-002`.
+Exemples : `SRS-AUTH-001`, `SDS-API-014`, `TC-PAY-003`, `THR-AUTH-002`,
+`USC-READ-001`, `URSK-READ-001`.
 
 **IDs immuables.** Pour retirer un item : `status: Deprecated`, on ne
 supprime ni ne renumérote jamais.
@@ -125,6 +128,40 @@ Les contrôles d'un THR sont calculés comme pour un RSK : items dont
 [RSK-XXX]` (sortant depuis le THR) signale qu'une exploitation
 déclenche un hazard safety.
 
+## USC — frontmatter spécifique
+
+```yaml
+persona: radiologue              # rôle utilisateur
+environment: lecture room         # contexte d'usage
+task: validation d'un cas AI ICH  # tâche métier accomplie
+frequency: Frequent              # Rare | Occasional | Frequent | Continuous
+criticality: High                # Low | Medium | High (impact si tâche échoue)
+```
+
+USC = Use Scenario IEC 62366-1. Décrit qui fait quoi, où. Voir skill
+`iec62366-usability`.
+
+## URSK — frontmatter spécifique
+
+```yaml
+use_scenario: USC-READ-001       # USC parent (use error survient dans ce scenario)
+use_error: |
+  Validation rapide sans relecture des images (acceptation par défaut).
+hazard: Faux positif AI accepté tel quel
+hazardous_situation: Diagnostic erroné transmis au PACS
+harm: Diagnostic incorrect → décision clinique inappropriée
+severity: Serious                # Negligible | Minor | Serious | Critical | Catastrophic
+likelihood: Occasional           # Improbable | Remote | Occasional | Probable | Frequent
+risk_level: Medium               # Low | Medium | High
+acceptable: false
+residual_acceptable: true
+```
+
+URSK = Use-Related Risk IEC 62366-1. Origine = utilisateur final (pas
+le code, pas un attaquant). Le lien `links.triggers: [RSK-XXX]`
+(comme pour THR) signale qu'une use error déclenche un hazard safety
+déjà identifié.
+
 ## TC — frontmatter spécifique
 
 ```yaml
@@ -148,8 +185,8 @@ Tous les liens sont **sortants** et stockés dans `links:` du fichier source.
 | `parent` | item → item de même catégorie | hiérarchie SRS / décomposition |
 | `implements` | SDS → SRS | "ce module réalise l'exigence X" |
 | `verifies` | TC → SRS | "ce test vérifie l'exigence X" |
-| `mitigates` | SRS/SDS/TC → RSK ou THR | "ce design/test atténue ce risque/menace" |
-| `triggers` | THR → RSK | "exploiter cette menace cyber déclenche ce hazard safety" |
+| `mitigates` | SRS/SDS/TC → RSK / THR / URSK | "ce design/test atténue ce risque, menace ou erreur d'usage" |
+| `triggers` | THR / URSK → RSK | "cette menace cyber ou cette erreur d'usage déclenche ce hazard safety" |
 
 Le build calcule les liens **entrants** (couverture) automatiquement.
 
@@ -183,6 +220,7 @@ formelle, utiliser des commits signés (`git commit -S`).
 - `docs/generated/40_traceability.md` (matrice de couverture + orphelins),
 - `docs/generated/50_risk_analysis.md` (RSK safety + contrôles),
 - `docs/generated/60_cyber_risk_analysis.md` (THR cyber + contrôles),
+- `docs/generated/70_usability_analysis.md` (USC + URSK + contrôles, IEC 62366-1),
 - `docs/generated/_to_implement.md` (backlog actionnable structuré en
-  groupes A. Safety / B. Cyber / C. Mitigations / D. Autres Must),
+  groupes A. Safety / B. Cyber / C. Usability / D. Mitigations / E. Autres Must),
 - `docs/generated/coverage.json` (métriques machine-readable).
