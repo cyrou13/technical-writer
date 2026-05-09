@@ -72,6 +72,7 @@ Puis dans le repo cible :
 | `test-evidence-collector` | Génère `docs/items/TC/*.md` |
 | `risk-analyst` | Génère `docs/items/RSK/*.md` + dérive les SRS de mitigation safety |
 | `security-analyst` | Threat modeling STRIDE → `docs/items/THR/*.md` + mitigations cyber |
+| `doc-updater` | Détecte orphelins, items stale, gaps de couverture → `_update_diff.md` |
 | `compliance-reviewer` | Revue 62304 Classe A → `99_compliance_review.md` |
 
 ### Slash commands
@@ -79,7 +80,8 @@ Puis dans le repo cible :
 | Commande | Effet |
 |---|---|
 | `/doc-init [--update] [--with-examples]` | Scaffolde le repo cible |
-| `/doc-62304 [scope]` | Pipeline complet |
+| `/doc-62304 [scope]` | Pipeline complet (génération initiale) |
+| `/doc-update [Vx.y]` | Mise à jour incrémentale après évolution du code (orphelins, stale, gaps) |
 | `/doc-item <ID> [titre]` | CRUD d'un item unique |
 | `/doc-build [--strict]` | Lance `tools/build_docs.py` |
 
