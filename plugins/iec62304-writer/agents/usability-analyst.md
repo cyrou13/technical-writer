@@ -52,6 +52,23 @@ distincts des SRS backend produits par `requirements-writer`.
 | Permission guards UI (`if (!user.has(...))`, conditional render) | `SRS-VIEWER-PERM-*` | Playwright permission boundary |
 | WebSocket subscriptions UI (live updates, reconnect) | `SRS-VIEWER-WS-*` | Playwright websocket |
 | Accessibility (`aria-*`, keyboard nav, focus management) | `SRS-VIEWER-A11Y-*` | axe-core, Playwright a11y |
+| Test affordance / state visibility : `data-testid`, `role="alert"`, `aria-busy`, empty/error states testid | `SRS-VIEWER-A11Y-*` (anchors manquantes) | Playwright (anchors présentes = testabilité) |
+
+### Scan complémentaire — ancres testables manquantes
+
+Pour chaque composant interactif détecté ci-dessus :
+1. Vérifier la présence de `data-testid` (grep dans le fichier).
+2. Pour les états multiples (loading / empty / error / ready), vérifier
+   testid + role distincts par état.
+3. **Si une ancre manque** → créer un `SRS-VIEWER-A11Y-NNN` exigeant
+   l'ajout. Description type : "Le composant `<Foo>` doit exposer
+   `data-testid` et `role="alert"` sur son état d'erreur pour permettre
+   la vérification automatisée et l'accessibilité."
+4. `priority: Should` par défaut (qualité), `Must` si l'absence bloque
+   un TC E2E déjà existant.
+
+Ce scan flagge ce qui **manque** (différent des autres patterns qui
+décrivent ce qui existe). Canal feedback testabilité/a11y → backlog SRS.
 
 Pour chaque hit :
 - Créer le **SRS-VIEWER-*** (exigence UI fonctionnelle observable,

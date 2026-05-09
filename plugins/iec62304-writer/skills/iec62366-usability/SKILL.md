@@ -74,6 +74,32 @@ des SRS backend produits par `requirements-writer`.
 | Permission guards UI : `if (!user.has(...))`, conditional render | `SRS-VIEWER-PERM-*` | Playwright permission boundary |
 | WebSocket subscriptions UI (live updates, reconnect logic) | `SRS-VIEWER-WS-*` | Playwright websocket |
 | Accessibility : `aria-*`, keyboard navigation, focus management | `SRS-VIEWER-A11Y-*` | axe-core, Playwright a11y |
+| Test affordance / state visibility : `data-testid` cohérents, `role="alert"`, `aria-busy`, empty/error states avec testid | `SRS-VIEWER-A11Y-*` (anchors manquantes) | Playwright (anchors présentes = testabilité) |
+
+### Scan des ancres testables (canal "manquantes")
+
+Les Playwright/E2E sont testables seulement si l'UI expose des **ancres
+stables** :
+- `data-testid` cohérents sur les éléments interactifs (boutons, forms,
+  listes, lignes de table).
+- `role="alert"` / `role="status"` + `aria-live` sur les notifications.
+- `aria-busy="true"` sur les conteneurs en chargement.
+- Empty states identifiables (testid distinct, pas juste `<div></div>`).
+- Error banners avec testid + `role="alert"`.
+
+Pour chaque composant interactif détecté à l'étape précédente :
+1. Vérifier la présence de `data-testid` (grep dans le fichier).
+2. Pour les états multiples (loading / empty / error / ready), vérifier
+   qu'ils sont sémantiquement distincts (role + testid par état).
+3. **Si une ancre manque → créer un `SRS-VIEWER-A11Y-*` "to-add"** qui
+   exige l'ajout. Description type : "Le composant `<Foo>` doit
+   exposer `data-testid` et `role="alert"` sur son état d'erreur pour
+   permettre la vérification automatisée et l'accessibilité."
+4. Marquer ce SRS `priority: Should` par défaut (qualité), à moins
+   qu'il bloque un TC E2E déjà existant (alors `Must`).
+
+Ce scan est différent des autres : il flagge ce qui **manque**, pas ce
+qui existe. Canal feedback testabilité/a11y du code vers le backlog SRS.
 
 Pour chaque pattern détecté, l'agent crée :
 - 1 ou plusieurs **SRS-VIEWER-***  (exigence UI fonctionnelle observable),
