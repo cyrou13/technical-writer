@@ -115,6 +115,7 @@ selon ton setup.
 | `security-analyst` | Threat modeling STRIDE → `docs/items/THR/*.md` + mitigations cyber |
 | `usability-analyst` | Scan UI → `docs/items/USC/*.md` + `URSK/*.md` + SRS-VIEWER-* + TC E2E |
 | `production-risk-analyst` | Scan CI/CD + Docker + deploy → `docs/items/PRSK/*.md` + SRS-SIGNING/SBOM (AAMI TIR57) |
+| `items-refresher` | Remplit sémantiquement les `[TODO]` placeholders insérés par `/doc-refresh-items --apply`. Inférence pour RSK (initiating_causes, foreseeable_sequence, hierarchy, residual) depuis hazard + source. Projection CIA pour THR depuis STRIDE + impact. Ne touche jamais aux champs déjà remplis. |
 | `doc-updater` | Détecte orphelins, items stale, gaps de couverture → `_update_diff.md` |
 | `compliance-reviewer` | Revue 62304 Classe A → `99_compliance_review.md` |
 
@@ -135,7 +136,7 @@ selon ton setup.
 | `/doc-stdr-export [--strict] [--md-only]` | Produit le Software Test Description and Reports (Avicenna `AV-DP-XXX-STDR`) — ingère `test-results.json` produit par CI — via `tools/build_stdr_export.py` |
 | `/doc-str-export [--strict] [--md-only]` | Produit le Software Test Report (Avicenna `AV-DP-XXX-STR-auto`) synthèse pass/fail depuis `test-results.json` — via `tools/build_str_export.py` |
 | `/doc-migrate [--apply] [--stdout]` | Audit de migration après upgrade du plugin : détecte les clés manquantes dans dt-config.yaml, les anchors manquants dans dt-clinical-context.md, les items au schéma incomplet, et les scripts outdated. Mode additif-only (`--apply`) ou dry-run (défaut). |
-| `/doc-refresh-items [--apply] [--cat CAT] [--stdout]` | Refresh additif des items existants quand le schéma frontmatter a évolué (RSK étendu ISO 14971 §C.2, THR étendu CIA, …). Insère les champs manquants comme `[TODO]` placeholders, bump `version` patch, reset `status: Approved → Draft`. Ne touche jamais au contenu existant. |
+| `/doc-refresh-items [--apply] [--cat CAT] [--stdout] [--auto-fill]` | Refresh additif des items existants quand le schéma frontmatter a évolué (RSK étendu ISO 14971 §C.2, THR étendu CIA, …). Insère les champs manquants comme `[TODO]` placeholders. Avec `--auto-fill`, enchaîne avec le sub-agent `items-refresher` qui remplit sémantiquement les `[TODO]` depuis hazard / STRIDE / source code. Items restent en `status: Draft` pour re-approbation. |
 
 ## Layout du plugin
 

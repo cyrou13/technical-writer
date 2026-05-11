@@ -54,6 +54,27 @@ Après l'exécution :
 - `--apply` : exécute les modifications en place (sinon dry-run)
 - `--cat <CAT>` : limite à une catégorie (RSK, THR, SDS, etc.)
 - `--stdout` : rapport sur stdout au lieu de `docs/generated/refresh-report.md`
+- `--auto-fill` : enchaîne 2 étapes —
+  1. `refresh_items.py --apply` (insertion mécanique des `[TODO]`)
+  2. invocation du sub-agent `items-refresher` qui REMPLIT
+     sémantiquement les `[TODO]` (inférence depuis hazard / STRIDE / source).
+
+  Implique `--apply`. À utiliser **uniquement après un dry-run validé**.
+  Chaque item modifié reste en `status: Draft` — l'utilisateur reviewe
+  le diff git item par item avant de re-approuver.
+
+## Workflow `--auto-fill`
+
+Quand `$ARGUMENTS` contient `--auto-fill` :
+
+1. Vérifier qu'on a un repo avec items, un template à jour, etc.
+2. Lancer `python tools/refresh_items.py --apply` pour insérer les `[TODO]`.
+3. Lancer le sub-agent `items-refresher` (`Agent(subagent_type="items-refresher", ...)`)
+   avec instruction de remplir les `[TODO]` restants en s'appuyant sur
+   le hazard / STRIDE / source de chaque item.
+4. Afficher le rapport final consolidé : combien de champs mécaniques
+   ajoutés (étape 2) + combien de champs sémantiques remplis (étape 3)
+   + items restant à reviewer à la main.
 
 ## Garde-fous
 
