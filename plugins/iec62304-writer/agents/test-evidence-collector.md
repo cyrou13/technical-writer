@@ -26,7 +26,11 @@ existants.
 1. Pour chaque fichier de test détecté :
    - Lire le fichier et lister chaque cas de test (`it`, `test`, `test_*`,
      `def test_*`).
-   - Pour chaque cas, créer ou mettre à jour `TC-<DOMAIN>-<NNN>.md`.
+   - Pour chaque cas, créer ou mettre à jour un item TC. Pour composer
+     l'ID, lire `dt-config.yaml` à la racine s'il existe et utiliser
+     `id_format.TC` (ou `id_format.default` à défaut). Sinon fallback
+     sur `TC-<DOMAIN>-<NNN>` (3 segments). Voir le skill `items-store`
+     pour les variables disponibles.
 2. Remplir `test_id:` avec un identifiant ré-exécutable :
    - Vitest/Jest : `<fichier>::<describe path>::<test name>`
    - pytest : `<fichier>::<class>::<function>` ou `<fichier>::<function>`

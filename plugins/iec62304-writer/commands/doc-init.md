@@ -79,7 +79,7 @@ WITH_EXAMPLES=0
 case " $ARGS " in *" --update "*) UPDATE=1 ;; esac
 case " $ARGS " in *" --with-examples "*) WITH_EXAMPLES=1 ;; esac
 
-mkdir -p tools docs/templates docs/items/SRS docs/items/SDS docs/items/TC docs/items/RSK docs/items/THR docs/items/USC docs/items/URSK
+mkdir -p tools docs/templates docs/items/MAP docs/items/SRS docs/items/SDS docs/items/TC docs/items/RSK docs/items/THR docs/items/USC docs/items/URSK
 
 CREATED=()
 SKIPPED=()
@@ -92,8 +92,16 @@ else
   SKIPPED+=("tools/build_docs.py (existe — utilise --update pour remplacer)")
 fi
 
+# build_export.py — overwrite uniquement si --update
+if [ ! -f tools/build_export.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_export.py" tools/build_export.py
+  CREATED+=("tools/build_export.py")
+else
+  SKIPPED+=("tools/build_export.py (existe — utilise --update pour remplacer)")
+fi
+
 # Templates — ne jamais overwrite
-for tpl in srs-item sds-item tc-item rsk-item thr-item usc-item ursk-item; do
+for tpl in map-item srs-item sds-item tc-item rsk-item thr-item usc-item ursk-item; do
   src="${CLAUDE_PLUGIN_ROOT}/scaffold/docs/templates/${tpl}.template.md"
   dst="docs/templates/${tpl}.template.md"
   if [ ! -f "$dst" ]; then
@@ -112,8 +120,24 @@ else
   SKIPPED+=("docs/test_plan_intro.md (existe — fichier maintenu à la main)")
 fi
 
+# dt-config.yaml — JAMAIS overwrite (config QMS-side)
+if [ ! -f dt-config.yaml ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/dt-config.yaml" dt-config.yaml
+  CREATED+=("dt-config.yaml")
+else
+  SKIPPED+=("dt-config.yaml (existe — config QMS maintenue à la main)")
+fi
+
+# dt-clinical-context.md — JAMAIS overwrite (sections narratives QMS)
+if [ ! -f docs/dt-clinical-context.md ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/docs/dt-clinical-context.md" docs/dt-clinical-context.md
+  CREATED+=("docs/dt-clinical-context.md")
+else
+  SKIPPED+=("docs/dt-clinical-context.md (existe — fichier maintenu à la main)")
+fi
+
 # .gitkeep par catégorie
-for cat in SRS SDS TC RSK THR USC URSK; do
+for cat in MAP SRS SDS TC RSK THR USC URSK; do
   if [ ! -f "docs/items/$cat/.gitkeep" ]; then
     : > "docs/items/$cat/.gitkeep"
     CREATED+=("docs/items/$cat/.gitkeep")
@@ -122,7 +146,7 @@ done
 
 # Examples
 if [ "$WITH_EXAMPLES" = "1" ]; then
-  for cat in SRS SDS TC RSK THR USC URSK; do
+  for cat in MAP SRS SDS TC RSK THR USC URSK; do
     for src in "${CLAUDE_PLUGIN_ROOT}/examples/$cat"/*.md; do
       [ -f "$src" ] || continue
       name=$(basename "$src")
@@ -156,11 +180,17 @@ printf '  %s\n' "${SKIPPED[@]}"
 
 ### 3. Synthèse à l'utilisateur
 
-Afficher en ≤ 8 lignes :
+Afficher en ≤ 10 lignes :
 - nombre de fichiers créés vs sautés,
-- emplacements clés (`tools/build_docs.py`, `docs/items/`, `docs/templates/`),
+- emplacements clés (`tools/build_docs.py`, `tools/build_export.py`,
+  `dt-config.yaml`, `docs/items/`, `docs/templates/`),
 - prochain pas : `/doc-62304` pour lancer le pipeline complet, ou
   `/doc-item SRS-XXX-001 "..."` pour créer un item à la main,
+- rappel : éditer `dt-config.yaml` (signatures, références, format d'ID)
+  AVANT de lancer `/doc-62304` si on veut un format d'ID Avicenna-style,
+- rappel : éditer `docs/dt-clinical-context.md` pour remplir les
+  sections narratives QMS (intended use, warnings, etc.) avant
+  `/doc-export`,
 - rappel : éditer `docs/test_plan_intro.md` pour remplir les sections
   narratives du STD.
 

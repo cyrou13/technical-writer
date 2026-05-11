@@ -11,7 +11,8 @@ source:
   - src/auth/oauth.ts
   - src/auth/oauth.test.ts
 links:
-  parent: []
+  parent:
+    - MAP-EXAMPLE-001
   implements: []
   verifies: []
   mitigates: []

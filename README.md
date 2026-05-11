@@ -37,9 +37,10 @@ des normes.
 Puis dans le repo cible :
 
 ```bash
-/doc-init                  # scaffolde tools/build_docs.py + docs/templates/
-/doc-init --with-examples  # idem + items d'exemple liés
+/doc-init                  # scaffolde tools/build_docs.py + dt-config.yaml + docs/templates/
+/doc-init --with-examples  # idem + items d'exemple liés (MAP/SRS/SDS/TC/RSK/THR)
 /doc-62304                 # pipeline complet : codemap → SRS/SDS/TC/RSK/THR → build → revue
+/doc-export                # livrable RAQA-ready (cover, signataires, traçabilité §3 → MAP)
 ```
 
 ## Livrables produits
@@ -56,6 +57,7 @@ Puis dans le repo cible :
 | — | `docs/generated/_to_implement.md` | — | Backlog actionnable A/B/C/D/E |
 | — | `docs/generated/coverage.json` | — | Métriques machine-readable |
 | 99 | `docs/generated/99_compliance_review.md` | — | Revue de conformité |
+| Export | `docs/export/<doc-id>-<vXX>-SRS.md` (+ `.docx` optionnel) | — | Livrable QMS-ready (cover signataires, revision history, §1 framing, §2 requirements, §3 traçabilité → MAP). Produit par `/doc-export`. |
 
 ## Composants du plugin
 
@@ -73,6 +75,7 @@ Puis dans le repo cible :
 | `risk-analysis` | ISO 14971 + 62304 §7, hazards safety |
 | `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57 + STRIDE |
 | `iec62366-usability` | IEC 62366-1 — use scenarios, use-related risks, summative validation |
+| `dossier-technique-export` | Spec du livrable RAQA-ready à partir de `dt-config.yaml` + `dt-clinical-context.md` + items |
 
 ### Sub-agents
 
@@ -97,6 +100,7 @@ Puis dans le repo cible :
 | `/doc-update [Vx.y]` | Mise à jour incrémentale après évolution du code (orphelins, stale, gaps) |
 | `/doc-item <ID> [titre]` | CRUD d'un item unique |
 | `/doc-build [--strict]` | Lance `tools/build_docs.py` |
+| `/doc-export [--strict] [--md-only]` | Produit le livrable QMS-ready dans `docs/export/` via `tools/build_export.py` |
 
 ## Layout du plugin
 
@@ -104,16 +108,20 @@ Puis dans le repo cible :
 iec62304-writer/
 ├── .claude-plugin/
 │   └── plugin.json
-├── skills/                    # 9 skills
-├── agents/                    # 7 sub-agents
-├── commands/                  # 4 slash commands (dont /doc-init)
+├── skills/                    # 11 skills (dont dossier-technique-export)
+├── agents/                    # 9 sub-agents
+├── commands/                  # 6 slash commands (init, 62304, item, build, update, export)
 ├── scaffold/                  # assets copiés par /doc-init
-│   ├── tools/build_docs.py
+│   ├── tools/
+│   │   ├── build_docs.py      # agrégats internes /doc-build
+│   │   └── build_export.py    # livrable QMS-ready /doc-export
+│   ├── dt-config.yaml         # config QMS (signataires, refs, id_format) — édité à la main
 │   └── docs/
-│       ├── templates/         # 5 squelettes (SRS/SDS/TC/RSK/THR)
+│       ├── templates/         # 8 squelettes (MAP/SRS/SDS/TC/RSK/THR/USC/URSK)
+│       ├── dt-clinical-context.md # narratives QMS (intended use, warnings…) — édité à la main
 │       └── test_plan_intro.md # narrative STD (maintenu à la main)
 └── examples/                  # items démo (copiés via --with-examples)
-    ├── SRS/  SDS/  TC/  RSK/  THR/
+    ├── MAP/  SRS/  SDS/  TC/  RSK/  THR/
 ```
 
 ## Layout produit dans le repo cible (après `/doc-init`)
@@ -121,13 +129,18 @@ iec62304-writer/
 ```
 mon-projet/
 ├── tools/
-│   └── build_docs.py
+│   ├── build_docs.py         # agrégats internes
+│   └── build_export.py       # livrable QMS-ready
+├── dt-config.yaml            # config QMS (signataires, refs, id_format) — édité à la main
 └── docs/
     ├── templates/            # squelettes
     ├── items/                # source de vérité (édités à la main ou par les agents)
-    │   ├── SRS/  SDS/  TC/  RSK/  THR/
+    │   ├── MAP/              # ★ inputs upstream (master / stakeholder reqs) — saisis à la main
+    │   ├── SRS/  SDS/  TC/  RSK/  THR/  USC/  URSK/
+    ├── dt-clinical-context.md # narratives QMS (intended use, warnings, etc.) — édité à la main
     ├── test_plan_intro.md    # narrative du STD — édité à la main
-    └── generated/            # produit par /doc-build (NE PAS éditer)
+    ├── generated/            # produit par /doc-build (NE PAS éditer)
+    └── export/               # produit par /doc-export — livrable QMS-ready
 ```
 
 ## Multi-repo (front + back, monorepo de repos)
@@ -176,6 +189,52 @@ dans front/back) est conseillé pour la traçabilité 62304.
 | Workflow review/approve | `status: Draft → Approved`, PR + reviewers |
 | Export DOCX/PDF | `pandoc docs/generated/*.md -o doc.pdf` |
 | Item DOORS-like editing | `/doc-item <ID>` |
+
+## Workflow complet (code → livrable RAQA)
+
+```
+1. /doc-init                       # scaffolde tout (dt-config.yaml, templates, tools)
+2. Éditer dt-config.yaml           # signataires, identifier, revision history, id_format
+3. Saisir docs/items/MAP/*.md      # master reqs upstream (recopiés du PMAP) — manuel
+4. Éditer docs/dt-clinical-context.md  # intended use, warnings, glossaire — manuel
+5. /doc-62304                      # génère SRS/SDS/TC/RSK/THR/USC/URSK depuis le code
+6. /doc-update (occasionnel)       # après évolution du code
+7. /doc-export                     # produit docs/export/<id>-<vXX>-SRS.md (+ .docx)
+8. Re-rendre en .docx via pandoc   # avec un --reference-doc=template.docx si voulu
+9. Revue RAQA, signature           # workflow Word / git commit signé
+```
+
+**Étapes 2 et 4 ne sont JAMAIS automatisables** — elles capturent le
+QMS-side context (intended use, signataires, references du dossier
+technique) qui doit venir du système qualité, pas du code. Le plugin
+les attend mais ne tente pas de les inférer.
+
+## Format d'ID configurable
+
+Le format d'ID est lu depuis `dt-config.yaml: id_format`. Par défaut,
+chaque writer mint des IDs en 3 segments :
+
+```
+SRS-AUTH-001    SDS-API-014    TC-PAY-003
+```
+
+Pour un format Avicenna-style 5-segments :
+
+```yaml
+# dt-config.yaml
+product:
+  suite: CINA
+  application: CSP
+id_format:
+  default: "{CAT}-{SUITE}-{APP}-{DOMAIN}-{NNN:03d}"
+```
+
+Produit : `SRS-CINA-CSP-ACQ-020`, `SDS-CINA-CSP-NET-010`, etc.
+
+**Variables disponibles** : `{CAT}`, `{SUITE}`, `{APP}`, `{DOMAIN}`,
+`{NNN:03d}`. Per-category override possible (ex. `MAP: "..."`). Les
+IDs existants ne sont JAMAIS reformatés — seuls les nouveaux IDs
+suivent le format courant.
 
 ## Conventions clés
 

@@ -30,8 +30,12 @@ repo from scratch (perte de cohérence avec les autres agents).
    - Vérifier si un item SRS existe déjà avec un `source:` qui pointe le
      même fichier — si oui, **mettre à jour** selon les règles
      d'idempotence de `items-store` ; sinon, **créer**.
-2. Allouer le prochain `NNN` libre dans le domaine choisi (ex.
-   `SRS-AUTH-001`).
+2. Allouer le prochain `NNN` libre dans le domaine choisi. Pour
+   composer l'ID, lire `dt-config.yaml` à la racine s'il existe et
+   utiliser `id_format.SRS` (ou `id_format.default` à défaut). Si
+   `dt-config.yaml` est absent, fallback sur le format `SRS-<DOMAIN>-<NNN>`
+   (3 segments). Voir le skill `items-store` pour le détail des
+   variables disponibles.
 3. Remplir frontmatter complet + corps Markdown structuré (cf.
    `srs-extract`).
 4. Laisser `links:` vide — c'est le rôle des autres agents.

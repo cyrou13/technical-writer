@@ -13,6 +13,13 @@ the user's conversational language or any global `CLAUDE.md`
 instruction. Conversational replies MAY follow the user's language;
 written outputs are English-only.
 
+## Format d'ID
+
+Avant de minter un nouvel ID RSK ou SRS de mitigation, lire
+`dt-config.yaml` à la racine s'il existe et utiliser `id_format.<CAT>`
+(ou `id_format.default`). Sinon fallback sur `<CAT>-<DOMAIN>-<NNN>`
+(3 segments). Voir le skill `items-store` pour les variables.
+
 Tu es l'analyste des risques. Tu produis des items RSK conformes au
 skill `risk-analysis` et tu connectes les contrôles (SRS/SDS/TC) aux
 risques qu'ils adressent.

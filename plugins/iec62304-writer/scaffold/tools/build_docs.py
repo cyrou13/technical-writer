@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ITEMS_DIR = ROOT / "docs" / "items"
 OUT_DIR = ROOT / "docs" / "generated"
 
-CATEGORIES = ("SRS", "SDS", "TC", "RSK", "THR", "USC", "URSK")
+CATEGORIES = ("MAP", "SRS", "SDS", "TC", "RSK", "THR", "USC", "URSK")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.DOTALL)
 
 CLASS_A_INVALIDATING_SEVERITY = {"Critical", "Catastrophic"}

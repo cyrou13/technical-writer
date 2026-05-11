@@ -24,6 +24,7 @@ d'un service externe** :
 ```
 docs/
 ├── items/
+│   ├── MAP/         # upstream master / stakeholder requirements (input, manuel)
 │   ├── SRS/         # exigences logicielles  (62304 §5.2)
 │   ├── SDS/         # design & architecture  (62304 §5.3-§5.4)
 │   ├── TC/          # cas de test            (62304 §5.5/§5.7)
@@ -35,18 +36,57 @@ docs/
 └── templates/       # squelettes des items
 ```
 
+**MAP** est une catégorie d'**input upstream** (master / stakeholder /
+system requirements) — elle n'est PAS générée par les agents. L'utilisateur
+crée les items MAP à la main ou via `/doc-item MAP-XXX-NNN`. Les SRS
+remontent vers MAP via `links.parent: [MAP-XXX-NNN]`. La table de
+traçabilité §3 du livrable d'export lie chaque SRS à son MAP parent.
+
 Un fichier par item. Nom du fichier = `<ID>.md`.
 
 ## Format des IDs
 
-`<CAT>-<DOMAIN>-<NNN>` — `CAT` ∈ {SRS, SDS, TC, RSK, THR, USC, URSK},
-`DOMAIN` court (≤ 8 car., MAJ), `NNN` zéro-paddé sur 3 chiffres.
+Le format d'ID est **configurable** via le fichier `dt-config.yaml` à
+la racine du repo cible (créé par `/doc-init`).
+
+### Format par défaut (3 segments)
+
+`<CAT>-<DOMAIN>-<NNN>` — `CAT` ∈ {SRS, SDS, TC, RSK, THR, USC, URSK,
+MAP}, `DOMAIN` court (≤ 8 car., MAJ), `NNN` zéro-paddé sur 3 chiffres.
 
 Exemples : `SRS-AUTH-001`, `SDS-API-014`, `TC-PAY-003`, `THR-AUTH-002`,
-`USC-READ-001`, `URSK-READ-001`.
+`MAP-CLIN-001`.
 
-**IDs immuables.** Pour retirer un item : `status: Deprecated`, on ne
-supprime ni ne renumérote jamais.
+### Format personnalisé (via dt-config.yaml)
+
+```yaml
+id_format:
+  default: "{CAT}-{SUITE}-{APP}-{DOMAIN}-{NNN:03d}"
+  # Per-category overrides:
+  # MAP: "{SUITE}-V{VERSION}-{NNN:03d}"
+```
+
+Variables disponibles : `{CAT}`, `{SUITE}` (depuis `product.suite`),
+`{APP}` (depuis `product.application`), `{DOMAIN}` (choisi par
+l'agent), `{NNN:03d}`.
+
+Exemples Avicenna-style : `SRS-CINA-CSP-ACQ-020`, `SDS-CINA-CSP-NET-010`.
+
+### Lecture par les agents
+
+Avant de créer un **nouvel** ID, chaque writer (requirements-writer,
+architecture-writer, etc.) :
+
+1. Lit `dt-config.yaml` à la racine si présent.
+2. Utilise `id_format.<CAT>` s'il existe, sinon `id_format.default`,
+   sinon le format à 3 segments par défaut.
+3. Substitue les variables, alloue le prochain `NNN` libre dans le
+   `(CAT, DOMAIN)` choisi.
+
+**IDs immuables.** Pour retirer un item : `status: Deprecated`. On ne
+supprime, ne renumérote, ni ne re-formate **jamais** un ID existant —
+même si `dt-config.yaml` change après coup. Seuls les nouveaux IDs
+suivent le format courant.
 
 ## Frontmatter — schéma commun
 
@@ -169,6 +209,23 @@ le code, pas un attaquant). Le lien `links.triggers: [RSK-XXX]`
 (comme pour THR) signale qu'une use error déclenche un hazard safety
 déjà identifié.
 
+## MAP — frontmatter spécifique
+
+```yaml
+external_id: CINA-V10-010              # ID original dans le document source
+source_document: AV-DP-CINA-CSP-10-000-PMAP   # référence QMS upstream
+source_section: "§4.2"                # localisation dans le document
+status: Approved                       # par défaut Approved (input externe)
+```
+
+Pas de `source:` (pas de fichier code), pas de `verification:`,
+`priority:`, `description:` au frontmatter — la description verbatim
+de l'exigence upstream va dans le corps Markdown.
+
+Un MAP est un **input manuel** : aucun agent ne le crée, l'utilisateur
+le saisit à la main ou via `/doc-item MAP-XXX-NNN`. Les SRS pointent
+vers leur MAP parent via `links.parent: [MAP-XXX-NNN]`.
+
 ## TC — frontmatter spécifique
 
 ```yaml
@@ -189,7 +246,7 @@ Tous les liens sont **sortants** et stockés dans `links:` du fichier source.
 
 | Lien | Sens | Usage |
 |---|---|---|
-| `parent` | item → item de même catégorie | hiérarchie SRS / décomposition |
+| `parent` | item → item de même catégorie **ou** SRS → MAP | hiérarchie / décomposition / traçabilité upstream |
 | `implements` | SDS → SRS | "ce module réalise l'exigence X" |
 | `verifies` | TC → SRS | "ce test vérifie l'exigence X" |
 | `mitigates` | SRS/SDS/TC → RSK / THR / URSK | "ce design/test atténue ce risque, menace ou erreur d'usage" |

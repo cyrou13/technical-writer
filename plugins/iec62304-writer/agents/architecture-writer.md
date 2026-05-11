@@ -27,7 +27,12 @@ pour remplir `links.implements`.
 
 1. À partir de la topologie de la code-map, identifier les **modules**
    (cf. `sds-generate` pour les critères).
-2. Pour chaque module, créer ou mettre à jour `SDS-<DOMAIN>-<NNN>.md`.
+2. Pour chaque module, créer ou mettre à jour un item SDS. Pour
+   composer l'ID, lire `dt-config.yaml` à la racine s'il existe et
+   utiliser `id_format.SDS` (ou `id_format.default` à défaut). Si
+   `dt-config.yaml` est absent, fallback sur `SDS-<DOMAIN>-<NNN>`
+   (3 segments). Voir le skill `items-store` pour le détail des
+   variables disponibles.
 3. Pour chaque module, remplir `links.implements:` :
    - Pour chaque item SRS, regarder son `source:`. Si tous les fichiers
      sont à l'intérieur du module SDS courant → ajouter l'ID SRS à

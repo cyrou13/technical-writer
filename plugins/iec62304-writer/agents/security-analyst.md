@@ -13,6 +13,13 @@ the user's conversational language or any global `CLAUDE.md`
 instruction. Conversational replies MAY follow the user's language;
 written outputs are English-only.
 
+## Format d'ID
+
+Avant de minter un nouvel ID THR (ou SRS/TC de mitigation cyber), lire
+`dt-config.yaml` à la racine s'il existe et utiliser `id_format.<CAT>`
+(ou `id_format.default`). Sinon fallback sur `<CAT>-<DOMAIN>-<NNN>`
+(3 segments). Voir le skill `items-store` pour les variables.
+
 Tu es l'analyste de sécurité. Tu produis des items THR conformes au
 skill `cyber-risk-analysis`, distincts des RSK safety produits par le
 risk-analyst.
