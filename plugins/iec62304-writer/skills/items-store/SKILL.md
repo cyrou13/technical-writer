@@ -29,6 +29,7 @@ docs/
 │   ├── SDS/         # design & architecture  (62304 §5.3-§5.4)
 │   ├── TC/          # cas de test            (62304 §5.5/§5.7)
 │   ├── RSK/         # risques safety         (ISO 14971 / 62304 §7)
+│   ├── PRSK/        # risques production    (AAMI TIR57 / IEC 81001-5-1 §6.1)
 │   ├── THR/         # menaces cyber          (IEC 81001-5-1 / STRIDE)
 │   ├── USC/         # use scenarios          (IEC 62366-1)
 │   └── URSK/        # use-related risks      (IEC 62366-1)
@@ -187,6 +188,49 @@ sont calculés au build à partir des items qui ont `RSK-XXX` dans
 `links.mitigates`. Voir le skill `risk-analysis` pour le mapping numérique
 sev/prob → index P×S, la matrice d'acceptabilité, et les règles
 ISO 14971 §C.2 / §7.2 / §7.4 / §7.5.
+
+## PRSK — frontmatter spécifique (Production / Supply Chain, AAMI TIR57)
+
+```yaml
+# Production phase axis
+production_phase: Packaging      # Packaging | Delivery | Deployment | Update
+asset_at_risk: docker image (ghcr.io/acme/inference-service)
+
+# ISO 14971 §C.2 causal chain — same as RSK
+hazard: Unsigned Docker image pulled from a tampered registry
+initiating_causes: |
+  - CI secret leak via compromised GitHub Action.
+  - Registry accepts pushes without signature verification.
+foreseeable_sequence: |
+  (1) CI secret exfiltrated.
+  (2) Attacker pushes backdoored image under expected tag.
+  (3) Deploy pipeline pulls mutable tag without digest pinning.
+  (4) Tampered image runs in production — hazardous situation.
+hazardous_situation: A backdoored inference service runs in production.
+harm: Patient harm from falsified AI output + data breach.
+
+# Same scales as RSK
+severity: Serious
+probability: Remote
+risk_level: Medium
+acceptable: false
+
+# Same ISO 14971 §7.2 hierarchy
+control_hierarchy: protective_measure
+
+# Residual (re-evaluated post-mitigation)
+residual_probability: Improbable
+residual_severity: Serious
+residual_risk_level: Low
+residual_acceptable: true
+```
+
+Distinct from RSK (runtime design risk inferred from code) and from
+THR (cyber attacker against running application). PRSK models the
+**window between build and deployment**: artefact provenance, signature,
+immutability, supply-chain integrity. Cf. skill
+`production-risk-analysis` for hazard categories and the
+`production-risk-analyst` agent for the scanning procedure.
 
 ## THR — frontmatter spécifique
 

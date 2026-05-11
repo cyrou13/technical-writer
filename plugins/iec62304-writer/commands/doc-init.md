@@ -79,7 +79,7 @@ WITH_EXAMPLES=0
 case " $ARGS " in *" --update "*) UPDATE=1 ;; esac
 case " $ARGS " in *" --with-examples "*) WITH_EXAMPLES=1 ;; esac
 
-mkdir -p tools docs/templates docs/items/MAP docs/items/SRS docs/items/SDS docs/items/TC docs/items/RSK docs/items/THR docs/items/USC docs/items/URSK
+mkdir -p tools docs/templates docs/items/MAP docs/items/SRS docs/items/SDS docs/items/TC docs/items/RSK docs/items/PRSK docs/items/THR docs/items/USC docs/items/URSK
 
 CREATED=()
 SKIPPED=()
@@ -109,7 +109,7 @@ else
 fi
 
 # Templates — ne jamais overwrite
-for tpl in map-item srs-item sds-item tc-item rsk-item thr-item usc-item ursk-item; do
+for tpl in map-item srs-item sds-item tc-item rsk-item prsk-item thr-item usc-item ursk-item; do
   src="${CLAUDE_PLUGIN_ROOT}/scaffold/docs/templates/${tpl}.template.md"
   dst="docs/templates/${tpl}.template.md"
   if [ ! -f "$dst" ]; then
@@ -145,7 +145,7 @@ else
 fi
 
 # .gitkeep par catégorie
-for cat in MAP SRS SDS TC RSK THR USC URSK; do
+for cat in MAP SRS SDS TC RSK PRSK THR USC URSK; do
   if [ ! -f "docs/items/$cat/.gitkeep" ]; then
     : > "docs/items/$cat/.gitkeep"
     CREATED+=("docs/items/$cat/.gitkeep")
@@ -154,7 +154,7 @@ done
 
 # Examples
 if [ "$WITH_EXAMPLES" = "1" ]; then
-  for cat in MAP SRS SDS TC RSK THR USC URSK; do
+  for cat in MAP SRS SDS TC RSK PRSK THR USC URSK; do
     for src in "${CLAUDE_PLUGIN_ROOT}/examples/$cat"/*.md; do
       [ -f "$src" ] || continue
       name=$(basename "$src")

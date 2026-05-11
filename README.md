@@ -77,6 +77,7 @@ Puis dans le repo cible :
 | `iec62366-usability` | IEC 62366-1 — use scenarios, use-related risks, summative validation |
 | `dossier-technique-export` | Spec du livrable SRS RAQA-ready à partir de `dt-config.yaml` + `dt-clinical-context.md` + items |
 | `risk-report-export` | Spec du livrable Risk Analysis Report ISO 14971 — chaîne causale §C.2, hiérarchie de contrôle §7.2, résiduel quantitatif §7.4, cascade §7.5 |
+| `production-risk-analysis` | Référence AAMI TIR57 + IEC 81001-5-1 §6.1 — risques de packaging/delivery/deployment/update (PRSK) |
 
 ### Sub-agents
 
@@ -89,6 +90,7 @@ Puis dans le repo cible :
 | `risk-analyst` | Génère `docs/items/RSK/*.md` + dérive les SRS de mitigation safety |
 | `security-analyst` | Threat modeling STRIDE → `docs/items/THR/*.md` + mitigations cyber |
 | `usability-analyst` | Scan UI → `docs/items/USC/*.md` + `URSK/*.md` + SRS-VIEWER-* + TC E2E |
+| `production-risk-analyst` | Scan CI/CD + Docker + deploy → `docs/items/PRSK/*.md` + SRS-SIGNING/SBOM (AAMI TIR57) |
 | `doc-updater` | Détecte orphelins, items stale, gaps de couverture → `_update_diff.md` |
 | `compliance-reviewer` | Revue 62304 Classe A → `99_compliance_review.md` |
 

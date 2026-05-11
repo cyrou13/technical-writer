@@ -318,8 +318,9 @@ class BuildContext:
     rsk: list[Item]
     thr: list[Item]
     ursk: list[Item]
+    prsk: list[Item] = field(default_factory=list)
     # Items whose links.mitigates point at a risk — used to enumerate controls.
-    mitigators: list[Item]
+    mitigators: list[Item] = field(default_factory=list)
     log_lines: list[str] = field(default_factory=list)
 
     def log(self, msg: str) -> None:
@@ -660,6 +661,72 @@ def build_risk_section(ctx: BuildContext) -> list[str]:
     return lines
 
 
+def render_prsk_detail(ctx: BuildContext, p: Item) -> list[str]:
+    sev = p.get("severity")
+    prob = p.get("probability")
+    idx = risk_index(sev, prob)
+    rsev = p.get("residual_severity")
+    rprob = p.get("residual_probability")
+    ridx = risk_index(rsev, rprob)
+
+    controls = ctx.controls_for(p.id)
+    controls_str = ", ".join(c.id for c in controls) if controls else "(none yet)"
+
+    return [
+        f"### {p.id} — {p.title}",
+        "",
+        f"- **Production phase:** {p.get('production_phase') or '—'}",
+        f"- **Asset at risk:** {p.get('asset_at_risk') or '—'}",
+        f"- **Hazard:** {p.get('hazard') or '[TODO]'}",
+        "",
+        "**Initiating causes:**",
+        "",
+        str(p.get("initiating_causes") or "[TODO]"),
+        "",
+        "**Foreseeable sequence of events:**",
+        "",
+        str(p.get("foreseeable_sequence") or "[TODO]"),
+        "",
+        f"- **Hazardous situation:** {p.get('hazardous_situation') or '[TODO]'}",
+        f"- **Harm:** {p.get('harm') or '[TODO]'}",
+        "",
+        f"- **Initial risk:** severity=`{sev or '—'}` · probability=`{prob or '—'}` · "
+        f"index=`{idx if idx is not None else '—'}` · level=`{p.get('risk_level') or '—'}` · "
+        f"acceptable=`{p.get('acceptable')}`",
+        f"- **Control hierarchy:** `{p.get('control_hierarchy') or '—'}`",
+        f"- **Mitigating items:** {controls_str}",
+        f"- **Residual risk:** severity=`{rsev or '—'}` · probability=`{rprob or '—'}` · "
+        f"index=`{ridx if ridx is not None else '—'}` · level=`{p.get('residual_risk_level') or '—'}` · "
+        f"acceptable=`{p.get('residual_acceptable')}`",
+        "",
+    ]
+
+
+def build_production_section(ctx: BuildContext) -> list[str]:
+    active = [p for p in ctx.prsk if p.status != "Deprecated"]
+    lines = [
+        "## 2.10 Production risk analysis (AAMI TIR57 / IEC 81001-5-1 §6.1)",
+        "",
+        "Production risks cover the window between build and deployment:",
+        "packaging integrity, signing, delivery, deployment, and update",
+        "phases. Distinct from runtime design risks (§2.6) and from cyber",
+        "threats against the running application (§3).",
+        "",
+    ]
+    if not active:
+        lines += [
+            "_(no active PRSK items — production phase may not be applicable to this project)_",
+            "",
+            "---",
+            "",
+        ]
+        return lines
+    for p in sorted(active, key=lambda i: i.id):
+        lines += render_prsk_detail(ctx, p)
+    lines += ["---", ""]
+    return lines
+
+
 def build_cyber_section(ctx: BuildContext) -> list[str]:
     active = [t for t in ctx.thr if t.status != "Deprecated"]
     lines = ["# 3. Cybersecurity risk analysis", "", "## 3.1 Design risk assessment", ""]
@@ -691,6 +758,9 @@ def build_cyber_section(ctx: BuildContext) -> list[str]:
 def build_conclusion(ctx: BuildContext) -> list[str]:
     active_rsk = [r for r in ctx.rsk if r.status != "Deprecated"]
     active_thr = [t for t in ctx.thr if t.status != "Deprecated"]
+    active_prsk = [p for p in ctx.prsk if p.status != "Deprecated"]
+    n_prsk = len(active_prsk)
+    n_prsk_blocked = sum(1 for p in active_prsk if p.get("residual_acceptable") is False)
     n_rsk = len(active_rsk)
     n_rsk_ok_initial = sum(1 for r in active_rsk if r.get("acceptable") is True)
     n_rsk_mitigated = sum(
@@ -713,6 +783,8 @@ def build_conclusion(ctx: BuildContext) -> list[str]:
         "- **IEC 62304** §7 for software-of-medical-device risk activities.",
         "- **IEC 81001-5-1** for cybersecurity risk management (where THR items",
         "  are produced — see §3).",
+        "- **AAMI TIR57 / IEC 81001-5-1 §6.1** for production-phase risks",
+        "  (PRSK items — see §2.10).",
         "",
         "Risk index = severity × probability, mapped to Low/Medium/High via the",
         "matrix in §2.4.",
@@ -723,6 +795,8 @@ def build_conclusion(ctx: BuildContext) -> list[str]:
         f"- RSK initially acceptable (no mitigation needed): **{n_rsk_ok_initial}**",
         f"- RSK reduced to acceptable via controls: **{n_rsk_mitigated}**",
         f"- RSK still NOT acceptable after mitigation ⚠: **{n_rsk_blocked}**",
+        f"- Total production risks (PRSK) identified: **{n_prsk}**",
+        f"- PRSK still NOT acceptable after mitigation ⚠: **{n_prsk_blocked}**",
         f"- Total cyber threats (THR) identified: **{n_thr}**",
         f"- THR still NOT acceptable after mitigation ⚠: **{n_thr_blocked}**",
         "",
@@ -742,6 +816,7 @@ def render_markdown(ctx: BuildContext) -> str:
     parts += build_revision_history(ctx)
     parts += build_introduction(ctx)
     parts += build_risk_section(ctx)
+    parts += build_production_section(ctx)
     parts += build_cyber_section(ctx)
     parts += build_conclusion(ctx)
     return "\n".join(parts).rstrip() + "\n"
@@ -798,6 +873,30 @@ def csv_row_for_rsk(ctx: BuildContext, r: Item) -> list[str]:
     ]
 
 
+def csv_row_for_prsk(ctx: BuildContext, p: Item) -> list[str]:
+    controls = ctx.controls_for(p.id)
+    return [
+        p.id,
+        "Production",
+        str(p.get("production_phase") or ""),  # reuse "Software Function" column
+        str(p.get("asset_at_risk") or ""),     # reuse "Software Item" column
+        str(p.get("hazard") or ""),
+        str(p.get("initiating_causes") or "").replace("\n", " | "),
+        str(p.get("foreseeable_sequence") or "").replace("\n", " | "),
+        str(p.get("hazardous_situation") or ""),
+        str(p.get("harm") or ""),
+        str(p.get("severity") or ""),
+        str(p.get("probability") or ""),
+        str(p.get("risk_level") or ""),
+        str(p.get("control_hierarchy") or ""),
+        ";".join(c.id for c in controls),
+        str(p.get("residual_severity") or ""),
+        str(p.get("residual_probability") or ""),
+        str(p.get("residual_risk_level") or ""),
+        str(p.get("residual_acceptable")),
+    ]
+
+
 def csv_row_for_thr(_ctx: BuildContext, t: Item) -> list[str]:
     # Compact CIA summary for the "Initial Severity" column (stays within 18-col schema)
     c = t.get("confidentiality_severity") or "n/a"
@@ -835,6 +934,11 @@ def write_csv(ctx: BuildContext, csv_path: Path) -> int:
             if r.status == "Deprecated":
                 continue
             w.writerow(csv_row_for_rsk(ctx, r))
+            rows += 1
+        for p in sorted(ctx.prsk, key=lambda i: i.id):
+            if p.status == "Deprecated":
+                continue
+            w.writerow(csv_row_for_prsk(ctx, p))
             rows += 1
         for t in sorted(ctx.thr, key=lambda i: i.id):
             if t.status == "Deprecated":
@@ -900,6 +1004,7 @@ def main() -> int:
         return 1
     thr = load_items("THR")
     ursk = load_items("URSK")
+    prsk = load_items("PRSK")
 
     mitigators: list[Item] = []
     for cat in ("SRS", "SDS", "TC"):
@@ -911,6 +1016,7 @@ def main() -> int:
         rsk=rsk,
         thr=thr,
         ursk=ursk,
+        prsk=prsk,
         mitigators=mitigators,
     )
 
@@ -940,9 +1046,13 @@ def main() -> int:
         if r.status != "Deprecated" and r.get("control_hierarchy") == "information_for_safety"
     )
     n_cascade = sum(1 for r in rsk if r.status != "Deprecated" and (r.get("arising_risks") or []))
+    n_prsk_blocked = sum(
+        1 for p in prsk if p.status != "Deprecated" and p.get("residual_acceptable") is False
+    )
     todos = count_todos(md)
-    ctx.log(f"Items: {len(rsk)} RSK, {len(thr)} THR, {len(ursk)} URSK")
+    ctx.log(f"Items: {len(rsk)} RSK, {len(prsk)} PRSK, {len(thr)} THR, {len(ursk)} URSK")
     ctx.log(f"RSK residual not acceptable: {n_rsk_blocked}")
+    ctx.log(f"PRSK residual not acceptable: {n_prsk_blocked}")
     ctx.log(f"RSK with information_for_safety control: {n_info_safety} (labeling to validate)")
     ctx.log(f"RSK with arising_risks (cascade): {n_cascade}")
     ctx.log(f"TODO markers in deliverable: {len(todos)}")
@@ -964,9 +1074,9 @@ def main() -> int:
     log_path.write_text("\n".join(header + ctx.log_lines) + "\n", encoding="utf-8")
     print(str(md_path))
 
-    if args.strict and (todos or n_rsk_blocked):
+    if args.strict and (todos or n_rsk_blocked or n_prsk_blocked):
         print(
-            f"STRICT: {len(todos)} [TODO], {n_rsk_blocked} RSK not acceptable — failing",
+            f"STRICT: {len(todos)} [TODO], {n_rsk_blocked} RSK + {n_prsk_blocked} PRSK not acceptable — failing",
             file=sys.stderr,
         )
         return 1

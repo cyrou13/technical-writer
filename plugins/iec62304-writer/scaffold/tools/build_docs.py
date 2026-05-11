@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ITEMS_DIR = ROOT / "docs" / "items"
 OUT_DIR = ROOT / "docs" / "generated"
 
-CATEGORIES = ("MAP", "SRS", "SDS", "TC", "RSK", "THR", "USC", "URSK")
+CATEGORIES = ("MAP", "SRS", "SDS", "TC", "RSK", "PRSK", "THR", "USC", "URSK")
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.DOTALL)
 
 CLASS_A_INVALIDATING_SEVERITY = {"Critical", "Catastrophic"}
@@ -588,12 +588,46 @@ def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
             "",
         ] + [f"- {r}" for r in class_a_invalidating]
 
+    # ---- Production risks (PRSK) summary section ----
+    prsks = [p for p in by_cat.get("PRSK", []) if p.status != "Deprecated"]
+    prsk_residual_unacceptable: list[str] = []
+    if prsks:
+        lines += [
+            "",
+            "## Production risks (PRSK) — AAMI TIR57 / IEC 81001-5-1 §6.1",
+            "",
+            "Risks of the build / sign / delivery / deployment / update process.",
+            "Distinct from design RSK (runtime) and cyber THR (network attacker).",
+            "Full per-PRSK detail is rendered by `/doc-risk-export`.",
+            "",
+            "| PRSK | Title | Phase | Severity | Level | Residual OK |",
+            "|---|---|---|---|---|---|",
+        ]
+        for p in sorted(prsks, key=lambda i: i.id):
+            fm = p.frontmatter
+            phase = fm.get("production_phase", "—")
+            sev = fm.get("severity", "—")
+            level = fm.get("risk_level", "—")
+            res_ok = fm.get("residual_acceptable")
+            res_mark = "✓" if res_ok is True else ("✗" if res_ok is False else "?")
+            if res_ok is False:
+                prsk_residual_unacceptable.append(p.id)
+            lines.append(f"| {p.id} | {p.title} | {phase} | {sev} | {level} | {res_mark} |")
+        lines.append("")
+        if prsk_residual_unacceptable:
+            lines += [
+                "### ⚠ PRSK with residual not acceptable",
+                "",
+            ] + [f"- {pid}" for pid in prsk_residual_unacceptable] + [""]
+
     return "\n".join(lines) + "\n", {
         "rsk_count": len(rsks),
         "rsk_unmitigated": unmitigated,
         "rsk_residual_unacceptable": residual_unacceptable,
         "rsk_class_a_invalidating": class_a_invalidating,
         "rsk_summary": summary,
+        "prsk_count": len(prsks),
+        "prsk_residual_unacceptable": prsk_residual_unacceptable,
     }
 
 
