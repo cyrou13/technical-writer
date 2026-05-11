@@ -3,6 +3,13 @@ name: test-evidence
 description: Découvrir et formaliser les tests existants en items TC (test cases) IEC 62304 §5.5/§5.7. À invoquer pour produire docs/items/TC/ et le plan de vérification.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any TC item produced while applying this skill (frontmatter values,
+preconditions / steps / expected, body sections, `[TODO]`/`[GAP-...]`
+markers) MUST be written in **English**, regardless of the user's
+conversational language or any global `CLAUDE.md` instruction.
+
 # Test evidence — découverte et formalisation des tests
 
 ## Découverte des tests

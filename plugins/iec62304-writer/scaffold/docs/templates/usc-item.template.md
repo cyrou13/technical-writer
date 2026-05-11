@@ -1,43 +1,43 @@
 ---
 id: USC-XXX-NNN
-title: [TODO] titre court ≤ 80 caractères
+title: [TODO] short title ≤ 80 characters
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-persona: [TODO rôle utilisateur, ex. radiologue, opérateur, admin]
-environment: [TODO environnement d'usage : lecture room, console clinique, browser]
-task: [TODO tâche métier accomplie, ex. valider un cas]
+persona: [TODO user role, e.g. radiologist, operator, admin]
+environment: [TODO usage environment: reading room, clinical console, browser]
+task: [TODO business task accomplished, e.g. validate a case]
 frequency: Occasional       # Rare | Occasional | Frequent | Continuous
-criticality: Medium         # Low | Medium | High (impact si la tâche échoue)
+criticality: Medium         # Low | Medium | High (impact if the task fails)
 source:
-  - [TODO chemin/composant UI]
+  - [TODO path/to/UI/component]
 links:
   parent: []
 ---
 
 ## Persona
 
-[TODO rôle, niveau d'expérience, contexte typique]
+[TODO role, experience level, typical context]
 
-## Pré-conditions
+## Preconditions
 
-- [TODO états système requis avant la tâche]
+- [TODO system states required before the task]
 
-## Séquence d'usage normale
+## Normal usage sequence
 
-1. [TODO étape 1]
-2. [TODO étape 2]
-3. [TODO étape finale = effet métier observable]
+1. [TODO step 1]
+2. [TODO step 2]
+3. [TODO final step = observable business effect]
 
-## Erreurs d'usage envisageables
+## Foreseeable use errors
 
-(Informel — celles avec impact deviennent des URSK liés via
+(Informal — those with impact become URSK items linked via
 `links.use_scenario`.)
 
-- [TODO erreur 1]
-- [TODO erreur 2]
+- [TODO error 1]
+- [TODO error 2]
 
 ## Notes
 
-[TODO contexte additionnel, refs documentation utilisateur]
+[TODO additional context, user documentation references]

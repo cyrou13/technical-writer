@@ -2,6 +2,16 @@
 description: Scaffolde le repo courant pour utiliser le pipeline 62304 — copie tools/build_docs.py, docs/templates/, docs/test_plan_intro.md et crée la structure docs/items/. À lancer une seule fois par repo cible.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+All artifacts written by this command (every file under `docs/`, item
+frontmatter values such as `title`/`description`, body content,
+`[TODO]`/`[GAP-...]` markers, and aggregated reports) MUST be written
+in **English**, regardless of the user's conversational language or
+any global `CLAUDE.md` instruction. Conversational replies to the user
+MAY follow the user's language; written outputs are English-only. This
+applies to every sub-agent and skill invoked from this command.
+
 L'utilisateur veut initialiser un repo avec le pipeline de doc IEC 62304.
 
 Arguments possibles dans `$ARGUMENTS` :

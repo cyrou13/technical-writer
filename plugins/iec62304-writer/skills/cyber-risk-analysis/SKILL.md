@@ -3,6 +3,13 @@ name: cyber-risk-analysis
 description: Référence IEC 81001-5-1 + AAMI TIR57 + threat modeling STRIDE pour l'analyse de cybersécurité d'un logiciel médical. À invoquer pour identifier les threats, dériver les contrôles de sécurité, et produire des items THR distincts des RSK safety.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any artifact produced while applying this skill (THR items, derived
+SRS, frontmatter values, body sections, `[GAP-CYBER]` markers) MUST be
+written in **English**, regardless of the user's conversational
+language or any global `CLAUDE.md` instruction.
+
 # Cyber risk analysis — référence
 
 Cette analyse est **distincte** de l'analyse de risques safety

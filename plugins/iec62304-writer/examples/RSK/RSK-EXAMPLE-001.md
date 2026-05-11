@@ -1,13 +1,13 @@
 ---
 id: RSK-EXAMPLE-001
-title: Exemple — détournement de session via state OAuth2 prévisible
+title: Example — session hijacking via predictable OAuth2 state
 status: Draft
 version: 1.0.0
 created: 2026-05-07
 updated: 2026-05-07
-hazard: state OAuth2 prévisible permettant CSRF sur le callback
-hazardous_situation: Un attaquant fait visiter un lien forgé à la victime
-harm: Détournement de session, accès non autorisé au compte utilisateur
+hazard: Predictable OAuth2 state enabling CSRF on the callback
+hazardous_situation: An attacker makes the victim visit a forged link
+harm: Session hijacking, unauthorized access to the user account
 severity: Serious
 probability: Remote
 risk_level: Medium
@@ -21,38 +21,38 @@ links:
 
 ## Hazard
 
-Un `state` OAuth2 généré non cryptographiquement (ex. timestamp,
-incrément) permet à un attaquant de prédire la valeur attendue au
-callback et de fixer la session de la victime.
+An OAuth2 `state` generated non-cryptographically (e.g. timestamp,
+counter) allows an attacker to predict the expected value at callback
+and to fix the victim's session.
 
 ## Hazardous situation
 
-L'utilisateur clique sur un lien `/auth/callback?code=...&state=...`
-forgé, dans un contexte où il est déjà authentifié sur l'IdP.
+The user clicks on a forged `/auth/callback?code=...&state=...` link
+while already authenticated against the IdP.
 
 ## Harm
 
-Détournement de session : l'attaquant gagne accès au compte utilisateur
-côté application.
+Session hijacking: the attacker gains access to the user account on the
+application side.
 
-## Justification de niveau
+## Level justification
 
-Sévérité `Serious` (atteinte vie privée + accès non autorisé). Probabilité
-`Remote` car nécessite ingénierie sociale + IdP authentifié. Risque
-initial `Medium`, donc non acceptable sans contrôle.
+Severity `Serious` (privacy breach + unauthorized access). Probability
+`Remote` because it requires social engineering + an authenticated IdP.
+Initial risk `Medium`, hence not acceptable without controls.
 
-## Contrôles attendus
+## Expected controls
 
-- Génération cryptographique du `state` (≥ 256 bits d'entropie).
-- Vérification stricte au callback que le `state` reçu correspond au
-  `state` stocké côté serveur lié à la session pré-auth.
-- Contrôle PKCE `S256` en complément.
+- Cryptographic generation of `state` (≥ 256 bits of entropy).
+- Strict verification at callback that the received `state` matches the
+  `state` stored server-side and bound to the pre-auth session.
+- PKCE `S256` as additional control.
 
-Les contrôles formels vivent dans les items qui ont
-`links.mitigates: [RSK-EXAMPLE-001]` — ici `SDS-EXAMPLE-001` et
+The formal controls live in the items whose
+`links.mitigates: [RSK-EXAMPLE-001]` — here `SDS-EXAMPLE-001` and
 `TC-EXAMPLE-001`.
 
 ## Notes
 
-Item exemple. Illustre comment SDS et TC mitigent un RSK et comment la
-matrice de couverture le reflète.
+Example item. Illustrates how SDS and TC mitigate a RSK and how the
+coverage matrix reflects it.

@@ -3,6 +3,13 @@ name: risk-analysis
 description: Référence ISO 14971 + IEC 62304 §7 pour l'analyse de risques logicielle (Classe A). À invoquer pour identifier les dangers, dériver les contrôles, et produire des items RSK et des exigences SRS de mitigation.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any artifact produced while applying this skill (RSK items, derived
+SRS, frontmatter values, body sections, `[GAP-62304]` markers) MUST be
+written in **English**, regardless of the user's conversational
+language or any global `CLAUDE.md` instruction.
+
 # Risk analysis — référence
 
 Applique **ISO 14971:2019** (gestion des risques dispositif médical) et

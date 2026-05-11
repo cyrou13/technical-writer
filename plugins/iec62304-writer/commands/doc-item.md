@@ -2,6 +2,15 @@
 description: Crée ou met à jour un item de documentation (SRS/SDS/TC/RSK) avec frontmatter conforme. Usage — /doc-item SRS-AUTH-001 [titre]
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+All artifacts written by this command (every file under `docs/`, item
+frontmatter values such as `title`/`description`, body content,
+`[TODO]`/`[GAP-...]` markers, and aggregated reports) MUST be written
+in **English**, regardless of the user's conversational language or
+any global `CLAUDE.md` instruction. Conversational replies to the user
+MAY follow the user's language; written outputs are English-only.
+
 L'utilisateur veut créer ou éditer **un seul** item de documentation.
 
 `$ARGUMENTS` est attendu sous la forme : `<ID> [titre éventuel]`.

@@ -1,6 +1,6 @@
 ---
 id: SDS-EXAMPLE-001
-title: Exemple — module auth/oauth
+title: Example — auth/oauth module
 status: Draft
 version: 1.0.0
 created: 2026-05-07
@@ -20,37 +20,37 @@ interfaces:
     - HTTP GET /auth/login
     - HTTP GET /auth/callback
   outputs:
-    - 302 vers IdP
-    - Cookie session HttpOnly+Secure
+    - 302 to IdP
+    - Session cookie HttpOnly+Secure
   depends_on:
     - openid-client (npm)
     - jose (npm)
 ---
 
-## Responsabilité
+## Responsibility
 
-Gère le handshake OAuth2 Authorization Code + PKCE et la création de la
-session signée à l'issue du callback.
+Handles the OAuth2 Authorization Code + PKCE handshake and the creation
+of the signed session at the end of the callback.
 
 ## Interfaces
 
-### Entrées
-- `GET /auth/login` — sans cookie de session.
-- `GET /auth/callback?code=...&state=...` — retour IdP.
+### Inputs
+- `GET /auth/login` — no session cookie.
+- `GET /auth/callback?code=...&state=...` — IdP return.
 
-### Sorties
-- 302 vers `${IDP_URL}/authorize` avec paramètres OAuth2 + PKCE.
+### Outputs
+- 302 to `${IDP_URL}/authorize` with OAuth2 + PKCE parameters.
 - Cookie `sid` HttpOnly + Secure + SameSite=Lax.
 
-### Dépendances
+### Dependencies
 - `openid-client`
-- `jose` pour la vérification JWT
+- `jose` for JWT verification
 
 ## Invariants
 
-- `state` est généré cryptographiquement et lié au sid pré-session.
-- Aucun token IdP n'est stocké côté client.
+- `state` is generated cryptographically and bound to the pre-session sid.
+- No IdP token is stored client-side.
 
-## Notes de design
+## Design notes
 
-PKCE imposé même quand le client est confidentiel — défense en profondeur.
+PKCE is enforced even when the client is confidential — defense in depth.

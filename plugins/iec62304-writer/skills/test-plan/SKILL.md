@@ -3,6 +3,13 @@ name: test-plan
 description: Convention pour produire un Software Test Description (STD) IEEE 829 / IEC 62304 §5.5/§5.7 à partir des items TC. À invoquer pour générer ou comprendre le livrable docs/generated/30_STD.md.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Every section of the Software Test Description (`30_STD.md`), including
+the test strategy, pass/fail criteria and exclusions text, MUST be
+written in **English**, regardless of the user's conversational
+language or any global `CLAUDE.md` instruction.
+
 # STD — Software Test Description
 
 `docs/generated/30_STD.md` est un **Software Test Description** au sens

@@ -3,6 +3,13 @@ name: items-store
 description: Convention locale de stockage d'items de documentation (exigences, design, tests) — équivalent offline de Matrix Requirements. À invoquer pour créer, lire ou mettre à jour tout item de documentation technique.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any item created or updated under `docs/items/` (frontmatter values,
+body sections, `[TODO]` markers) MUST be written in **English**,
+regardless of the user's conversational language or any global
+`CLAUDE.md` instruction.
+
 # Items store — convention locale type Matrix Requirements
 
 Reproduit les fonctionnalités utiles de Matrix Requirements **sans dépendre

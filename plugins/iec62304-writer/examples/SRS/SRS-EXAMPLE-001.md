@@ -1,6 +1,6 @@
 ---
 id: SRS-EXAMPLE-001
-title: Exemple — exigence d'authentification OAuth2
+title: Example — OAuth2 authentication requirement
 status: Draft
 version: 1.0.0
 created: 2026-05-07
@@ -19,20 +19,19 @@ links:
 
 ## Description
 
-Le système **doit** permettre à un utilisateur non authentifié d'initier
-un flux OAuth2 Authorization Code via l'IdP configuré, et **doit**
-établir une session signée à l'issue du callback.
+The system **shall** allow an unauthenticated user to initiate an OAuth2
+Authorization Code flow via the configured IdP, and **shall** establish a
+signed session upon successful callback.
 
-## Critères d'acceptation
+## Acceptance criteria
 
-- [ ] `GET /auth/login` redirige (302) vers `${IDP_URL}/authorize` avec
+- [ ] `GET /auth/login` redirects (302) to `${IDP_URL}/authorize` with
       `client_id`, `redirect_uri`, `state`, `code_challenge`.
-- [ ] Le `state` est stocké côté serveur et vérifié au callback.
-- [ ] Au succès du callback, un cookie de session HttpOnly + Secure est
-      posé.
-- [ ] En cas d'échec d'IdP, l'utilisateur est redirigé vers `/login?error=...`.
+- [ ] The `state` is stored server-side and verified at callback.
+- [ ] On successful callback, an HttpOnly + Secure session cookie is set.
+- [ ] On IdP failure, the user is redirected to `/login?error=...`.
 
 ## Notes
 
-Cet item est un **exemple** livré avec le scaffolding. À supprimer ou
-remplacer une fois que les vrais items sont en place.
+This item is an **example** shipped with the scaffolding. Delete or
+replace once the real items are in place.

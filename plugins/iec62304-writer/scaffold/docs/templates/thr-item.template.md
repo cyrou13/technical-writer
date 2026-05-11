@@ -1,46 +1,46 @@
 ---
 id: THR-XXX-NNN
-title: [TODO] titre court ≤ 80 caractères
+title: [TODO] short title ≤ 80 characters
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-stride: [T]                            # S | T | R | I | D | E (peut être combiné)
+stride: [T]                            # S | T | R | I | D | E (may be combined)
 attacker: external_unauth              # external_unauth | external_auth | internal | supply_chain | physical
-asset: [TODO actif menacé]
+asset: [TODO threatened asset]
 likelihood: Low                        # Low | Medium | High
 impact: Low                            # Low | Medium | High
-risk_level: Low                        # Low | Medium | High (matrice 3×3 du skill)
-acceptable: true                       # avant mitigation
-residual_acceptable: true              # après mitigation
+risk_level: Low                        # Low | Medium | High (3x3 matrix from the skill)
+acceptable: true                       # before mitigation
+residual_acceptable: true              # after mitigation
 source:
-  - [TODO chemin/fichier]
+  - [TODO path/to/file]
 links:
   parent: []
-  triggers: []                         # IDs RSK safety déclenchés si exploit
+  triggers: []                         # safety RSK IDs triggered if exploited
 ---
 
 ## Threat
 
-[TODO description de la menace, ancrée dans le code]
+[TODO description of the threat, anchored in the code]
 
-## Asset menacé
+## Threatened asset
 
-[TODO actif compromis et nature de la compromission]
+[TODO asset compromised and the nature of the compromise]
 
-## Vecteur d'exploitation
+## Exploitation vector
 
-[TODO comment l'attaquant exploite, depuis quelle position]
+[TODO how the attacker exploits, from which position]
 
-## Justification de niveau
+## Level justification
 
-[TODO pourquoi cette likelihood, cet impact]
+[TODO why this likelihood, this impact]
 
-## Contrôles attendus
+## Expected controls
 
-- [TODO liste informelle ; les contrôles formels vivent dans les items
-      SRS/SDS/TC qui ont `links.mitigates: [<cet ID>]`]
+- [TODO informal list; formal controls live in the SRS/SDS/TC items
+      whose `links.mitigates: [<this ID>]`]
 
 ## Notes
 
-[TODO contexte additionnel, références CVE/CWE, recommandation d'audit]
+[TODO additional context, CVE/CWE references, audit recommendation]

@@ -3,6 +3,13 @@ name: sds-generate
 description: Générer items de Software Design Specification & architecture (62304 §5.3-§5.4) à partir d'un codebase TS/JS + Python. À invoquer pour produire des items SDS dans docs/items/SDS/.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any SDS item produced while applying this skill (frontmatter values,
+body sections, `[TODO]`/`[GAP-62304]` markers) MUST be written in
+**English**, regardless of the user's conversational language or any
+global `CLAUDE.md` instruction.
+
 # SDS — extraction de design & architecture
 
 ## Modules à identifier

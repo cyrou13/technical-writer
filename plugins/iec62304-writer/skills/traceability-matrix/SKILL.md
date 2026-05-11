@@ -3,6 +3,13 @@ name: traceability-matrix
 description: Construire la matrice de traçabilité SRS ↔ SDS ↔ TC depuis les liens dans frontmatter des items, et calculer la couverture. À invoquer après que les items SRS/SDS/TC sont créés.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any traceability artifact produced while applying this skill
+(`40_traceability.md`, coverage commentary, gap annotations) MUST be
+written in **English**, regardless of the user's conversational
+language or any global `CLAUDE.md` instruction.
+
 # Matrice de traçabilité — construction et lecture
 
 ## Source de vérité

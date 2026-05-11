@@ -1,6 +1,6 @@
 ---
 id: SRS-XXX-NNN
-title: [TODO] titre court ≤ 80 caractères
+title: [TODO] short title ≤ 80 characters
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
@@ -8,30 +8,30 @@ updated: YYYY-MM-DD
 verification: Test
 priority: Must
 source:
-  - [TODO] chemin/fichier.ts
+  - [TODO] path/to/file.ts
 links:
   parent: []
   implements: []
   verifies: []
   mitigates: []
 description: |
-  Le système doit [TODO comportement testable] quand [TODO condition].
+  The system shall [TODO testable behavior] when [TODO condition].
 ---
 
 ## Description
 
-Le système **doit** [TODO comportement] quand [TODO condition], et **doit**
-[TODO garantie] dans tous les cas.
+The system **shall** [TODO behavior] when [TODO condition], and **shall**
+[TODO guarantee] in all cases.
 
-## Critères d'acceptation
+## Acceptance criteria
 
-- [ ] [TODO critère 1, mesurable]
-- [ ] [TODO critère 2]
+- [ ] [TODO criterion 1, measurable]
+- [ ] [TODO criterion 2]
 
 ## Notes
 
-[TODO contexte non normatif si utile]
+[TODO non-normative context if useful]
 
-## Questions ouvertes
+## Open questions
 
-- [TODO si quelque chose n'est pas inférable du code]
+- [TODO if anything cannot be inferred from the code]

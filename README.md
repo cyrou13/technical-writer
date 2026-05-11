@@ -8,6 +8,16 @@ traçabilité N:N, matrice de couverture, statuts), avec analyses de
 risques **safety** (ISO 14971) et **cyber** (IEC 81001-5-1 / STRIDE)
 séparées.
 
+## Langue des artefacts générés
+
+Tous les fichiers produits par le plugin sous `docs/` (items SRS/SDS/TC/
+RSK/THR/USC/URSK, agrégats `docs/generated/*.md`, rapports de revue,
+markers `[TODO]`/`[GAP-...]`) sont **rédigés en anglais**, indépendamment
+de la langue de la conversation avec Claude Code. Cette contrainte est
+forcée à chaque couche (commandes, sub-agents, skills, templates) pour
+garantir des livrables conformes IEC 62304 dans la langue de référence
+des normes.
+
 ## Installation
 
 ### Depuis GitHub (recommandé)

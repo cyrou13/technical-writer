@@ -1,13 +1,13 @@
 ---
 id: THR-EXAMPLE-001
-title: Exemple — vol de session via XSS dans la SPA
+title: Example — session theft via XSS in the SPA
 status: Draft
 version: 1.0.0
 created: 2026-05-07
 updated: 2026-05-07
 stride: [S, I]
 attacker: external_unauth
-asset: Cookie de session
+asset: Session cookie
 likelihood: Medium
 impact: High
 risk_level: High
@@ -23,42 +23,42 @@ links:
 
 ## Threat
 
-Injection de script dans le frontend (commentaire utilisateur non
-échappé, attribut `dangerouslySetInnerHTML`, dépendance frontend
-compromise) permet à un attaquant d'exécuter du JS dans le contexte de
-la SPA et de voler le cookie de session.
+Script injection in the frontend (unescaped user comment,
+`dangerouslySetInnerHTML` attribute, compromised frontend dependency)
+allows an attacker to execute JS in the SPA context and steal the
+session cookie.
 
-## Asset menacé
+## Threatened asset
 
-Cookie de session (`sid`). Si HttpOnly absent, accessible depuis
-`document.cookie`. Sinon, l'attaquant peut tout de même piloter la
-session depuis le navigateur de la victime.
+Session cookie (`sid`). If HttpOnly is missing, accessible from
+`document.cookie`. Otherwise, the attacker can still drive the session
+from the victim's browser.
 
-## Vecteur d'exploitation
+## Exploitation vector
 
-Attaquant Internet non authentifié. Insère un payload XSS via un
-champ utilisateur affiché tel quel, ou exploite une dépendance frontend
-vulnérable.
+Unauthenticated Internet attacker. Injects an XSS payload through a
+user-input field rendered as-is, or exploits a vulnerable frontend
+dependency.
 
-## Justification de niveau
+## Level justification
 
-`Likelihood: Medium` — XSS reste un défaut fréquent et l'exposition
-est publique. `Impact: High` — vol de session = takeover de compte.
-Matrice → `risk_level: High`. Non acceptable sans mitigation.
+`Likelihood: Medium` — XSS remains a frequent defect and the exposure
+is public. `Impact: High` — session theft = account takeover. Matrix →
+`risk_level: High`. Not acceptable without mitigation.
 
-## Contrôles attendus
+## Expected controls
 
-- Cookie session `HttpOnly` + `Secure` + `SameSite=Lax`.
-- CSP stricte (`script-src 'self'`, pas de `unsafe-inline`).
-- Échappement systématique côté frontend (framework + lint).
-- Audit régulier des dépendances frontend.
+- Session cookie `HttpOnly` + `Secure` + `SameSite=Lax`.
+- Strict CSP (`script-src 'self'`, no `unsafe-inline`).
+- Systematic escaping in the frontend (framework + lint).
+- Regular audit of frontend dependencies.
 
-Les contrôles formels vivent dans les items qui ont
-`links.mitigates: [THR-EXAMPLE-001]` — ici `SDS-EXAMPLE-001` et
-`TC-EXAMPLE-001` (mêmes items que pour le RSK exemple).
+The formal controls live in the items whose
+`links.mitigates: [THR-EXAMPLE-001]` — here `SDS-EXAMPLE-001` and
+`TC-EXAMPLE-001` (same items as for the RSK example).
 
 ## Notes
 
-Item exemple. Démontre la séparation safety/cyber : le même module
-`auth/oauth` mitige à la fois un RSK safety (CSRF callback) et un
-THR cyber (XSS), via des items SDS/TC partagés.
+Example item. Demonstrates the safety/cyber separation: the same
+`auth/oauth` module mitigates both a safety RSK (callback CSRF) and a
+cyber THR (XSS), via shared SDS/TC items.

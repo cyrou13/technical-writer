@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Build doc agrégés à partir de l'item-store local.
+Build aggregated docs from the local item-store.
 
-Lit `docs/items/<CAT>/*.md`, parse le frontmatter YAML, produit :
+Reads `docs/items/<CAT>/*.md`, parses YAML frontmatter, produces:
   - docs/generated/10_SRS.md
   - docs/generated/20_SDS.md
   - docs/generated/30_STD.md                 (Software Test Description, IEEE 829)
@@ -13,16 +13,16 @@ Lit `docs/items/<CAT>/*.md`, parse le frontmatter YAML, produit :
   - docs/generated/_to_implement.md
   - docs/generated/coverage.json
 
-Ne dépend que de la stdlib.
+Stdlib only.
 
 Usage:
     python tools/build_docs.py [--strict]
 
-`--strict` => exit ≠ 0 si :
-  - tout marqueur [TODO], [GAP-62304], [GAP-CYBER] ou [GAP-USE],
-  - tout RSK ou URSK avec `severity: Critical|Catastrophic`,
-  - tout RSK / THR / URSK avec `residual_acceptable: false`,
-  - tout RSK / THR / URSK avec `acceptable: false` sans aucun contrôle.
+`--strict` => exit != 0 if:
+  - any [TODO], [GAP-62304], [GAP-CYBER] or [GAP-USE] marker,
+  - any RSK or URSK with `severity: Critical|Catastrophic`,
+  - any RSK / THR / URSK with `residual_acceptable: false`,
+  - any RSK / THR / URSK with `acceptable: false` and no control.
 """
 
 from __future__ import annotations
@@ -59,7 +59,7 @@ class Item:
 
     @property
     def title(self) -> str:
-        return self.frontmatter.get("title", "(sans titre)")
+        return self.frontmatter.get("title", "(untitled)")
 
     @property
     def links(self) -> dict:
@@ -188,14 +188,14 @@ def load_items() -> dict[str, list[Item]]:
             text = path.read_text(encoding="utf-8")
             m = FRONTMATTER_RE.match(text)
             if not m:
-                print(f"WARN: pas de frontmatter dans {path}", file=sys.stderr)
+                print(f"WARN: no frontmatter in {path}", file=sys.stderr)
                 continue
             fm = parse_yaml_frontmatter(m.group(1))
             body = m.group(2)
             item_id = fm.get("id") or path.stem
             if item_id != path.stem:
                 print(
-                    f"WARN: id {item_id} != nom de fichier {path.name}",
+                    f"WARN: id {item_id} != filename {path.name}",
                     file=sys.stderr,
                 )
             out[cat].append(
@@ -210,10 +210,10 @@ def load_items() -> dict[str, list[Item]]:
 
 
 def reverse_index(items: dict[str, list[Item]]):
-    """Calcule les index inverses :
-    - impl_by_srs[srs_id]      = IDs SDS qui implémentent
-    - verif_by_srs[srs_id]     = IDs TC qui vérifient
-    - controls_by_target[id]   = Items (SRS/SDS/TC) qui mitigent ce RSK ou THR
+    """Compute reverse indexes:
+    - impl_by_srs[srs_id]      = SDS IDs that implement
+    - verif_by_srs[srs_id]     = TC IDs that verify
+    - controls_by_target[id]   = Items (SRS/SDS/TC) that mitigate this RSK or THR
     """
     impl_by_srs: dict[str, list[str]] = defaultdict(list)
     for s in items["SDS"]:
@@ -246,9 +246,9 @@ def reverse_index(items: dict[str, list[Item]]):
 
 
 def render_aggregate(title: str, items: list[Item], category: str) -> str:
-    lines = [f"# {title}", "", f"_Généré le {date.today().isoformat()}_", ""]
+    lines = [f"# {title}", "", f"_Generated on {date.today().isoformat()}_", ""]
     if not items:
-        lines += ["_(aucun item)_", ""]
+        lines += ["_(no item)_", ""]
         return "\n".join(lines)
     for it in items:
         if it.status == "Deprecated":
@@ -256,39 +256,39 @@ def render_aggregate(title: str, items: list[Item], category: str) -> str:
         lines.append(f"## {it.id} — {it.title}")
         lines.append("")
         lines.append(
-            f"**Statut :** {it.status} · **Version :** "
+            f"**Status:** {it.status} · **Version:** "
             f"{it.frontmatter.get('version', '?')}"
         )
         if category == "SRS":
             lines.append(
-                f"**Vérification :** {it.frontmatter.get('verification', '?')} · "
-                f"**Priorité :** {it.frontmatter.get('priority', '?')}"
+                f"**Verification:** {it.frontmatter.get('verification', '?')} · "
+                f"**Priority:** {it.frontmatter.get('priority', '?')}"
             )
             mit = it.mitigates
             if mit:
-                lines.append(f"**Mitigation de :** {', '.join(mit)}")
+                lines.append(f"**Mitigates:** {', '.join(mit)}")
         if category == "SDS":
-            lines.append(f"**Module :** `{it.frontmatter.get('module', '?')}`")
+            lines.append(f"**Module:** `{it.frontmatter.get('module', '?')}`")
             impls = it.links.get("implements") or []
             if impls:
-                lines.append(f"**Implémente :** {', '.join(impls)}")
+                lines.append(f"**Implements:** {', '.join(impls)}")
             mit = it.mitigates
             if mit:
-                lines.append(f"**Mitige :** {', '.join(mit)}")
+                lines.append(f"**Mitigates:** {', '.join(mit)}")
         if category == "TC":
             verif = it.links.get("verifies") or []
             lines.append(
-                f"**Type :** {it.frontmatter.get('type', '?')} · "
-                f"**Auto :** {it.frontmatter.get('automated', '?')}"
+                f"**Type:** {it.frontmatter.get('type', '?')} · "
+                f"**Auto:** {it.frontmatter.get('automated', '?')}"
             )
             if verif:
-                lines.append(f"**Vérifie :** {', '.join(verif)}")
+                lines.append(f"**Verifies:** {', '.join(verif)}")
             mit = it.mitigates
             if mit:
-                lines.append(f"**Mitige :** {', '.join(mit)}")
+                lines.append(f"**Mitigates:** {', '.join(mit)}")
         srcs = it.frontmatter.get("source") or []
         if srcs:
-            lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+            lines.append("**Source:** " + ", ".join(f"`{s}`" for s in srcs))
         lines.append("")
         lines.append(it.body.strip())
         lines.append("")
@@ -321,25 +321,25 @@ def build_traceability(by_cat, impl_by_srs, verif_by_srs):
     }
 
     lines = [
-        "# Matrice de traçabilité",
+        "# Traceability Matrix",
         "",
-        f"_Généré le {date.today().isoformat()}_",
+        f"_Generated on {date.today().isoformat()}_",
         "",
-        "## Synthèse",
+        "## Summary",
         "",
-        "| Métrique | Valeur |",
+        "| Metric | Value |",
         "|---|---|",
-        f"| Items SRS (actifs) | {coverage['srs_count']} |",
-        f"| Items SDS (actifs) | {coverage['sds_count']} |",
-        f"| Items TC (actifs) | {coverage['tc_count']} |",
-        f"| Couverture implémentation | {impl_count}/{len(srs)} "
+        f"| SRS items (active) | {coverage['srs_count']} |",
+        f"| SDS items (active) | {coverage['sds_count']} |",
+        f"| TC items (active) | {coverage['tc_count']} |",
+        f"| Implementation coverage | {impl_count}/{len(srs)} "
         f"({coverage['implementation_rate']:.0%}) |",
-        f"| Couverture vérification (Must) | {verif_must_count}/{len(must)} "
+        f"| Verification coverage (Must) | {verif_must_count}/{len(must)} "
         f"({coverage['verification_rate_must']:.0%}) |",
         "",
         "## SRS → SDS → TC",
         "",
-        "| SRS | Titre | SDS | TC |",
+        "| SRS | Title | SDS | TC |",
         "|---|---|---|---|",
     ]
     for s in srs:
@@ -348,28 +348,28 @@ def build_traceability(by_cat, impl_by_srs, verif_by_srs):
         lines.append(f"| {s.id} | {s.title} | {sds_list} | {tc_list} |")
 
     if coverage["orphans"]["sds"]:
-        lines += ["", "## SDS sans exigence implémentée"]
+        lines += ["", "## SDS without implemented requirement"]
         lines += [f"- {x}" for x in coverage["orphans"]["sds"]]
     if coverage["orphans"]["tc"]:
-        lines += ["", "## TC sans exigence vérifiée"]
+        lines += ["", "## TC with no verified requirement"]
         lines += [f"- {x}" for x in coverage["orphans"]["tc"]]
 
     return "\n".join(lines) + "\n", coverage
 
 
 def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
-    """Renvoie (markdown, dict d'analyse pour coverage et to_implement)."""
+    """Return (markdown, analysis dict for coverage and to_implement)."""
     rsks = [r for r in by_cat["RSK"] if r.status != "Deprecated"]
 
     lines = [
-        "# Analyse de risques (IEC 62304 §7 — Classe A)",
+        "# Risk Analysis (IEC 62304 §7 — Class A)",
         "",
-        f"_Généré le {date.today().isoformat()}_",
+        f"_Generated on {date.today().isoformat()}_",
         "",
     ]
 
     if not rsks:
-        lines += ["_(aucun risque enregistré)_", ""]
+        lines += ["_(no risk registered)_", ""]
         return "\n".join(lines), {
             "rsk_count": 0,
             "rsk_unmitigated": [],
@@ -384,9 +384,9 @@ def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
     class_a_invalidating: list[str] = []
 
     lines += [
-        "## Synthèse",
+        "## Summary",
         "",
-        "| RSK | Titre | Sévérité | Niveau | Initial OK | Résiduel OK | # Contrôles |",
+        "| RSK | Title | Severity | Level | Initial OK | Residual OK | # Controls |",
         "|---|---|---|---|---|---|---|",
     ]
 
@@ -425,36 +425,36 @@ def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
             f"{len(controls)} |"
         )
 
-    lines += ["", "## Détail par RSK", ""]
+    lines += ["", "## Detail per RSK", ""]
 
     for rsk in rsks:
         fm = rsk.frontmatter
         lines.append(f"### {rsk.id} — {rsk.title}")
         lines.append("")
         lines.append(
-            f"**Statut :** {rsk.status} · **Version :** {fm.get('version', '?')}"
+            f"**Status:** {rsk.status} · **Version:** {fm.get('version', '?')}"
         )
         lines.append(
-            f"**Sévérité :** {fm.get('severity', '?')} · "
-            f"**Probabilité :** {fm.get('probability', '?')} · "
-            f"**Niveau :** {fm.get('risk_level', '?')}"
+            f"**Severity:** {fm.get('severity', '?')} · "
+            f"**Probability:** {fm.get('probability', '?')} · "
+            f"**Level:** {fm.get('risk_level', '?')}"
         )
         lines.append(
-            f"**Acceptable (initial) :** "
-            f"{'oui' if fm.get('acceptable', True) else 'non'} · "
-            f"**Résiduel acceptable :** "
-            f"{'oui' if fm.get('residual_acceptable', True) else 'non'}"
+            f"**Acceptable (initial):** "
+            f"{'yes' if fm.get('acceptable', True) else 'no'} · "
+            f"**Residual acceptable:** "
+            f"{'yes' if fm.get('residual_acceptable', True) else 'no'}"
         )
         srcs = fm.get("source") or []
         if srcs:
-            lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+            lines.append("**Source:** " + ", ".join(f"`{s}`" for s in srcs))
         lines.append("")
 
         controls = controls_by_target.get(rsk.id, [])
         if controls:
-            lines.append("**Contrôles :**")
+            lines.append("**Controls:**")
             lines.append("")
-            lines.append("| Item | Catégorie | Implémenté | Vérifié |")
+            lines.append("| Item | Category | Implemented | Verified |")
             lines.append("|---|---|---|---|")
             for c in controls:
                 if c.category == "SRS":
@@ -469,7 +469,7 @@ def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
                 lines.append(f"| {c.id} | {c.category} | {impl} | {verif} |")
             lines.append("")
         else:
-            lines.append("_Aucun contrôle enregistré._")
+            lines.append("_No control registered._")
             lines.append("")
         lines.append(rsk.body.strip())
         lines.append("")
@@ -478,11 +478,10 @@ def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
 
     if class_a_invalidating:
         lines += [
-            "## ⚠ Risques invalidant la Classe A",
+            "## ⚠ Risks invalidating Class A",
             "",
-            "Les RSK suivants ont une sévérité `Critical` ou `Catastrophic`. La",
-            "classification Class A est probablement incorrecte — revoir la",
-            "classification avec le système qualité.",
+            "The following RSKs have severity `Critical` or `Catastrophic`. The",
+            "Class A classification is likely incorrect — review with the quality system.",
             "",
         ] + [f"- {r}" for r in class_a_invalidating]
 
@@ -496,18 +495,18 @@ def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
 
 
 def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
-    """Renvoie (markdown, dict d'analyse cyber)."""
+    """Return (markdown, cyber analysis dict)."""
     thrs = [t for t in by_cat["THR"] if t.status != "Deprecated"]
 
     lines = [
-        "# Analyse de risques cyber (IEC 81001-5-1 / STRIDE)",
+        "# Cyber Risk Analysis (IEC 81001-5-1 / STRIDE)",
         "",
-        f"_Généré le {date.today().isoformat()}_",
+        f"_Generated on {date.today().isoformat()}_",
         "",
     ]
 
     if not thrs:
-        lines += ["_(aucune menace enregistrée)_", ""]
+        lines += ["_(no threat registered)_", ""]
         return "\n".join(lines), {
             "thr_count": 0,
             "thr_unmitigated": [],
@@ -522,9 +521,9 @@ def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_
     high_risk: list[str] = []
 
     lines += [
-        "## Synthèse",
+        "## Summary",
         "",
-        "| THR | Titre | STRIDE | Attaquant | Niveau | Initial OK | Résiduel OK | # Contrôles | RSK déclenchés |",
+        "| THR | Title | STRIDE | Attacker | Level | Initial OK | Residual OK | # Controls | Triggered RSK |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
 
@@ -565,7 +564,7 @@ def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_
             f"{len(controls)} | {', '.join(triggers) or '—'} |"
         )
 
-    lines += ["", "## Détail par THR", ""]
+    lines += ["", "## Detail per THR", ""]
 
     for thr in thrs:
         fm = thr.frontmatter
@@ -575,37 +574,37 @@ def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_
         lines.append(f"### {thr.id} — {thr.title}")
         lines.append("")
         lines.append(
-            f"**Statut :** {thr.status} · **Version :** {fm.get('version', '?')}"
+            f"**Status:** {thr.status} · **Version:** {fm.get('version', '?')}"
         )
         lines.append(
-            f"**STRIDE :** {','.join(stride) or '?'} · "
-            f"**Attaquant :** {fm.get('attacker', '?')} · "
-            f"**Asset :** {fm.get('asset', '?')}"
+            f"**STRIDE:** {','.join(stride) or '?'} · "
+            f"**Attacker:** {fm.get('attacker', '?')} · "
+            f"**Asset:** {fm.get('asset', '?')}"
         )
         lines.append(
-            f"**Likelihood :** {fm.get('likelihood', '?')} · "
-            f"**Impact :** {fm.get('impact', '?')} · "
-            f"**Niveau :** {fm.get('risk_level', '?')}"
+            f"**Likelihood:** {fm.get('likelihood', '?')} · "
+            f"**Impact:** {fm.get('impact', '?')} · "
+            f"**Level:** {fm.get('risk_level', '?')}"
         )
         lines.append(
-            f"**Acceptable (initial) :** "
-            f"{'oui' if fm.get('acceptable', True) else 'non'} · "
-            f"**Résiduel acceptable :** "
-            f"{'oui' if fm.get('residual_acceptable', True) else 'non'}"
+            f"**Acceptable (initial):** "
+            f"{'yes' if fm.get('acceptable', True) else 'no'} · "
+            f"**Residual acceptable:** "
+            f"{'yes' if fm.get('residual_acceptable', True) else 'no'}"
         )
         triggers = thr.links.get("triggers") or []
         if triggers:
-            lines.append(f"**Déclenche (RSK) :** {', '.join(triggers)}")
+            lines.append(f"**Triggers (RSK):** {', '.join(triggers)}")
         srcs = fm.get("source") or []
         if srcs:
-            lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+            lines.append("**Source:** " + ", ".join(f"`{s}`" for s in srcs))
         lines.append("")
 
         controls = controls_by_target.get(thr.id, [])
         if controls:
-            lines.append("**Contrôles :**")
+            lines.append("**Controls:**")
             lines.append("")
-            lines.append("| Item | Catégorie | Implémenté | Vérifié |")
+            lines.append("| Item | Category | Implemented | Verified |")
             lines.append("|---|---|---|---|")
             for c in controls:
                 if c.category == "SRS":
@@ -620,7 +619,7 @@ def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_
                 lines.append(f"| {c.id} | {c.category} | {impl} | {verif} |")
             lines.append("")
         else:
-            lines.append("_Aucun contrôle enregistré._")
+            lines.append("_No control registered._")
             lines.append("")
         lines.append(thr.body.strip())
         lines.append("")
@@ -629,10 +628,10 @@ def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_
 
     if high_risk:
         lines += [
-            "## ⚠ Threats à risque élevé non résolus",
+            "## ⚠ Unresolved high-risk threats",
             "",
-            "Les THR suivants ont `risk_level: High` ET `residual_acceptable: false`.",
-            "Renforcer les contrôles avant publication.",
+            "The following THRs have `risk_level: High` AND `residual_acceptable: false`.",
+            "Strengthen controls before publication.",
             "",
         ] + [f"- {t}" for t in high_risk]
 
@@ -646,20 +645,20 @@ def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_
 
 
 def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
-    """Renvoie (markdown, dict d'analyse usability IEC 62366-1)."""
+    """Return (markdown, usability analysis dict IEC 62366-1)."""
     uscs = [u for u in by_cat["USC"] if u.status != "Deprecated"]
     ursks = [r for r in by_cat["URSK"] if r.status != "Deprecated"]
 
     lines = [
-        "# Analyse usability (IEC 62366-1)",
+        "# Usability Analysis (IEC 62366-1)",
         "",
-        f"_Généré le {date.today().isoformat()}_",
+        f"_Generated on {date.today().isoformat()}_",
         "",
     ]
 
     if not uscs and not ursks:
         lines += [
-            "_Pas de surface UI détectée — IEC 62366-1 non applicable_",
+            "_No UI surface detected — IEC 62366-1 not applicable_",
             "",
         ]
         return "\n".join(lines), {
@@ -676,7 +675,7 @@ def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_s
     lines += ["## Use Scenarios (USC)", ""]
     if uscs:
         lines += [
-            "| USC | Titre | Persona | Environnement | Tâche | Fréquence | Criticité |",
+            "| USC | Title | Persona | Environment | Task | Frequency | Criticality |",
             "|---|---|---|---|---|---|---|",
         ]
         for u in uscs:
@@ -688,7 +687,7 @@ def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_s
             )
         lines.append("")
     else:
-        lines += ["_(aucun USC enregistré)_", ""]
+        lines += ["_(no USC registered)_", ""]
 
     # Section URSK
     ursk_unmit: list[str] = []
@@ -700,7 +699,7 @@ def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_s
         lines += [
             "## Use-Related Risks (URSK)",
             "",
-            "| URSK | Titre | Persona-USC | Sévérité | Niveau | Initial OK | Résiduel OK | # Contrôles | RSK déclenchés |",
+            "| URSK | Title | Persona-USC | Severity | Level | Initial OK | Residual OK | # Controls | Triggered RSK |",
             "|---|---|---|---|---|---|---|---|---|",
         ]
         for r in ursks:
@@ -739,35 +738,35 @@ def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_s
             )
         lines.append("")
     else:
-        lines += ["## Use-Related Risks (URSK)", "", "_(aucun URSK enregistré)_", ""]
+        lines += ["## Use-Related Risks (URSK)", "", "_(no URSK registered)_", ""]
 
     # Détail par USC
     if uscs:
-        lines += ["## Détail par USC", ""]
+        lines += ["## Detail per USC", ""]
         for u in uscs:
             fm = u.frontmatter
             lines.append(f"### {u.id} — {u.title}")
             lines.append("")
             lines.append(
-                f"**Statut :** {u.status} · **Version :** {fm.get('version', '?')}"
+                f"**Status:** {u.status} · **Version:** {fm.get('version', '?')}"
             )
             lines.append(
-                f"**Persona :** {fm.get('persona', '?')} · "
-                f"**Environnement :** {fm.get('environment', '?')}"
+                f"**Persona:** {fm.get('persona', '?')} · "
+                f"**Environment:** {fm.get('environment', '?')}"
             )
             lines.append(
-                f"**Tâche :** {fm.get('task', '?')} · "
-                f"**Fréquence :** {fm.get('frequency', '?')} · "
-                f"**Criticité :** {fm.get('criticality', '?')}"
+                f"**Task:** {fm.get('task', '?')} · "
+                f"**Frequency:** {fm.get('frequency', '?')} · "
+                f"**Criticality:** {fm.get('criticality', '?')}"
             )
             srcs = fm.get("source") or []
             if srcs:
-                lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
-            # URSK rattachés
+                lines.append("**Source:** " + ", ".join(f"`{s}`" for s in srcs))
+            # linked URSKs
             children = [r for r in ursks if r.frontmatter.get("use_scenario") == u.id]
             if children:
                 lines.append(
-                    f"**URSK rattachés :** {', '.join(c.id for c in children)}"
+                    f"**Linked URSKs:** {', '.join(c.id for c in children)}"
                 )
             lines.append("")
             lines.append(u.body.strip())
@@ -777,41 +776,41 @@ def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_s
 
     # Détail par URSK
     if ursks:
-        lines += ["## Détail par URSK", ""]
+        lines += ["## Detail per URSK", ""]
         for r in ursks:
             fm = r.frontmatter
             lines.append(f"### {r.id} — {r.title}")
             lines.append("")
             lines.append(
-                f"**Statut :** {r.status} · **Version :** {fm.get('version', '?')}"
+                f"**Status:** {r.status} · **Version:** {fm.get('version', '?')}"
             )
             lines.append(
-                f"**USC parent :** {fm.get('use_scenario', '—')}"
+                f"**Parent USC:** {fm.get('use_scenario', '—')}"
             )
             lines.append(
-                f"**Sévérité :** {fm.get('severity', '?')} · "
-                f"**Likelihood :** {fm.get('likelihood', '?')} · "
-                f"**Niveau :** {fm.get('risk_level', '?')}"
+                f"**Severity:** {fm.get('severity', '?')} · "
+                f"**Likelihood:** {fm.get('likelihood', '?')} · "
+                f"**Level:** {fm.get('risk_level', '?')}"
             )
             lines.append(
-                f"**Acceptable (initial) :** "
-                f"{'oui' if fm.get('acceptable', True) else 'non'} · "
-                f"**Résiduel acceptable :** "
-                f"{'oui' if fm.get('residual_acceptable', True) else 'non'}"
+                f"**Acceptable (initial):** "
+                f"{'yes' if fm.get('acceptable', True) else 'no'} · "
+                f"**Residual acceptable:** "
+                f"{'yes' if fm.get('residual_acceptable', True) else 'no'}"
             )
             triggers = r.links.get("triggers") or []
             if triggers:
-                lines.append(f"**Déclenche (RSK) :** {', '.join(triggers)}")
+                lines.append(f"**Triggers (RSK):** {', '.join(triggers)}")
             srcs = fm.get("source") or []
             if srcs:
-                lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+                lines.append("**Source:** " + ", ".join(f"`{s}`" for s in srcs))
             lines.append("")
 
             controls = controls_by_target.get(r.id, [])
             if controls:
-                lines.append("**Contrôles :**")
+                lines.append("**Controls:**")
                 lines.append("")
-                lines.append("| Item | Catégorie | Implémenté | Vérifié |")
+                lines.append("| Item | Category | Implemented | Verified |")
                 lines.append("|---|---|---|---|")
                 for c in controls:
                     if c.category == "SRS":
@@ -826,7 +825,7 @@ def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_s
                     lines.append(f"| {c.id} | {c.category} | {impl} | {verif} |")
                 lines.append("")
             else:
-                lines.append("_Aucun contrôle enregistré._")
+                lines.append("_No control registered._")
                 lines.append("")
             lines.append(r.body.strip())
             lines.append("")
@@ -835,11 +834,11 @@ def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_s
 
     if ursk_class_a_invalid:
         lines += [
-            "## ⚠ URSK invalidant la Classe A",
+            "## ⚠ URSKs invalidating Class A",
             "",
-            "Les URSK suivants ont une sévérité `Critical` ou `Catastrophic`.",
-            "Une use error qui peut causer ce niveau de harm remet en cause la",
-            "Classe A — revoir la classification.",
+            "The following URSKs have severity `Critical` or `Catastrophic`.",
+            "A use error that can cause this level of harm challenges the",
+            "Class A classification — review the classification.",
             "",
         ] + [f"- {u}" for u in ursk_class_a_invalid]
 
@@ -855,7 +854,7 @@ def build_usability_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_s
 
 
 def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
-    """Backlog actionnable — structuré en groupes A/B/C/D."""
+    """Actionable backlog — structured in groups A/B/C/D."""
     srs = [s for s in by_cat["SRS"] if s.status != "Deprecated"]
     rsks = [r for r in by_cat["RSK"] if r.status != "Deprecated"]
     thrs = [t for t in by_cat["THR"] if t.status != "Deprecated"]
@@ -888,7 +887,7 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         r for r in ursks if not r.frontmatter.get("residual_acceptable", True)
     ]
 
-    # D. Mitigations à compléter (toutes catégories — RSK, THR ou URSK)
+    # D. Mitigations to complete (all categories — RSK, THR or URSK)
     mit_to_impl: list[Item] = []
     mit_to_verif: list[Item] = []
     for s in srs:
@@ -899,7 +898,7 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         elif not verif_by_srs.get(s.id):
             mit_to_verif.append(s)
 
-    # E. Autres exigences Must (hors mitigation)
+    # E. Other Must requirements (excluding mitigations)
     must_to_impl: list[Item] = []
     must_to_verif: list[Item] = []
     for s in srs:
@@ -930,13 +929,13 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         return "mixed(" + "+".join(kinds) + ")"
 
     lines = [
-        "# À implémenter — backlog actionnable",
+        "# To implement — actionable backlog",
         "",
-        f"_Généré le {date.today().isoformat()}_",
+        f"_Generated on {date.today().isoformat()}_",
         "",
-        "> Source de vérité pour les actions concrètes. Régénéré à chaque",
-        "> `python tools/build_docs.py`. Sections **BLOQUANT** = empêchent la",
-        "> publication ; les autres sont informatives.",
+        "> Source of truth for concrete actions. Regenerated on each",
+        "> `python tools/build_docs.py`. **BLOCKING** sections prevent",
+        "> publication; others are informational.",
         "",
         "---",
         "",
@@ -948,7 +947,7 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         lines.append(f"## {title}")
         lines.append("")
         if not rows:
-            lines.append("_Rien à signaler._")
+            lines.append("_Nothing to report._")
             lines.append("")
             return
         lines.append("| " + " | ".join(headers) + " |")
@@ -958,118 +957,118 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
         lines.append("")
 
     _section(
-        "A.1 RSK sans contrôle (BLOQUANT)",
+        "A.1 RSK without control (BLOCKING)",
         [
             (
                 r.id, r.title,
                 r.frontmatter.get("severity", "?"),
                 r.frontmatter.get("risk_level", "?"),
-                "Définir au moins un contrôle (`links.mitigates`)",
+                "Define at least one control (`links.mitigates`)",
             ) for r in rsk_unmit
         ],
-        ("RSK", "Titre", "Sévérité", "Niveau", "Action"),
+        ("RSK", "Title", "Severity", "Level", "Action"),
     )
 
     _section(
-        "A.2 RSK avec résiduel non acceptable (BLOQUANT)",
+        "A.2 RSK with not acceptable residual (BLOCKING)",
         [
             (
                 r.id, r.title,
                 r.frontmatter.get("risk_level", "?"),
-                "Renforcer les contrôles ou revoir la classification",
+                "Strengthen controls or revise classification",
             ) for r in rsk_res_bad
         ],
-        ("RSK", "Titre", "Niveau", "Action"),
+        ("RSK", "Title", "Level", "Action"),
     )
 
     lines += ["---", "", "# B. Cyber — IEC 81001-5-1 / STRIDE", ""]
 
     _section(
-        "B.1 THR sans contrôle (BLOQUANT)",
+        "B.1 THR without control (BLOCKING)",
         [
             (
                 t.id, t.title,
                 ",".join(t.frontmatter.get("stride") or []) or "?",
                 t.frontmatter.get("risk_level", "?"),
-                "Définir au moins un contrôle (`links.mitigates`)",
+                "Define at least one control (`links.mitigates`)",
             ) for t in thr_unmit
         ],
-        ("THR", "Titre", "STRIDE", "Niveau", "Action"),
+        ("THR", "Title", "STRIDE", "Level", "Action"),
     )
 
     _section(
-        "B.2 THR avec résiduel non acceptable (BLOQUANT)",
+        "B.2 THR with not acceptable residual (BLOCKING)",
         [
             (
                 t.id, t.title,
                 t.frontmatter.get("risk_level", "?"),
-                "Renforcer les contrôles ou accepter le résiduel",
+                "Strengthen controls or accept the residual",
             ) for t in thr_res_bad
         ],
-        ("THR", "Titre", "Niveau", "Action"),
+        ("THR", "Title", "Level", "Action"),
     )
 
     lines += ["---", "", "# C. Usability — IEC 62366-1", ""]
 
     _section(
-        "C.1 URSK sans contrôle (BLOQUANT)",
+        "C.1 URSK without control (BLOCKING)",
         [
             (
                 r.id, r.title,
                 r.frontmatter.get("severity", "?"),
                 r.frontmatter.get("risk_level", "?"),
-                "Définir au moins un contrôle (`links.mitigates`)",
+                "Define at least one control (`links.mitigates`)",
             ) for r in ursk_unmit
         ],
-        ("URSK", "Titre", "Sévérité", "Niveau", "Action"),
+        ("URSK", "Title", "Severity", "Level", "Action"),
     )
 
     _section(
-        "C.2 URSK avec résiduel non acceptable (BLOQUANT)",
+        "C.2 URSK with not acceptable residual (BLOCKING)",
         [
             (
                 r.id, r.title,
                 r.frontmatter.get("risk_level", "?"),
-                "Renforcer les contrôles UI ou accepter le résiduel",
+                "Strengthen UI controls or accept the residual",
             ) for r in ursk_res_bad
         ],
-        ("URSK", "Titre", "Niveau", "Action"),
+        ("URSK", "Title", "Level", "Action"),
     )
 
-    lines += ["---", "", "# D. Mitigations à compléter (safety + cyber + usability)", ""]
+    lines += ["---", "", "# D. Mitigations to complete (safety + cyber + usability)", ""]
 
     _section(
-        "D.1 Mitigations à implémenter (SRS sans SDS)",
+        "D.1 Mitigations to implement (SRS without SDS)",
         [
             (s.id, s.title, _kind(s.mitigates), ", ".join(s.mitigates),
-             "Écrire le module qui réalise cette exigence")
+             "Write the module that fulfils this requirement")
             for s in mit_to_impl
         ],
-        ("Mitigation SRS", "Titre", "Type", "Cible(s)", "Action"),
+        ("Mitigation SRS", "Title", "Type", "Target(s)", "Action"),
     )
 
     _section(
-        "D.2 Mitigations à vérifier (SRS sans TC)",
+        "D.2 Mitigations to verify (SRS without TC)",
         [
             (s.id, s.title, _kind(s.mitigates), ", ".join(s.mitigates),
-             "Écrire un test de vérification")
+             "Write a verification test")
             for s in mit_to_verif
         ],
-        ("Mitigation SRS", "Titre", "Type", "Cible(s)", "Action"),
+        ("Mitigation SRS", "Title", "Type", "Target(s)", "Action"),
     )
 
-    lines += ["---", "", "# E. Autres exigences Must", ""]
+    lines += ["---", "", "# E. Other Must requirements", ""]
 
     _section(
-        "E.1 À implémenter",
+        "E.1 To implement",
         [(s.id, s.title) for s in must_to_impl],
-        ("SRS", "Titre"),
+        ("SRS", "Title"),
     )
 
     _section(
-        "E.2 À vérifier",
+        "E.2 To verify",
         [(s.id, s.title) for s in must_to_verif],
-        ("SRS", "Titre"),
+        ("SRS", "Title"),
     )
 
     nothing_left = not (
@@ -1079,7 +1078,7 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
     )
     if nothing_left:
         lines.append(
-            "**Toutes les sections sont vides — la doc est en bon état pour publication.**"
+            "**All sections are empty — documentation is in good shape for publication.**"
         )
         lines.append("")
 
@@ -1099,10 +1098,10 @@ def build_to_implement(by_cat, impl_by_srs, verif_by_srs, controls_by_target):
 
 
 def _scan_dirs_for_manifests() -> list[Path]:
-    """Renvoie les bases à scanner : ROOT + sous-repos git de 1er niveau.
+    """Return bases to scan: ROOT + first-level git sub-repos.
 
-    En multi-repo (front/, back/, …), chaque sous-dossier qui contient un
-    `.git/` est traité comme un composant indépendant.
+    In a multi-repo setup (front/, back/, ...), each subdirectory containing
+    a `.git/` is treated as an independent component.
     """
     bases = [ROOT]
     try:
@@ -1115,10 +1114,10 @@ def _scan_dirs_for_manifests() -> list[Path]:
 
 
 def detect_test_frameworks() -> list[str]:
-    """Inspecte les manifests pour lister les frameworks détectés.
+    """Inspect manifests to list detected test frameworks.
 
-    En multi-repo, préfixe chaque entrée par le nom du composant
-    (ex. `front/: vitest 1.6.0`).
+    In multi-repo mode, prefixes each entry with the component name
+    (e.g. `front/: vitest 1.6.0`).
     """
     found: list[str] = []
     for base in _scan_dirs_for_manifests():
@@ -1155,7 +1154,7 @@ def detect_test_frameworks() -> list[str]:
 
 
 def read_test_plan_intro() -> dict[str, str]:
-    """Parse `docs/test_plan_intro.md` ; renvoie {section_id: contenu}."""
+    """Parse `docs/test_plan_intro.md`; returns {section_id: content}."""
     p = ROOT / "docs" / "test_plan_intro.md"
     if not p.exists():
         return {}
@@ -1194,28 +1193,28 @@ def build_std(by_cat) -> str:
         "# Software Test Description (STD)",
         "",
         f"_Class A · IEC 62304 §5.5/§5.7 · IEEE 829 · "
-        f"Généré le {date.today().isoformat()}_",
+        f"Generated on {date.today().isoformat()}_",
         "",
         "## 1. Introduction",
         "",
-        "### 1.1 Objet",
+        "### 1.1 Purpose",
         "",
-        "Ce document décrit l'environnement, la stratégie et les cas de test",
-        "pour la vérification du logiciel selon IEC 62304 §5.5 (vérification",
-        "unitaire) et §5.7 (test système). Les cas de test sont produits depuis",
-        "`docs/items/TC/` ; ce STD est régénéré à chaque build.",
+        "This document describes the environment, strategy and test cases",
+        "for software verification per IEC 62304 §5.5 (unit verification)",
+        "and §5.7 (system test). Test cases are produced from",
+        "`docs/items/TC/`; this STD is regenerated on each build.",
         "",
-        "### 1.2 Documents de référence",
+        "### 1.2 Reference documents",
         "",
         "- SRS — `docs/generated/10_SRS.md`",
         "- SDS — `docs/generated/20_SDS.md`",
-        "- Matrice de traçabilité — `docs/generated/40_traceability.md`",
-        "- Analyse de risques (safety) — `docs/generated/50_risk_analysis.md`",
-        "- Analyse cyber — `docs/generated/60_cyber_risk_analysis.md`",
+        "- Traceability matrix — `docs/generated/40_traceability.md`",
+        "- Risk analysis (safety) — `docs/generated/50_risk_analysis.md`",
+        "- Cyber risk analysis — `docs/generated/60_cyber_risk_analysis.md`",
         "- IEC 62304:2006/AMD1:2015",
         "- IEEE 829-2008 (Standard for Software and System Test Documentation)",
         "",
-        "### 1.3 Niveaux de test couverts",
+        "### 1.3 Test levels covered",
         "",
     ]
     for lvl in ("Unit", "Integration", "System", "E2E"):
@@ -1223,50 +1222,50 @@ def build_std(by_cat) -> str:
         lines.append(f"- **{lvl}** — {n} TC")
     lines.append("")
 
-    # 2. Environnement
-    lines += ["## 2. Environnement de test", ""]
+    # 2. Environment
+    lines += ["## 2. Test environment", ""]
     if frameworks:
-        lines.append("Frameworks détectés depuis les manifests :")
+        lines.append("Frameworks detected from manifests:")
         lines.append("")
         for f in frameworks:
             lines.append(f"- {f}")
     else:
         lines.append(
-            "_Aucun framework de test détecté automatiquement. Compléter via "
+            "_No test framework detected automatically. Complete via "
             "`docs/test_plan_intro.md`._"
         )
     lines.append("")
 
-    # 3. Stratégie
-    lines += ["## 3. Stratégie de test", ""]
+    # 3. Strategy
+    lines += ["## 3. Test strategy", ""]
     if intro.get("test-strategy"):
         lines.append(intro["test-strategy"])
     else:
         lines.append(
-            "_[TODO] Renseigner la stratégie dans "
+            "_[TODO] Fill in the strategy in "
             "`docs/test_plan_intro.md` section `## test-strategy` "
-            "(méthode, outillage, fréquence, automatisation)._"
+            "(method, tooling, frequency, automation)._"
         )
     lines.append("")
 
-    # 4. Critères de pass/fail
-    lines += ["## 4. Critères de pass/fail", ""]
+    # 4. Pass/fail criteria
+    lines += ["## 4. Pass/fail criteria", ""]
     if intro.get("test-pass-fail"):
         lines.append(intro["test-pass-fail"])
     else:
         lines += [
-            "- **PASS** — tous les TC vérifiant un SRS `priority: Must` sont",
-            "  exécutés et passants ; aucun TC orphelin (sans `verifies`).",
-            "- **FAIL** — ≥ 1 TC vérifiant un SRS Must est en échec.",
-            "- **Skipped** — tracé dans le rapport, ne compte pas comme pass.",
+            "- **PASS** — all TCs verifying a `priority: Must` SRS are",
+            "  executed and passing; no orphan TC (without `verifies`).",
+            "- **FAIL** — >= 1 TC verifying a Must SRS is failing.",
+            "- **Skipped** — recorded in the report, does not count as pass.",
         ]
     lines.append("")
 
-    # 5. Couverture
+    # 5. Coverage
     lines += [
-        "## 5. Couverture",
+        "## 5. Coverage",
         "",
-        "| Niveau | # TC | SRS Must couverts |",
+        "| Level | # TC | SRS Must covered |",
         "|---|---|---|",
     ]
     for lvl in ("Unit", "Integration", "System", "E2E"):
@@ -1282,8 +1281,8 @@ def build_std(by_cat) -> str:
         )
     lines.append("")
 
-    # 6. Cas de test (table)
-    lines += ["## 6. Cas de test", ""]
+    # 6. Test cases (table)
+    lines += ["## 6. Test cases", ""]
     section_idx = 0
     for lvl in ("Unit", "Integration", "System", "E2E"):
         tcs_lvl = sorted(by_level.get(lvl, []), key=lambda x: x.id)
@@ -1292,7 +1291,7 @@ def build_std(by_cat) -> str:
         section_idx += 1
         lines.append(f"### 6.{section_idx} {lvl}")
         lines.append("")
-        lines.append("| ID | Titre | Vérifie | Auto |")
+        lines.append("| ID | Title | Verifies | Auto |")
         lines.append("|---|---|---|---|")
         for t in tcs_lvl:
             verifies = ", ".join(t.links.get("verifies") or []) or "—"
@@ -1306,36 +1305,36 @@ def build_std(by_cat) -> str:
         lines.append(intro["test-exclusions"])
     else:
         lines.append(
-            "_[TODO] Renseigner les exclusions dans "
+            "_[TODO] Fill in exclusions in "
             "`docs/test_plan_intro.md` section `## test-exclusions` "
-            "(composants non testés et justification)._"
+            "(untested components and justification)._"
         )
     lines.append("")
 
-    # Annexe A — détail
-    lines += ["---", "", "# Annexe A — Détail des cas de test", ""]
+    # Annex A — detail
+    lines += ["---", "", "# Annex A — Test case detail", ""]
     if not tcs:
-        lines += ["_(aucun TC enregistré)_", ""]
+        lines += ["_(no TC registered)_", ""]
     for t in sorted(tcs, key=lambda x: x.id):
         lines.append(f"## {t.id} — {t.title}")
         lines.append("")
         lines.append(
-            f"**Statut :** {t.status} · **Version :** "
+            f"**Status:** {t.status} · **Version:** "
             f"{t.frontmatter.get('version', '?')}"
         )
         lines.append(
-            f"**Type :** {t.frontmatter.get('type', '?')} · "
-            f"**Auto :** {t.frontmatter.get('automated', '?')}"
+            f"**Type:** {t.frontmatter.get('type', '?')} · "
+            f"**Auto:** {t.frontmatter.get('automated', '?')}"
         )
         verif = t.links.get("verifies") or []
         if verif:
-            lines.append(f"**Vérifie :** {', '.join(verif)}")
+            lines.append(f"**Verifies:** {', '.join(verif)}")
         mit = t.mitigates
         if mit:
-            lines.append(f"**Mitige :** {', '.join(mit)}")
+            lines.append(f"**Mitigates:** {', '.join(mit)}")
         srcs = t.frontmatter.get("source") or []
         if srcs:
-            lines.append("**Source :** " + ", ".join(f"`{s}`" for s in srcs))
+            lines.append("**Source:** " + ", ".join(f"`{s}`" for s in srcs))
         lines.append("")
         lines.append(t.body.strip())
         lines.append("")
@@ -1431,50 +1430,50 @@ def main() -> int:
         todos = find_todo_markers()
         if todos:
             problems.append(
-                f"{len(todos)} marqueur(s) [TODO]/[GAP-62304]/[GAP-CYBER]/[GAP-USE]"
+                f"{len(todos)} marker(s) [TODO]/[GAP-62304]/[GAP-CYBER]/[GAP-USE]"
             )
             for path, n, line in todos:
                 rel = path.relative_to(ROOT)
                 print(f"  TODO {rel}:{n}: {line}", file=sys.stderr)
         if risk_data["rsk_class_a_invalidating"]:
             problems.append(
-                f"{len(risk_data['rsk_class_a_invalidating'])} RSK avec sévérité "
-                f"Critical/Catastrophic — Classe A invalide"
+                f"{len(risk_data['rsk_class_a_invalidating'])} RSK with severity "
+                f"Critical/Catastrophic — Class A invalid"
             )
         if risk_data["rsk_residual_unacceptable"]:
             problems.append(
-                f"{len(risk_data['rsk_residual_unacceptable'])} RSK avec "
+                f"{len(risk_data['rsk_residual_unacceptable'])} RSK with "
                 f"residual_acceptable=false"
             )
         if risk_data["rsk_unmitigated"]:
             problems.append(
-                f"{len(risk_data['rsk_unmitigated'])} RSK sans contrôle"
+                f"{len(risk_data['rsk_unmitigated'])} RSK without control"
             )
         if cyber_data["thr_residual_unacceptable"]:
             problems.append(
-                f"{len(cyber_data['thr_residual_unacceptable'])} THR avec "
+                f"{len(cyber_data['thr_residual_unacceptable'])} THR with "
                 f"residual_acceptable=false"
             )
         if cyber_data["thr_unmitigated"]:
             problems.append(
-                f"{len(cyber_data['thr_unmitigated'])} THR sans contrôle"
+                f"{len(cyber_data['thr_unmitigated'])} THR without control"
             )
         if use_data["ursk_class_a_invalidating"]:
             problems.append(
-                f"{len(use_data['ursk_class_a_invalidating'])} URSK avec sévérité "
-                f"Critical/Catastrophic — Classe A invalide"
+                f"{len(use_data['ursk_class_a_invalidating'])} URSK with severity "
+                f"Critical/Catastrophic — Class A invalid"
             )
         if use_data["ursk_residual_unacceptable"]:
             problems.append(
-                f"{len(use_data['ursk_residual_unacceptable'])} URSK avec "
+                f"{len(use_data['ursk_residual_unacceptable'])} URSK with "
                 f"residual_acceptable=false"
             )
         if use_data["ursk_unmitigated"]:
             problems.append(
-                f"{len(use_data['ursk_unmitigated'])} URSK sans contrôle"
+                f"{len(use_data['ursk_unmitigated'])} URSK without control"
             )
         if problems:
-            print("STRICT — problèmes :", file=sys.stderr)
+            print("STRICT — problems:", file=sys.stderr)
             for p in problems:
                 print(f"  - {p}", file=sys.stderr)
             return 2

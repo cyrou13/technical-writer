@@ -1,32 +1,32 @@
 <!--
-  Sections narratives du Software Test Description (STD).
-  Le build (`tools/build_docs.py`) inline les sections ci-dessous dans
+  Narrative sections of the Software Test Description (STD).
+  The build (`tools/build_docs.py`) inlines the sections below into
   `docs/generated/30_STD.md`.
 
-  Sections reconnues :
-    ## test-strategy   → Section 3 du STD
-    ## test-pass-fail  → Section 4 (surcharge le défaut)
+  Recognized sections:
+    ## test-strategy   → STD Section 3
+    ## test-pass-fail  → Section 4 (overrides the default)
     ## test-exclusions → Section 7
 
-  Tout autre H2 est ignoré. Édite à la main — aucun agent n'y touche.
+  Any other H2 is ignored. Edit by hand — no agent touches this file.
 -->
 
 ## test-strategy
 
-[TODO Décrire la stratégie de test :
+[TODO Describe the test strategy:
 
-- niveaux ciblés (unit / intégration / système / E2E),
-- méthode (TDD/BDD/test-after, exigence de couverture),
-- outillage (Vitest/Jest, pytest, Playwright/Cypress…),
-- fréquence et déclencheurs (pre-commit, CI sur PR, nightly),
-- périmètre de l'automatisation vs tests manuels,
-- gestion des fixtures et données de test.]
+- targeted levels (unit / integration / system / E2E),
+- methodology (TDD/BDD/test-after, coverage requirement),
+- tooling (Vitest/Jest, pytest, Playwright/Cypress…),
+- frequency and triggers (pre-commit, CI on PR, nightly),
+- automation scope vs manual tests,
+- management of fixtures and test data.]
 
 ## test-exclusions
 
-[TODO Lister ce qui n'est PAS testé en automatique et pourquoi :
+[TODO List what is NOT tested automatically and why:
 
-- composants tiers traités en boîte noire (avec justification),
-- environnements non couverts (mobile, navigateurs anciens…),
-- scénarios de charge / performance hors périmètre v1,
-- tests d'accessibilité reportés.]
+- third-party components handled as black boxes (with justification),
+- environments not covered (mobile, legacy browsers…),
+- load / performance scenarios out of scope for v1,
+- accessibility tests deferred.]

@@ -1,54 +1,54 @@
 ---
 id: URSK-XXX-NNN
-title: [TODO] titre court ≤ 80 caractères
+title: [TODO] short title ≤ 80 characters
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-use_scenario: USC-XXX-NNN              # USC parent
-use_error: [TODO action ou inaction erronée de l'utilisateur]
-hazard: [TODO source potentielle de dommage]
-hazardous_situation: [TODO circonstance d'exposition au danger]
-harm: [TODO dommage envisagé]
+use_scenario: USC-XXX-NNN              # parent USC
+use_error: [TODO erroneous user action or inaction]
+hazard: [TODO potential source of harm]
+hazardous_situation: [TODO circumstance of exposure to the hazard]
+harm: [TODO envisaged damage]
 severity: Negligible       # Negligible | Minor | Serious | Critical | Catastrophic
 likelihood: Remote         # Improbable | Remote | Occasional | Probable | Frequent
-risk_level: Low            # Low | Medium | High (matrice ISO 14971)
-acceptable: true           # avant mitigation
-residual_acceptable: true  # après mitigation
+risk_level: Low            # Low | Medium | High (ISO 14971 matrix)
+acceptable: true           # before mitigation
+residual_acceptable: true  # after mitigation
 source:
-  - [TODO chemin/composant UI]
+  - [TODO path/to/UI/component]
 links:
   parent: []
-  triggers: []             # IDs RSK safety déclenchés si l'erreur survient
+  triggers: []             # safety RSK IDs triggered if the error occurs
 ---
 
-## Use Error
+## Use error
 
-[TODO description précise de l'action ou inaction utilisateur]
+[TODO precise description of the user action or inaction]
 
-## Conditions favorables à l'erreur
+## Conditions favoring the error
 
-[TODO ce qui rend l'erreur plus probable : libellés proches, défaut
-ambigu, fatigue, multi-patient, etc.]
+[TODO what makes the error more likely: confusable labels, ambiguous
+default, fatigue, multi-patient context, etc.]
 
-## Hazard et harm
+## Hazard and harm
 
-[TODO hazard → harm, lien causal court]
+[TODO hazard → harm, short causal link]
 
-## Justification de niveau
+## Level justification
 
-[TODO pourquoi cette severity, cette likelihood, ce risk_level]
+[TODO why this severity, this likelihood, this risk_level]
 
-## Contrôles attendus
+## Expected controls
 
-(Hiérarchie ISO 14971 : élimination > mesure technique > information.)
+(ISO 14971 hierarchy: elimination > technical measure > information.)
 
-- [TODO contrôle 1]
-- [TODO contrôle 2]
+- [TODO control 1]
+- [TODO control 2]
 
-Les contrôles formels vivent dans les items SRS/SDS/TC qui ont
-`links.mitigates: [<cet ID>]`.
+The formal controls live in the SRS/SDS/TC items whose
+`links.mitigates: [<this ID>]`.
 
 ## Notes
 
-[TODO contexte, références études d'usability, formation utilisateur]
+[TODO context, usability study references, user training]

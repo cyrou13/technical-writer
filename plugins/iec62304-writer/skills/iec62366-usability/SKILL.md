@@ -3,6 +3,13 @@ name: iec62366-usability
 description: Référence IEC 62366-1 (usability engineering pour dispositifs médicaux). À invoquer pour produire des Use Scenarios (USC), des Use-Related Risks (URSK) et des tests d'usability (TC type Usability).
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any artifact produced while applying this skill (USC/URSK items,
+frontmatter values, body sections, `[GAP-USE]` markers) MUST be
+written in **English**, regardless of the user's conversational
+language or any global `CLAUDE.md` instruction.
+
 # IEC 62366-1 — Usability Engineering
 
 ## Cadre

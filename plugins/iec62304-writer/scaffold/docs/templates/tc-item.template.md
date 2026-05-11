@@ -1,15 +1,15 @@
 ---
 id: TC-XXX-NNN
-title: [TODO] titre court ≤ 80 caractères
+title: [TODO] short title ≤ 80 characters
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 type: Unit
 automated: true
-test_id: [TODO] fichier::test
+test_id: [TODO] file::test
 source:
-  - [TODO] chemin/fichier.test.ts
+  - [TODO] path/to/file.test.ts
 links:
   verifies: []
   mitigates: []
@@ -18,19 +18,19 @@ steps: []
 expected: []
 ---
 
-## Préconditions
+## Preconditions
 
 - [TODO]
 
-## Étapes
+## Steps
 
 1. [TODO]
 2. [TODO]
 
-## Résultats attendus
+## Expected results
 
 - [TODO]
 
 ## Notes
 
-[TODO si le mapping vers SRS n'est pas évident]
+[TODO if the mapping to SRS is not obvious]

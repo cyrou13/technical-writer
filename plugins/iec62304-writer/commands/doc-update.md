@@ -2,6 +2,16 @@
 description: Met à jour la doc 62304 après évolution du code — détecte orphelins, items stale, gaps de couverture, puis re-traite uniquement le différentiel. Optionnel — passer un label `Vx.y` pour bump majeur global (ex. /doc-update V2.0).
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+All artifacts written by this command (every file under `docs/`, item
+frontmatter values such as `title`/`description`, body content,
+`[TODO]`/`[GAP-...]` markers, and aggregated reports) MUST be written
+in **English**, regardless of the user's conversational language or
+any global `CLAUDE.md` instruction. Conversational replies to the user
+MAY follow the user's language; written outputs are English-only. This
+applies to every sub-agent and skill invoked from this command.
+
 L'utilisateur veut **mettre à jour** la doc existante après évolution du
 code, PAS regénérer from scratch. Idempotent : si rien n'a changé, rien
 n'est modifié.

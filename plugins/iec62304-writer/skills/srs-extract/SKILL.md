@@ -3,6 +3,13 @@ name: srs-extract
 description: Extraire des exigences logicielles (62304 §5.2) depuis du code TypeScript/JavaScript et Python. À invoquer pour générer ou enrichir des items SRS dans docs/items/SRS/.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any SRS item produced while applying this skill (frontmatter values,
+body sections, acceptance criteria, `[TODO]`/`[GAP-62304]` markers)
+MUST be written in **English**, regardless of the user's conversational
+language or any global `CLAUDE.md` instruction.
+
 # SRS — extraction d'exigences depuis le code
 
 ## Sources d'exigences à scanner

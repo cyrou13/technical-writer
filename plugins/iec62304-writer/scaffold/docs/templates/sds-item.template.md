@@ -1,13 +1,13 @@
 ---
 id: SDS-XXX-NNN
-title: [TODO] titre court ≤ 80 caractères
+title: [TODO] short title ≤ 80 characters
 status: Draft
 version: 1.0.0
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-module: [TODO] chemin/logique
+module: [TODO] logical/path
 source:
-  - [TODO] chemin/dossier
+  - [TODO] path/to/folder
 links:
   parent: []
   implements: []
@@ -18,25 +18,25 @@ interfaces:
   depends_on: []
 ---
 
-## Responsabilité
+## Responsibility
 
-[TODO 1-3 phrases — qu'est-ce que ce module fait, et seulement ça]
+[TODO 1–3 sentences — what this module does, and only that]
 
 ## Interfaces
 
-### Entrées
+### Inputs
 - [TODO]
 
-### Sorties
+### Outputs
 - [TODO]
 
-### Dépendances
-- [TODO internes / externes]
+### Dependencies
+- [TODO internal / external]
 
 ## Invariants
 
-- [TODO contraintes maintenues par le module]
+- [TODO constraints maintained by the module]
 
-## Notes de design
+## Design notes
 
-[TODO décisions notables, alternatives écartées]
+[TODO notable decisions, alternatives discarded]

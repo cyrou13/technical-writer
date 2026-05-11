@@ -3,6 +3,14 @@ name: iec62304-class-a
 description: Référentiel des livrables IEC 62304 Classe A et de leur contenu minimal. À invoquer dès qu'un agent génère, met à jour ou revoit de la documentation technique conforme 62304 Classe A.
 ---
 
+## OUTPUT LANGUAGE — STRICT
+
+Any artifact produced while applying this skill (SRS/SDS/TC/RSK/THR/
+USC/URSK items, aggregated reports, frontmatter values, body sections,
+`[TODO]`/`[GAP-...]` markers) MUST be written in **English**,
+regardless of the user's conversational language or any global
+`CLAUDE.md` instruction.
+
 # IEC 62304 — Classe A — référentiel
 
 Ce skill est la **source de vérité** pour le contenu des livrables. Le
