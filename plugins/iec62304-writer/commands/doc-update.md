@@ -81,6 +81,17 @@ Si **rien** n'a bougé en SRS/SDS/TC → sauter cette étape.
 Si rien n'a bougé en composants UI → sauter `usability-analyst`
 spécifiquement.
 
+### 4bis. Couverture des SRS de mitigation (passe 2)
+
+Les analystes (étape 4) ont pu créer des SRS de mitigation
+(`SRS-MIT-*`, `SRS-CYB-*`, `SRS-PROD-*`, `SRS-USE-*`) qui n'avaient
+pas de SDS / TC associés. **Si l'étape 4 a créé ne serait-ce qu'un
+SRS** : relancer `architecture-writer` et `test-evidence-collector`
+en parallèle. Idempotents — ils ne créent que les SDS / TC manquants
+et ajoutent `links.implements` / `links.verifies` aux items existants
+quand un module / test couvre déjà un SRS de mitigation. Si aucun SRS
+de mitigation n'a été créé à l'étape 4 → sauter cette étape.
+
 ### 5. Bump majeur (si argument `Vx.y`)
 
 Pour chaque item modifié aux étapes 3 ou 4, aligner la version sur le
