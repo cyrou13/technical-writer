@@ -1,0 +1,29 @@
+<!--
+  Boilerplate sample-size justification for the §5.1 of the
+  Usability Engineering File (UEF).
+
+  Inlined verbatim by tools/build_use_export.py into the §5.1
+  "Sample size for usability testing" subsection of the UEF.
+
+  Edit this file to reflect your organisation's chosen position
+  on summative testing sample sizes. The text below summarises
+  the Virzi (1992) / Nielsen (1993) / Lewis (1994) / Faulkner
+  (2003) / FDA / IEC 62366-2 references and is suitable as-is
+  for a 5-user summative protocol on a low-complexity device.
+
+  References cited below MUST be listed in dt-config.yaml under
+  `usability.bibliography` (or in the global `project_references`
+  if shared with other documents).
+-->
+
+Virzi (1992) used Monte Carlo simulations to permute participant orders 500 times to obtain the average problem discovery curves. Based on the outcomes of these experiments, Virzi made three claims regarding sample size for usability studies: (1) Observing four or five participants allows practitioners to discover 80% of a product's usability problems, (2) observing additional participants reveals fewer and fewer new usability problems, and (3) observers detect the more severe usability problems with the first few participants. The same observation, assuming that only 5 users could reveal about 80% of all usability problems that exist in a product, were also reported by Nielsen (1993), which extended Virzi's (1992) original findings and reported case studies that supported its claims for needing only small samples for usability tests.
+
+On the other hand, Lewis (1994) replicated the techniques applied by Virzi (1992) to data from a usability study of a suite of office software products. The likelihoods of problem detection (the p-value) for this study was 0.16 (vs 0.3 for Virzi). The results of Lewis investigation clearly supported Virzi's second claim (additional participants reveal fewer and fewer problems), partially supported the first (observing four or five participants reveals about 80% of a product's usability problems as long as the p-value for a study is in the approximate range of 0.30 to 0.40), and failed to support the third (there was no correlation between problem severity and likelihood of discovery). Lewis noted that it is most reasonable to use small-sample problem discovery studies "if the expected p-value is high, if the study will be iterative, and if undiscovered problems will not have dangerous or expensive outcomes".
+
+Also, Faulkner (2003) conducted a study that collected empirical data from a sample of 60 individuals with varying levels of experience with computers in general and with the software used in the test specifically. The results suggested that a sample of 15 people was sufficient to find a minimum of 90% and an average of 97% of all problems with that software.
+
+On the other hand, the FDA guidelines (which recommends Faulkner's 15 users) states that *"in practice, it is difficult to identify all the problems in a new user interface (...). Even for those problems that are known or believed to exist, it is difficult to anticipate how likely the problems will be detected or cause observable use errors or problems or to anticipate the variability among test participants populations prior to testing. Consequently, it would be extremely difficult to develop a formula for the statistically correct sample size for testing a specific device"*. This point is confirmed by the international standard IEC 62366-2, which mentions: *"Manufacturers are discouraged from performing power analyses to determine sample sizes because Usability testing and the resulting data are not particularly well suited to statistical analyses. Rather, the standard practice is to examine all test findings to determine if there is a need for design improvement, disregarding the statistical significance of events"*. Indeed, the probability of observing at least one instance of a use error (i.e. the p-value: the average likelihood of errors discovered by a user) is complicated to estimate (i.e. 0.3 for Virzi and 0.16 for Lewis). Therefore, it is worth noting that the probability of detecting use errors could significantly differ depending on the complexity of the product and types of use errors (e.g. Use errors with higher probability of occurrence might require a smaller sample size to be detected, as summarised in the Table K.1, Annex K, of the international IEC 62366-2 standard). The FDA also notes that the published estimates of the sample size required for usability studies are based on assumptions regarding a fixed probability of encountering a problem, equal likelihood for each participant to encounter each problem, and the independence of the problems, but none of these assumptions reflects the real world. On the other hand, the international standard IEC 62366-2 encourages performing multiple rounds of the Formative Usability evaluation since it effectively increases cumulative sample size and confidence in detecting usability defects in an early stage of the software development. Therefore, the iterative improvements in design through Formative evaluation are, according to the international standard, another justification for smaller Summative evaluation sample sizes.
+
+Consequently, the manufacturer aimed to find the best compromise, in order to demonstrate that the device can be used by intended users without serious use errors or problems under the expected use conditions, and ensure that as many software problems as possible will be detected.
+
+[TODO sample-size-decision] State here the chosen sample size (e.g. "5 experienced users"), the rationale referencing the analyses above, and any compensating measure (e.g. "increased the number of test cases per user", "performed multiple formative rounds prior to summative testing").

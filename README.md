@@ -5,8 +5,12 @@ IEC 62304 (Classe A) à partir d'un codebase TypeScript/JavaScript +
 Python — **sans dépendance à un service externe**. Reproduit localement
 les features utiles de Matrix Requirements (items à ID stable,
 traçabilité N:N, matrice de couverture, statuts), avec analyses de
-risques **safety** (ISO 14971) et **cyber** (IEC 81001-5-1 / STRIDE)
-séparées.
+risques **safety** (ISO 14971), **cyber** (IEC 81001-5-1 / STRIDE) et
+**usability** (IEC 62366-1 — UEF + Summative Evaluation + IECEE
+checklist) séparées. L'export usability supporte deux templates :
+`platform-rich` (tabulaire, multi-persona — SaaS, frontends riches) et
+`clinical-narrow` (narratif 6 étapes — AI clinique étroit type Avicenna
+CSpine).
 
 ## Langue des artefacts générés
 
@@ -77,6 +81,7 @@ selon ton setup.
 | — | `docs/generated/coverage.json` | — | Métriques machine-readable |
 | 99 | `docs/generated/99_compliance_review.md` | — | Revue de conformité |
 | Export | `docs/export/<doc-id>-<vXX>-SRS.md` (+ `.docx` optionnel) | — | Livrable QMS-ready (cover signataires, revision history, §1 framing, §2 requirements, §3 traçabilité → MAP). Produit par `/doc-srs-export`. |
+| Export | `docs/export/<doc-id>-<vXX>-UEF.md` + `-USE.md` + `-UEF-Annex1.md` (+ `.docx` optionnels) | IEC 62366-1 | Triplet usability QMS-ready : Usability Engineering File (use specification + risk assessment + formative + summative), Summative Evaluation (protocole + report + Annex A questionnaire), Annex 1 IECEE clause-par-clause. Produit par `/doc-use-export`. |
 
 ## Composants du plugin
 
@@ -102,6 +107,7 @@ selon ton setup.
 | `stp-export` | Spec du livrable Software Test Plan (Avicenna `AV-DP-XXX-STP`) |
 | `stdr-export` | Spec du livrable Software Test Description and Reports (Avicenna `AV-DP-XXX-STDR`) avec ingestion `test-results.json` |
 | `str-export` | Spec du livrable Software Test Report synthétique (Avicenna `AV-DP-XXX-STR-auto`) |
+| `use-export` | Spec du triplet IEC 62366-1 — Usability Engineering File + Summative Evaluation + Annex 1 IECEE — avec 2 templates (`platform-rich` pour SaaS, `clinical-narrow` pour AI clinique étroit type Avicenna `AV-DP-XXX-UEF`/`USE`) |
 
 ### Sub-agents
 
@@ -141,6 +147,7 @@ selon ton setup.
 | `/doc-stp-export [--strict] [--md-only]` | Produit le Software Test Plan (Avicenna `AV-DP-XXX-STP`) via `tools/build_stp_export.py` |
 | `/doc-stdr-export [--strict] [--md-only]` | Produit le Software Test Description and Reports (Avicenna `AV-DP-XXX-STDR`) — ingère `test-results.json` produit par CI — via `tools/build_stdr_export.py` |
 | `/doc-str-export [--strict] [--md-only]` | Produit le Software Test Report (Avicenna `AV-DP-XXX-STR-auto`) synthèse pass/fail depuis `test-results.json` — via `tools/build_str_export.py` |
+| `/doc-use-export [--strict] [--md-only] [--template platform-rich\|clinical-narrow] [--only uef\|use\|annex1]` | Produit le triplet IEC 62366-1 — Usability Engineering File (UEF), Summative Evaluation (USE), et UEF Annex 1 (IECEE compliance checklist) — via `tools/build_use_export.py`. Deux modes : `platform-rich` (défaut, tabulaire multi-persona/surface — SaaS) et `clinical-narrow` (narratif 6 étapes — AI clinique étroit type CSpine). |
 | `/doc-migrate [--apply] [--stdout]` | Audit de migration après upgrade du plugin : détecte les clés manquantes dans dt-config.yaml, les anchors manquants dans dt-clinical-context.md, les items au schéma incomplet, et les scripts outdated. Mode additif-only (`--apply`) ou dry-run (défaut). |
 | `/doc-refresh-items [--apply] [--cat CAT] [--stdout] [--auto-fill]` | Refresh additif des items existants quand le schéma frontmatter a évolué (RSK étendu ISO 14971 §C.2, THR étendu CIA, …). Insère les champs manquants comme `[TODO]` placeholders. Avec `--auto-fill`, enchaîne avec le sub-agent `items-refresher` qui remplit sémantiquement les `[TODO]` depuis hazard / STRIDE / source code. Items restent en `status: Draft` pour re-approbation. |
 | `/doc-prompts [--cat impl\|unit\|e2e\|all] [--srs ID] [--clean]` | Génère des prompts ready-to-paste pour les SRS orphelins (sans SDS implémentant et/ou sans TC vérifiant). 3 types : impl, unit-tests, E2E Playwright (si UI). Un fichier par SRS sous `docs/generated/prompts/`, à coller dans une autre session Claude Code pour combler le gap. |
@@ -164,12 +171,17 @@ iec62304-writer/
 │   │   ├── build_stdr_export.py     # /doc-stdr-export (ingère test-results.json)
 │   │   ├── build_str_export.py      # /doc-str-export (idem)
 │   │   ├── build_risk_export.py     # /doc-risk-export (.md + .csv)
-│   │   └── build_risk_xlsx.py       # /doc-risk-xlsx (Excel 4-onglets)
-│   ├── dt-config.yaml         # config QMS (signataires, refs, id_format, external_resources) — édité à la main
+│   │   ├── build_risk_xlsx.py       # /doc-risk-xlsx (Excel 4-onglets)
+│   │   └── build_use_export.py      # /doc-use-export (UEF + USE + Annex 1)
+│   ├── dt-config.yaml         # config QMS (signataires, refs, id_format, external_resources, usability) — édité à la main
 │   ├── test-results.example.json    # spec du format CI consommé par stdr/str-export
+│   ├── static/                # boilerplates IEC 62366-1 — copiés tels quels par /doc-init
+│   │   ├── sample-size-justification.md       # §5.1 UEF (Virzi/Nielsen/Lewis/Faulkner/FDA/IEC 62366-2)
+│   │   ├── clinical-evidence-questionnaire.md # Annex A USE
+│   │   └── iec62366-annex1-checklist.csv      # checklist clause-par-clause IECEE
 │   └── docs/
 │       ├── templates/         # 9 squelettes (MAP/SRS/SDS/TC/RSK/PRSK/THR/USC/URSK)
-│       ├── dt-clinical-context.md   # narratives QMS — édité à la main
+│       ├── dt-clinical-context.md   # narratives QMS (14 anchors, dont 4 IEC 62366-1) — édité à la main
 │       └── test_plan_intro.md       # narrative STD (legacy, intégré dans 30_STD)
 └── examples/                  # items démo (copiés via --with-examples)
     └── MAP/  SRS/  SDS/  TC/  RSK/  PRSK/  THR/
@@ -188,11 +200,13 @@ mon-projet/
 │   ├── build_stdr_export.py
 │   ├── build_str_export.py
 │   ├── build_risk_export.py
-│   └── build_risk_xlsx.py
+│   ├── build_risk_xlsx.py
+│   └── build_use_export.py
 ├── dt-config.yaml                  # config QMS — édité à la main
 ├── test-results.example.json       # exemple format CI — à remplacer par test-results.json en CI
 └── docs/
     ├── templates/                  # 9 squelettes
+    ├── static/                     # boilerplates IEC 62366-1 (sample-size, questionnaire, IECEE checklist) — édités à la main
     ├── items/                      # source de vérité
     │   ├── MAP/                    # ★ inputs upstream (master / stakeholder reqs) — saisis à la main
     │   ├── SRS/  SDS/  TC/
@@ -343,12 +357,13 @@ $EDITOR docs/dt-clinical-context.md
 /iec62304-writer:doc-stp-export       # STP .md + .docx
 /iec62304-writer:doc-risk-export      # Risk Report .md + .docx + .csv
 /iec62304-writer:doc-risk-xlsx        # Risk Table .xlsx (4 onglets)
+/iec62304-writer:doc-use-export       # UEF + USE + UEF-Annex1 IEC 62366-1
 # Si la CI émet test-results.json :
 /iec62304-writer:doc-stdr-export      # STDR avec résultats
 /iec62304-writer:doc-str-export       # STR synthèse pass/fail
 
 ls docs/export/
-# 7 livrables matching le format Avicenna prêts pour revue RAQA.
+# 10 livrables matching le format Avicenna prêts pour revue RAQA.
 # Les sections [TODO] non remplies apparaissent en jaune dans le .docx
 # (HTML <mark> rendu par pandoc en Highlight Word).
 ```

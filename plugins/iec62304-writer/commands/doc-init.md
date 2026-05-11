@@ -180,6 +180,27 @@ else
   SKIPPED+=("tools/build_migrate.py (existe — utilise --update pour remplacer)")
 fi
 
+# build_use_export.py — overwrite uniquement si --update
+if [ ! -f tools/build_use_export.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_use_export.py" tools/build_use_export.py
+  CREATED+=("tools/build_use_export.py")
+else
+  SKIPPED+=("tools/build_use_export.py (existe — utilise --update pour remplacer)")
+fi
+
+# docs/static/ — boilerplates IEC 62366-1 utilisés par /doc-use-export
+mkdir -p docs/static
+for f in sample-size-justification.md clinical-evidence-questionnaire.md iec62366-annex1-checklist.csv; do
+  src="${CLAUDE_PLUGIN_ROOT}/scaffold/static/$f"
+  dst="docs/static/$f"
+  if [ ! -f "$dst" ]; then
+    cp "$src" "$dst"
+    CREATED+=("$dst")
+  else
+    SKIPPED+=("$dst (existe — boilerplate maintenu à la main)")
+  fi
+done
+
 # test-results.example.json — copié uniquement si absent (exemple CI — jamais overwrite)
 if [ ! -f test-results.example.json ]; then
   cp "${CLAUDE_PLUGIN_ROOT}/scaffold/test-results.example.json" test-results.example.json

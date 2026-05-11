@@ -274,6 +274,12 @@ CLINICAL_ANCHORS = (
     "packaging",
     "end-users",
     "characteristics-affecting-safety",
+    # Usability Engineering File (IEC 62366-1 §5.1) — consumed by
+    # /doc-use-export.
+    "medical-purpose",
+    "patient-population",
+    "application-environment",
+    "resource-requirements",
 )
 
 

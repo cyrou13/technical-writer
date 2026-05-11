@@ -1,0 +1,31 @@
+clause,requirement,result_pointer,verdict
+4,Principles,—,—
+4.1,General requirements,—,—
+4.1.1,Usability Engineering Process,—,—
+4.1.1,"The manufacturer shall establish, document, implement and maintain a usability engineering process.","Procedure ""Design and Development"" of the QMS [TODO qms-procedure-id]",P
+4.1.1,"The process shall address user interactions with the medical device according to the accompanying documentation, including transport, storage, installation, operation by the user, maintenance and disposal.","Procedure ""Design and Development"" and Procedure ""Risks Management"" of the QMS [TODO qms-procedure-id]",P
+4.1.2,Risk control as it relates to user interface design,—,—
+4.1.2,"To reduce use-related risk, the manufacturer shall use one or more of the following options, in the order of priority: (a) inherent safety by design (D); (b) protective measures in the medical device itself or in the production process (P); (c) information for safety (I).","See attachment {RISK_REPORT_REF} and {UEF_REF} §3.4 ""Mitigation actions and the user interface specification""",P
+4.2,Usability Engineering File,—,—
+4.2,"The records and other documents that result from the activities of the usability engineering process shall be included in the usability engineering file.",This document ({UEF_REF}) and its referenced attachments,P
+4.3,Tailoring the usability engineering effort,—,—
+4.3,"The extent to which each subclause of Clause 5 is applied shall be appropriate to the device, considering its intended use, primary operating functions, severity and probability of potential harm.",See {UEF_REF} §3.1 and §3.3,P
+5,Usability Engineering Process,—,—
+5.1,Prepare Use Specification,—,—
+5.1,"The manufacturer shall identify and document the following characteristics: (a) intended medical indication; (b) intended patient population; (c) intended part of the body or type of tissue applied to or interacted with; (d) intended user profile; (e) use environment; (f) operating principle.",See {UEF_REF} §2 ""Use Specification"",P
+5.2,Identify user interface characteristics related to safety and potential use errors,—,—
+5.2,"The manufacturer shall identify user interface characteristics that could be related to safety as part of the use specification.",See {UEF_REF} §3.1 ""Characteristics related to safety"",P
+5.3,Identify known or foreseeable hazard and hazardous situations,—,—
+5.3,"The manufacturer shall identify known or foreseeable hazards and hazardous situations, which could arise as a result of use errors.","See {UEF_REF} §3.2 and attachment {RISK_REPORT_REF} sheet ""Usability""",P
+5.4,Identify and describe hazards-related use scenarios,—,—
+5.4,The manufacturer shall identify and describe the reasonably foreseeable hazards-related use scenarios.,"See {UEF_REF} §3.1 and attachment {RISK_REPORT_REF} sheet ""Usability""",P
+5.5,Select the hazards-related use scenarios for summative evaluation,—,—
+5.5,The manufacturer shall select the hazard-related use scenarios to be included in the summative evaluation.,See {UEF_REF} §3.3 and {USE_REF} §2.2,P
+5.6,Establish user interface specification,—,—
+5.6,"The manufacturer shall establish and document a user interface specification, including the test criteria.","See {SRS_REF} (user interface requirements) and {USE_REF} §2.4 ""Evaluation criteria""",P
+5.7,Establish user interface evaluation plan,—,—
+5.7,The manufacturer shall establish and document a user interface evaluation plan.,See {USE_REF} §2 ""Summative Evaluation Protocol"",P
+5.8,Perform user interface design implementation and formative evaluation,—,—
+5.8,"The manufacturer shall implement the user interface design and perform formative evaluations as appropriate during the design.",See {UEF_REF} §4 ""Formative Evaluations"",P
+5.9,Perform summative evaluation of the usability of the user interface,—,—
+5.9,"The manufacturer shall perform a summative evaluation of the usability of the user interface to demonstrate that the device can be used safely by the intended user(s) for the intended uses in the intended use environment.","See {USE_REF} §3 ""Summative Evaluation Report""",P

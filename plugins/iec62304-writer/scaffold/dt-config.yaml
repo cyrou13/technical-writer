@@ -134,3 +134,53 @@ rendering:
 # Format spec: see `tools/build_stdr_export.py` docstring or test-results.example.json
 # Statuses: passed | failed | skipped | not_run | manual_passed | manual_failed
 test_results_path: test-results.json
+
+# -----------------------------------------------------------------------------
+# Usability — drives /doc-use-export (IEC 62366-1 Usability Engineering File +
+# Summative Evaluation + Annex 1 IECEE checklist).
+# -----------------------------------------------------------------------------
+#
+# `template` selects the body structure of the UEF §3:
+#
+#   platform-rich   (default)  — Tabular: use scenarios grouped by `persona`,
+#                                use errors grouped by UI surface, mitigation
+#                                table cross-ref to SRS-USE-MIT-* and
+#                                docs/items/RSK/*.md (sheet "Usability"). Right
+#                                for SaaS platforms, multi-role frontends,
+#                                anything with > 15 USC items or > 1 persona.
+#
+#   clinical-narrow             — Narrative: 6-step linear use scenario
+#                                (login → visualize → notify → logout). Right
+#                                for narrow clinical AI devices with minimal
+#                                user interaction (CSpine, AVC, Hemorrhage, …).
+#                                Mirrors the Avicenna CINA-CSpine UEF format.
+#
+# `document.identifier_use`, `document.identifier_uef`,
+# `document.identifier_annex1` override the default suffix-based naming. If
+# omitted, the script derives them from the global `document.identifier` by
+# substituting the SRS/SDD suffix with USE/UEF/UEF-Annex1.
+# -----------------------------------------------------------------------------
+usability:
+  template: platform-rich        # platform-rich | clinical-narrow
+
+  # Optional — override document IDs for the 3 usability deliverables.
+  # If omitted, derived from `document.identifier` (SRS → USE / UEF / UEF-Annex1).
+  document:
+    identifier_uef: null         # e.g. "AV-DP-XXX-10-021-UEF"
+    identifier_use: null         # e.g. "AV-DP-XXX-10-021-USE"
+    identifier_annex1: null      # e.g. "AV-DP-XXX-10-021-UEF-Annex1"
+    version_label: V01           # release label for THIS usability triplet
+    date: YYYY-MM-DD
+
+  # Contact information injected into the Annex A questionnaire of the USE
+  # document. Defaults fall back to `approvals.written_by` if unset.
+  contact:
+    name: null                   # e.g. "Charlotte Castineira, MEng"
+    role: null                   # e.g. "Product Engineer"
+    email: null                  # e.g. "support@example.com"
+
+  # Optional — cross-references to a separate Risk Report document for the
+  # Annex 1 IECEE checklist (clause 4.1.2 and clauses 5.3 / 5.4 / 5.5).
+  # If null, the script falls back to the global `project_references` lookup
+  # by document type, then to a [TODO] marker.
+  risk_report_ref: null          # e.g. "AV-DP-XXX-10-005-RAS-V03"

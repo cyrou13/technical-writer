@@ -20,6 +20,12 @@
   Additional sections (consumed by /doc-risk-export — Risk Report):
     ## end-users                            → §2.2 of Risk Report
     ## characteristics-affecting-safety     → §2.3 of Risk Report (ISO TR 24971)
+
+  Additional sections (consumed by /doc-use-export — Usability Engineering File):
+    ## medical-purpose                      → UEF §2.2.1
+    ## patient-population                   → UEF §2.2.2
+    ## application-environment              → UEF §2.2.4 (use environment)
+    ## resource-requirements                → UEF §2.2.5 (hardware/software requirements)
 -->
 
 ## document-overview
@@ -90,3 +96,87 @@ affect safety:
 
 Each characteristic should be one sentence stating the fact, with no
 risk evaluation — that is done in the risk table.]
+
+## medical-purpose
+
+[TODO IEC 62366-1 §5.1 (a) — one short paragraph stating the
+intended medical indication of the device. Distinct from
+`intended-use` which is the verbatim labeling statement; this one
+focuses on the clinical workflow goal (e.g. "assist hospital
+networks and trained medical specialists in workflow triage by
+flagging and communication of suspected positive findings
+compatible with acute cervical spine fractures").]
+
+## patient-population
+
+[TODO IEC 62366-1 §5.1 (b) — the intended patient population.
+Bullet list preferred:
+
+- Age:       [e.g. ≥ 18 years old]
+- Weight:    [e.g. not applicable]
+- Health:    [e.g. see medical-purpose]
+- Nationality: [e.g. multiple]
+- Patient state: [e.g. no limitation]
+- Exclusions: [e.g. presence of orthopedic hardware]
+
+For pure-platform software with no direct patient interaction,
+state "not applicable — the patient is not the user of the
+platform; downstream clinical workflows define their own patient
+populations.".]
+
+## application-environment
+
+[TODO IEC 62366-1 §5.1 (e) — the use environment. Group by
+sub-axis:
+
+**General**
+- [e.g. Hospital]
+- [e.g. Imaging centers]
+- [e.g. Home with remote connection]
+
+**Conditions of visibility**
+- [e.g. Normal conditions for an office desktop application]
+
+**Physical conditions**
+- [e.g. Normal ambient conditions — radiology office / home]
+- [e.g. Dark ambient conditions — reading room]
+
+**Frequency of use**
+- [e.g. Once a year up to 20+ times a day]
+
+**Mobility**
+- [e.g. Desktop PC, laptop, tablet, smartphone]
+
+For platforms with multiple personas, repeat the block per
+persona group.]
+
+## resource-requirements
+
+[TODO IEC 62366-1 §5.1 (f) and resource constraints — the minimum
+hardware / software / network configuration required to operate
+the device safely. Examples:
+
+**CPU**
+- [e.g. Intel/AMD x86_64 with SSE4.1/SSE4.2/AVX/AVX2/FMA support]
+- [e.g. minimum 8 threads at 3.0+ GHz]
+
+**RAM**
+- [e.g. 16 GB minimum]
+
+**Storage**
+- [e.g. 500-800 MB per execution]
+
+**Container / OS**
+- [e.g. OCI 1.0 image format, Ubuntu 22.04 LTS recommended]
+- [e.g. Docker or compatible runtime]
+
+**Network**
+- [e.g. DICOM C-STORE inbound/outbound on port 11112]
+- [e.g. HTTPS to authentication provider]
+
+**GPU**
+- [e.g. not required — CPU-only execution]
+
+For pure SaaS platforms, state the client-side requirements
+(browser version, network bandwidth, screen resolution) AND the
+server-side requirements separately.]
