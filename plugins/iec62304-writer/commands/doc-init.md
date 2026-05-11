@@ -156,6 +156,14 @@ else
   SKIPPED+=("tools/build_str_export.py (existe — utilise --update pour remplacer)")
 fi
 
+# refresh_items.py — overwrite uniquement si --update
+if [ ! -f tools/refresh_items.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/refresh_items.py" tools/refresh_items.py
+  CREATED+=("tools/refresh_items.py")
+else
+  SKIPPED+=("tools/refresh_items.py (existe — utilise --update pour remplacer)")
+fi
+
 # build_migrate.py — overwrite uniquement si --update
 if [ ! -f tools/build_migrate.py ] || [ "$UPDATE" = "1" ]; then
   cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_migrate.py" tools/build_migrate.py

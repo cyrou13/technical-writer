@@ -135,6 +135,7 @@ selon ton setup.
 | `/doc-stdr-export [--strict] [--md-only]` | Produit le Software Test Description and Reports (Avicenna `AV-DP-XXX-STDR`) — ingère `test-results.json` produit par CI — via `tools/build_stdr_export.py` |
 | `/doc-str-export [--strict] [--md-only]` | Produit le Software Test Report (Avicenna `AV-DP-XXX-STR-auto`) synthèse pass/fail depuis `test-results.json` — via `tools/build_str_export.py` |
 | `/doc-migrate [--apply] [--stdout]` | Audit de migration après upgrade du plugin : détecte les clés manquantes dans dt-config.yaml, les anchors manquants dans dt-clinical-context.md, les items au schéma incomplet, et les scripts outdated. Mode additif-only (`--apply`) ou dry-run (défaut). |
+| `/doc-refresh-items [--apply] [--cat CAT] [--stdout]` | Refresh additif des items existants quand le schéma frontmatter a évolué (RSK étendu ISO 14971 §C.2, THR étendu CIA, …). Insère les champs manquants comme `[TODO]` placeholders, bump `version` patch, reset `status: Approved → Draft`. Ne touche jamais au contenu existant. |
 
 ## Layout du plugin
 

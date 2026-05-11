@@ -1,6 +1,6 @@
 {
   "name": "iec62304-writer",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Pipeline de documentation technique IEC 62304 Classe A — SRS, SDS, STD, traçabilité, analyse de risques safety (ISO 14971 §C.2 chaîne causale + §7.2 hiérarchie de contrôle + §7.4 résiduel quantitatif + §7.5 cascade) + cyber (IEC 81001-5-1) + usability (IEC 62366-1), mise à jour incrémentale, exports RAQA-ready (SRS + Risk Analysis Report). Reproduit localement les features utiles de Matrix Requirements.",
   "author": {
     "name": "cyrou13"
