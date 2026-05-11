@@ -84,6 +84,14 @@ mkdir -p tools docs/templates docs/items/MAP docs/items/SRS docs/items/SDS docs/
 CREATED=()
 SKIPPED=()
 
+# _lib.py — shared helpers, always overwrite (no user-edited content)
+cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/_lib.py" tools/_lib.py
+if [ ! -f tools/_lib.py ]; then
+  CREATED+=("tools/_lib.py")
+else
+  CREATED+=("tools/_lib.py (refreshed)")
+fi
+
 # build_docs.py — overwrite uniquement si --update
 if [ ! -f tools/build_docs.py ] || [ "$UPDATE" = "1" ]; then
   cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_docs.py" tools/build_docs.py

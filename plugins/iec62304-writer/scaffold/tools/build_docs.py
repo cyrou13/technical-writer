@@ -90,9 +90,29 @@ class Item:
 # ---------------------------------------------------------------------------
 
 
+def _strip_inline_comment(ln: str) -> str:
+    """Remove an inline `# comment` from a YAML line, respecting quoted strings.
+
+    `severity: High         # comment`   → `severity: High`
+    `title: "hello # world"`             → unchanged
+    """
+    in_str = False
+    quote = ""
+    for i, ch in enumerate(ln):
+        if in_str:
+            if ch == quote:
+                in_str = False
+        elif ch in ('"', "'"):
+            in_str = True
+            quote = ch
+        elif ch == "#":
+            return ln[:i].rstrip()
+    return ln
+
+
 def parse_yaml_frontmatter(text: str) -> dict:
     result: dict = {}
-    lines = text.splitlines()
+    lines = [_strip_inline_comment(ln) for ln in text.splitlines()]
     i = 0
     while i < len(lines):
         line = lines[i]

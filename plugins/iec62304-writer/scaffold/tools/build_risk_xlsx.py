@@ -41,209 +41,21 @@ try:
 except ImportError:
     HAS_OPENPYXL = False
 
+# Shared helpers — see tools/_lib.py
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _lib import (  # noqa: E402
+    Item,
+    load_items,
+    parse_yaml,
+    risk_index,
+)
+
 ROOT = Path.cwd()
 CONFIG_PATH = ROOT / "dt-config.yaml"
 ITEMS_DIR = ROOT / "docs" / "items"
 EXPORT_DIR = ROOT / "docs" / "export"
 
-FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.DOTALL)
 
-SEVERITY_INT = {"Negligible": 1, "Minor": 2, "Serious": 3, "Critical": 4, "Catastrophic": 5}
-PROBABILITY_INT = {"Improbable": 1, "Remote": 2, "Occasional": 3, "Probable": 4, "Frequent": 5}
-
-
-# ---------------------------------------------------------------------------
-# YAML mini-parser (duplicated from build_risk_export.py for autonomy).
-# ---------------------------------------------------------------------------
-
-
-def _coerce(s: str):
-    s = s.strip()
-    if s == "" or s in ("null", "Null", "NULL", "~"):
-        return None
-    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
-        return s[1:-1]
-    if s in ("true", "True"):
-        return True
-    if s in ("false", "False"):
-        return False
-    if re.fullmatch(r"-?\d+", s):
-        return int(s)
-    if re.fullmatch(r"-?\d+\.\d+", s):
-        return float(s)
-    if s.startswith("[") and s.endswith("]"):
-        inner = s[1:-1].strip()
-        if not inner:
-            return []
-        if "," not in inner and inner.upper().startswith("TODO"):
-            return s
-        return [_coerce(p) for p in inner.split(",")]
-    return s
-
-
-def _indent(line: str) -> int:
-    return len(line) - len(line.lstrip(" "))
-
-
-def parse_yaml(text: str) -> dict:
-    """Parse the YAML subset used by dt-config.yaml and item frontmatters."""
-    lines = text.splitlines()
-    cleaned: list[str] = []
-    for ln in lines:
-        if "#" in ln:
-            in_str = False
-            quote = ""
-            cut = -1
-            for i, ch in enumerate(ln):
-                if in_str:
-                    if ch == quote:
-                        in_str = False
-                elif ch in ('"', "'"):
-                    in_str = True
-                    quote = ch
-                elif ch == "#":
-                    cut = i
-                    break
-            if cut >= 0:
-                ln = ln[:cut].rstrip()
-        cleaned.append(ln)
-
-    pos = [0]
-
-    def parse_block(min_indent: int):
-        while pos[0] < len(cleaned) and cleaned[pos[0]].strip() == "":
-            pos[0] += 1
-        if pos[0] >= len(cleaned):
-            return None
-        first = cleaned[pos[0]]
-        ind = _indent(first)
-        if ind < min_indent:
-            return None
-        if first.lstrip(" ").startswith("- "):
-            return parse_sequence(ind)
-        return parse_mapping(ind)
-
-    def parse_mapping(indent: int) -> dict:
-        out: dict = {}
-        while pos[0] < len(cleaned):
-            line = cleaned[pos[0]]
-            if line.strip() == "":
-                pos[0] += 1
-                continue
-            ind = _indent(line)
-            if ind < indent or ind > indent:
-                break
-            m = re.match(r"^\s*([A-Za-z_][\w\-]*)\s*:\s*(.*)$", line)
-            if not m:
-                pos[0] += 1
-                continue
-            key, raw = m.group(1), m.group(2).strip()
-            pos[0] += 1
-            if raw == "|":
-                block_lines: list[str] = []
-                while pos[0] < len(cleaned):
-                    nxt = cleaned[pos[0]]
-                    if nxt.strip() == "":
-                        block_lines.append("")
-                        pos[0] += 1
-                        continue
-                    if _indent(nxt) <= indent:
-                        break
-                    block_lines.append(nxt[indent + 2 :] if len(nxt) > indent + 2 else "")
-                    pos[0] += 1
-                out[key] = "\n".join(block_lines).rstrip("\n")
-            elif raw == "":
-                nested = parse_block(indent + 1)
-                out[key] = nested if nested is not None else []
-            else:
-                out[key] = _coerce(raw)
-        return out
-
-    def parse_sequence(indent: int) -> list:
-        out: list = []
-        while pos[0] < len(cleaned):
-            line = cleaned[pos[0]]
-            if line.strip() == "":
-                pos[0] += 1
-                continue
-            ind = _indent(line)
-            if ind < indent:
-                break
-            stripped = line.lstrip(" ")
-            if not stripped.startswith("- "):
-                break
-            after = stripped[2:]
-            inline_indent = ind + 2
-            if ":" in after and not after.lstrip().startswith("["):
-                m = re.match(r"^([A-Za-z_][\w\-]*)\s*:\s*(.*)$", after)
-                if m:
-                    cleaned[pos[0]] = " " * inline_indent + after
-                    item = parse_mapping(inline_indent)
-                    out.append(item)
-                    continue
-            out.append(_coerce(after))
-            pos[0] += 1
-        return out
-
-    result = parse_block(0)
-    return result if isinstance(result, dict) else {}
-
-
-# ---------------------------------------------------------------------------
-# Items
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class Item:
-    id: str
-    category: str
-    path: Path
-    fm: dict
-
-    def get(self, key: str, default=None):
-        return self.fm.get(key, default)
-
-    @property
-    def title(self) -> str:
-        return str(self.fm.get("title") or "(untitled)")
-
-    @property
-    def status(self) -> str:
-        return str(self.fm.get("status") or "Draft")
-
-    @property
-    def mitigates(self) -> list[str]:
-        links = self.fm.get("links") or {}
-        return list(links.get("mitigates") or [])
-
-
-def load_items(category: str) -> list[Item]:
-    cat_dir = ITEMS_DIR / category
-    out: list[Item] = []
-    if not cat_dir.is_dir():
-        return out
-    for path in sorted(cat_dir.glob("*.md")):
-        text = path.read_text(encoding="utf-8")
-        m = FRONTMATTER_RE.match(text)
-        if not m:
-            print(f"WARN: no frontmatter in {path}", file=sys.stderr)
-            continue
-        try:
-            fm = parse_yaml(m.group(1))
-        except Exception as e:
-            print(f"WARN: bad frontmatter in {path}: {e}", file=sys.stderr)
-            continue
-        out.append(Item(id=str(fm.get("id") or path.stem), category=category, path=path, fm=fm))
-    return out
-
-
-def risk_index(sev: str | None, prob: str | None) -> int | None:
-    s = SEVERITY_INT.get(str(sev) if sev else "")
-    p = PROBABILITY_INT.get(str(prob) if prob else "")
-    if s is None or p is None:
-        return None
-    return s * p
 
 
 # ---------------------------------------------------------------------------
@@ -565,10 +377,10 @@ def main() -> int:
     else:
         print("WARN: dt-config.yaml not found — output filename will use 'UNKNOWN-V01'", file=sys.stderr)
 
-    rsk = load_items("RSK")
-    prsk = load_items("PRSK")
-    ursk = load_items("URSK")
-    thr = load_items("THR")
+    rsk = load_items("RSK", ITEMS_DIR)
+    prsk = load_items("PRSK", ITEMS_DIR)
+    ursk = load_items("URSK", ITEMS_DIR)
+    thr = load_items("THR", ITEMS_DIR)
 
     if not (rsk or prsk or ursk or thr):
         print(
@@ -580,7 +392,7 @@ def main() -> int:
 
     mitigators: list[Item] = []
     for cat in ("SRS", "SDS", "TC"):
-        mitigators += load_items(cat)
+        mitigators += load_items(cat, ITEMS_DIR)
 
     ctx = BuildContext(
         config=config, rsk=rsk, prsk=prsk, ursk=ursk, thr=thr, mitigators=mitigators,
