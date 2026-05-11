@@ -55,6 +55,9 @@ def _coerce(s: str):
         if "," not in inner and inner.upper().startswith("TODO"):
             return s
         return [_coerce(p) for p in inner.split(",")]
+    # Empty flow mapping `{}` → empty dict (not a string).
+    if s == "{}":
+        return {}
     return s
 
 
@@ -296,9 +299,81 @@ def load_clinical_context(clinical_path: Path) -> dict[str, str]:
 
 
 def section_or_todo(ctx: dict[str, str], anchor: str) -> str:
-    """Return the section body for `anchor`, or a `[TODO ...]` placeholder."""
+    """Return the section body for `anchor`, or a `[TODO ...]` placeholder.
+
+    Legacy helper kept for back-compat. New scripts should call
+    `section_with_fallback()` instead — it also supports external file
+    references and yellow-highlighted TODOs.
+    """
     val = ctx.get(anchor, "").strip()
     return val if val else f"[TODO {anchor}]"
+
+
+def todo_marker(anchor: str, hint: str) -> str:
+    """Render a yellow-highlighted TODO marker.
+
+    Uses HTML `<mark>` which pandoc converts to the Word "Highlight"
+    style (yellow background by default in .docx). Works in standalone
+    Markdown viewers and in the pandoc-rendered .docx.
+
+    Args:
+        anchor: short identifier (e.g. "general-system-architecture")
+        hint:   one-sentence explanation of what the QMS author should
+                fill in here.
+
+    Example:
+        >>> todo_marker("class-diagram", "Insert the UML class diagram of the main software items.")
+        '<mark>[TODO class-diagram] Insert the UML class diagram of the main software items.</mark>'
+    """
+    return f"<mark>[TODO {anchor}] {hint}</mark>"
+
+
+def section_with_fallback(
+    ctx: dict[str, str],
+    anchor: str,
+    hint: str,
+    config: dict | None = None,
+    root: Path | None = None,
+) -> str:
+    """Resolve a narrative section with a 3-level fallback:
+
+    1. `dt-config.yaml: external_resources.<anchor>` points to a file
+       (path relative to repo root) → inline its content verbatim.
+    2. `docs/dt-clinical-context.md` has a `## <anchor>` section with
+       non-empty body → inline that section.
+    3. Otherwise → render a yellow-highlighted TODO marker with `hint`.
+
+    Args:
+        ctx:    clinical-context dict (returned by load_clinical_context)
+        anchor: section anchor name (no leading `##`)
+        hint:   QMS-author-facing explanation for the TODO marker
+        config: dt-config dict (use None to skip external_resources lookup)
+        root:   repo root for resolving relative paths (typically Path.cwd())
+
+    Example dt-config.yaml:
+        external_resources:
+          general-system-architecture: docs/qms/system-architecture.md
+          class-diagram: docs/qms/diagrams/class-diagram.md
+    """
+    # 1. External file pointer (highest priority)
+    if config and root:
+        external = (config.get("external_resources") or {}).get(anchor)
+        if external:
+            ext_path = (root / external).resolve()
+            if ext_path.is_file():
+                return ext_path.read_text(encoding="utf-8").strip()
+            return todo_marker(
+                anchor,
+                f"{hint} (external file `{external}` referenced in dt-config.yaml not found)",
+            )
+
+    # 2. Inline section in dt-clinical-context.md
+    val = ctx.get(anchor, "").strip()
+    if val:
+        return val
+
+    # 3. Yellow TODO fallback
+    return todo_marker(anchor, hint)
 
 
 # ---------------------------------------------------------------------------

@@ -89,6 +89,37 @@ project_references:
 # -----------------------------------------------------------------------------
 # Rendering options (optional)
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# External resources — optional pointers to QMS-managed files that should be
+# inlined into the deliverables instead of the inline `dt-clinical-context.md`
+# section or a [TODO] yellow marker.
+#
+# Each entry maps a narrative anchor → path (relative to repo root). The path
+# can point to a .md file produced/maintained outside this repo (Obsidian
+# vault, QMS export, etc.).
+#
+# Resolution order at export time:
+#   1. external_resources[<anchor>] exists AND file is readable → inline it
+#   2. docs/dt-clinical-context.md has a `## <anchor>` section → inline it
+#   3. Neither → yellow-highlighted [TODO] marker with author-facing hint
+#
+# Available anchors (consumed by /doc-export, /doc-risk-export, /doc-sdd-export,
+# /doc-stp-export, /doc-stdr-export, /doc-str-export):
+#   document-overview, abbreviations, glossary, intended-use,
+#   warnings-and-precautions, connected-devices, personnel-and-training,
+#   packaging, end-users, characteristics-affecting-safety,
+#   general-system-architecture, hardware-and-software-requirements,
+#   processing-workflow, application-workflow, error-code-standardization,
+#   class-diagram, cots-control, test-environment-overview,
+#   tests-identification-strategy, tests-schedule, qualification,
+#   test-preparation-data, test-preparation-environment, test-preparation-tools,
+#   automated-tests-platform, local-tests-platforms, rationale-for-decisions
+# -----------------------------------------------------------------------------
+external_resources: {}
+  # Example — point at a QMS-managed Obsidian note for the system architecture:
+  # general-system-architecture: docs/qms/system-architecture.md
+  # class-diagram: docs/qms/diagrams/class-diagram.md
+
 rendering:
   # If set and pandoc is installed, /doc-export produces a .docx alongside
   # the .md. Path is relative to the repo root.
@@ -98,3 +129,8 @@ rendering:
   # in §1 and §2.1. Disable only if you handle framing sections in a separate
   # post-processing step.
   inline_clinical_context: true
+
+# Path to the CI test results file (optional)
+# Format spec: see `tools/build_stdr_export.py` docstring or test-results.example.json
+# Statuses: passed | failed | skipped | not_run | manual_passed | manual_failed
+test_results_path: test-results.json

@@ -124,6 +124,46 @@ else
   SKIPPED+=("tools/build_risk_xlsx.py (existe — utilise --update pour remplacer)")
 fi
 
+# build_stp_export.py — overwrite uniquement si --update
+if [ ! -f tools/build_stp_export.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_stp_export.py" tools/build_stp_export.py
+  CREATED+=("tools/build_stp_export.py")
+else
+  SKIPPED+=("tools/build_stp_export.py (existe — utilise --update pour remplacer)")
+fi
+
+# build_sdd_export.py — overwrite uniquement si --update
+if [ ! -f tools/build_sdd_export.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_sdd_export.py" tools/build_sdd_export.py
+  CREATED+=("tools/build_sdd_export.py")
+else
+  SKIPPED+=("tools/build_sdd_export.py (existe — utilise --update pour remplacer)")
+fi
+
+# build_stdr_export.py — overwrite uniquement si --update
+if [ ! -f tools/build_stdr_export.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_stdr_export.py" tools/build_stdr_export.py
+  CREATED+=("tools/build_stdr_export.py")
+else
+  SKIPPED+=("tools/build_stdr_export.py (existe — utilise --update pour remplacer)")
+fi
+
+# build_str_export.py — overwrite uniquement si --update
+if [ ! -f tools/build_str_export.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_str_export.py" tools/build_str_export.py
+  CREATED+=("tools/build_str_export.py")
+else
+  SKIPPED+=("tools/build_str_export.py (existe — utilise --update pour remplacer)")
+fi
+
+# test-results.example.json — copié uniquement si absent (exemple CI — jamais overwrite)
+if [ ! -f test-results.example.json ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/test-results.example.json" test-results.example.json
+  CREATED+=("test-results.example.json")
+else
+  SKIPPED+=("test-results.example.json (existe)")
+fi
+
 # Templates — ne jamais overwrite
 for tpl in map-item srs-item sds-item tc-item rsk-item prsk-item thr-item usc-item ursk-item; do
   src="${CLAUDE_PLUGIN_ROOT}/scaffold/docs/templates/${tpl}.template.md"

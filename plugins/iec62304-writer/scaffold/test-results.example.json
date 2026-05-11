@@ -1,0 +1,45 @@
+{
+  "run_id": "ci-20260511-152034",
+  "platform": "github-actions",
+  "run_started": "2026-05-11T15:20:34Z",
+  "run_finished": "2026-05-11T15:23:12Z",
+  "git_sha": "abc1234",
+  "results": [
+    {
+      "tc_id": "TC-AUTH-001",
+      "status": "passed",
+      "duration_seconds": 1.42,
+      "analyst": "ci@github-actions",
+      "executed_at": "2026-05-11T15:21:05Z",
+      "evidence": "junit:src/auth/oauth.test.ts::login_flow_redirects_to_idp",
+      "notes": null
+    },
+    {
+      "tc_id": "TC-AUTH-002",
+      "status": "failed",
+      "duration_seconds": 0.88,
+      "analyst": "ci@github-actions",
+      "executed_at": "2026-05-11T15:21:06Z",
+      "evidence": "junit:src/auth/oauth.test.ts::token_refresh_returns_new_access_token",
+      "notes": "AssertionError: expected 302, got 500"
+    },
+    {
+      "tc_id": "TC-ACQ-001",
+      "status": "skipped",
+      "duration_seconds": 0.0,
+      "analyst": "ci@github-actions",
+      "executed_at": "2026-05-11T15:22:01Z",
+      "evidence": null,
+      "notes": "Skipped: requires GPU fixture not available on CI runner"
+    },
+    {
+      "tc_id": "TC-CFG-001",
+      "status": "not_run",
+      "duration_seconds": null,
+      "analyst": null,
+      "executed_at": null,
+      "evidence": null,
+      "notes": null
+    }
+  ]
+}
