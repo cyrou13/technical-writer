@@ -251,19 +251,133 @@ dans front/back) est conseillé pour la traçabilité 62304.
 | Export Excel (inventory) | `/doc-risk-xlsx` (4-onglets Design/Production/Usability/Cybersecurity) |
 | Item DOORS-like editing | `/doc-item <ID>` |
 
-## Recette de reprise sur un projet existant
+## Recette de mise à jour d'un projet existant
 
-Si le plugin a été mis à jour depuis la dernière initialisation du projet,
-lance d'abord `/doc-migrate` pour identifier les écarts :
+Quand le plugin a évolué (nouveau schéma RSK ISO 14971 §C.2, CIA triad
+THR, PRSK ajouté, nouveaux livrables SDD/STP/STDR/STR, etc.), un projet
+déjà initialisé doit être synchronisé. Workflow en 9 étapes — chaque
+étape est **idempotente** et **additive-only** côté contenu utilisateur.
 
+```bash
+# ─── 1. Update du plugin ───
+/plugin update iec62304-writer
+
+# ─── 2. Refresh des scripts dans le repo cible ───
+/iec62304-writer:doc-init --update
+# Rafraîchit tous les tools/build_*.py + _lib.py. dt-config.yaml et
+# dt-clinical-context.md jamais écrasés.
+
+# ─── 3. Audit de l'état actuel ───
+/iec62304-writer:doc-migrate
+# Rapport additif sous docs/generated/migration-report.md :
+#   §A clés manquantes dans dt-config.yaml
+#   §B anchors manquants dans dt-clinical-context.md
+#   §C items au schéma incomplet (RSK, THR, etc.)
+#   §D scripts outdated
+
+/iec62304-writer:doc-migrate --apply
+# Patche §A et §B en additif (jamais d'écrasement). §C reste read-only.
+
+# ─── 4. Migration des items existants vers le nouveau schéma ───
+/iec62304-writer:doc-refresh-items
+# Dry-run : montre ce qui serait ajouté à chaque item
+
+/iec62304-writer:doc-refresh-items --auto-fill
+# Insère les champs manquants comme [TODO], puis invoque items-refresher
+# qui les remplit sémantiquement :
+#   - RSK : initiating_causes / foreseeable_sequence / control_hierarchy /
+#           residual_probability / residual_severity / residual_risk_level
+#   - THR : projection CIA depuis STRIDE + impact
+# Items modifiés → version bumpée (patch), status → Draft.
+
+git diff docs/items/RSK/ docs/items/THR/
+# Reviewer item par item. Pour les [TODO] résiduels (hazard trop vague,
+# manque de contexte source) : édition manuelle ou nouvelle session
+# @risk-analyst / @security-analyst.
+
+# ─── 5. Coverage pass-2 (gap si des SRS de mitigation ont été créés) ───
+# Si des SRS-MIT-* / SRS-CYB-* / SRS-PROD-* / SRS-USE-* ont été ajoutés
+# par les analystes mais qu'aucun SDS/TC ne les couvre encore, relancer
+# les writers en passe 2. Option lourde (pipeline complet) :
+/iec62304-writer:doc-62304
+# Option ciblée (uniquement passe 2) :
+@test-evidence-collector "passe 2 : scanne les tests qui couvrent les SRS de mitigation sans links.verifies entrante, ajoute les liens trouvés"
+@architecture-writer    "passe 2 : idem pour les SDS"
+
+# ─── 6. Rebuild + ré-audit ───
+/iec62304-writer:doc-build
+/iec62304-writer:doc-migrate
+# §C devrait être considérablement réduit
+
+# ─── 7. Combler les gaps de code et de tests réels ───
+/iec62304-writer:doc-prompts
+cat docs/generated/prompts/_index.md
+# Pour chaque SRS orphelin, le plugin a généré 1 à 3 prompts :
+#   <SRS-ID>-impl.md       — pour le code manquant
+#   <SRS-ID>-unit-tests.md — pour les tests unitaires
+#   <SRS-ID>-e2e.md        — pour Playwright (si surface UI détectée)
+# Workflow :
+#   1. Ouvrir un fichier prompt
+#   2. Coller son contenu dans une nouvelle session Claude Code (repo cible)
+#   3. Laisser tourner, reviewer le diff, commit
+#   4. Itérer sur les autres prompts
+# Tu peux paralléliser sur plusieurs sessions si le repo est multi-repo.
+
+# ─── 8. Édition manuelle QMS (jamais auto-générable) ───
+$EDITOR dt-config.yaml
+#   - document.identifier, document.version_label, document.date
+#   - approvals.{written_by,verified_by,approved_by}
+#   - revision_history (une ligne par release)
+#   - project_references (R1..Rn)
+#   - id_format (Avicenna-style 5 segments si applicable)
+#   - external_resources (pointeurs Obsidian/QMS optionnels)
+
+$EDITOR docs/dt-clinical-context.md
+#   - intended-use (verbatim QMS, ne pas paraphraser)
+#   - warnings-and-precautions, end-users, characteristics-affecting-safety
+#   - autres anchors si applicable
+
+# ─── 9. Génération des livrables RAQA ───
+/iec62304-writer:doc-srs-export       # SRS .md + .docx
+/iec62304-writer:doc-sdd-export       # SDD .md + .docx
+/iec62304-writer:doc-stp-export       # STP .md + .docx
+/iec62304-writer:doc-risk-export      # Risk Report .md + .docx + .csv
+/iec62304-writer:doc-risk-xlsx        # Risk Table .xlsx (4 onglets)
+# Si la CI émet test-results.json :
+/iec62304-writer:doc-stdr-export      # STDR avec résultats
+/iec62304-writer:doc-str-export       # STR synthèse pass/fail
+
+ls docs/export/
+# 7 livrables matching le format Avicenna prêts pour revue RAQA.
+# Les sections [TODO] non remplies apparaissent en jaune dans le .docx
+# (HTML <mark> rendu par pandoc en Highlight Word).
 ```
-/doc-migrate           # dry-run — rapport dans docs/generated/migration-report.md
-/doc-migrate --apply   # applique les changements additifs (A+B uniquement)
-/doc-init --update     # refresh les scripts tools/build_*.py si section D le signale
-```
 
-`/doc-migrate` est additif-only : il n'écrase jamais le contenu existant de
-`dt-config.yaml`, `docs/dt-clinical-context.md`, ni aucun item.
+### Effort attendu
+
+| Étape | Durée typique | Type |
+|---|---|---|
+| 1-3 | ~5 min | Auto |
+| 4 | ~10 min auto + 30-60 min review humaine | Auto + review |
+| 5 | ~10 min ciblé / ~30 min pipeline complet | Auto |
+| 6 | ~5 min | Auto |
+| 7 | **Le gros morceau** — ~5-10 min/SRS × N gaps, parallélisable sur plusieurs sessions | Humain + Claude Code |
+| 8 | ~30 min | Humain (QMS) |
+| 9 | ~5 min | Auto |
+
+L'étape 7 est l'effort principal : c'est là où on écrit les vrais
+modules et tests manquants. Le plugin assiste (chaque prompt arrive
+avec contexte complet : produit, intended use, SRS verbatim,
+conventions), mais l'humain reste dans la boucle pour reviewer chaque
+diff avant commit — c'est exigé par ISO 14971 §4.3 (compétence du
+personnel).
+
+### Recettes plus courtes
+
+- **Tu veux juste un audit sans rien modifier** : `/doc-migrate` (+ ré-éditer manuellement si tu vois quelque chose dans le rapport).
+- **Tu as juste upgraded le plugin et veux les nouveaux scripts** : `/doc-init --update`.
+- **Tu as ajouté des SRS via les analystes et tu veux que les TC suivent** : étape 5 ciblée.
+- **Tu veux juste la SRS au format Word pour le notified body** : étape 9 limitée à `/doc-srs-export`.
 
 ## Workflow complet (code → livrable RAQA)
 
