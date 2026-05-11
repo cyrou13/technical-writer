@@ -82,6 +82,35 @@ Allouer le prochain `THR-<DOMAIN>-<NNN>` libre. Remplir frontmatter :
 - `acceptable` avant mitigation ;
 - `source:` avec chemins concrets.
 
+### 5b. Evaluate CIA dimensions for each THR
+
+After assigning STRIDE and before computing `risk_level`, evaluate the three
+CIA dimensions independently:
+
+1. **Confidentiality** — does the threat expose data the attacker should not
+   see? Rate `n/a | Low | Medium | High` and fill
+   `confidentiality_severity`.
+2. **Integrity** — does the threat allow unauthorized modification of data or
+   system state? Rate and fill `integrity_severity`.
+3. **Availability** — does the threat disrupt access to a function or service?
+   Rate and fill `availability_severity`.
+
+Justify each dimension in the `## CIA impact analysis` section of the THR
+body (one sub-section per dimension: `### Confidentiality`,
+`### Integrity`, `### Availability`). State "Not affected" if `n/a`.
+
+Then compute:
+```
+risk_level = max(C, I, A)   where n/a → Low
+```
+
+After controls are applied (§9), repeat for residual values:
+`residual_confidentiality_severity`, `residual_integrity_severity`,
+`residual_availability_severity`.
+
+Use the STRIDE → CIA projection table in the skill `cyber-risk-analysis`
+as a starting point, but always justify based on the specific asset.
+
 ### 6. Lien vers safety
 
 Si l'exploitation de la menace peut déclencher un hazard safety

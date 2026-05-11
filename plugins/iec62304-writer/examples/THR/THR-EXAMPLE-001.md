@@ -13,6 +13,16 @@ impact: High
 risk_level: High
 acceptable: false
 residual_acceptable: true
+
+# CIA triad (IEC 81001-5-1 + IEC TR 60601-4-5) — severity per dimension
+confidentiality_severity: High         # session theft = full account confidentiality breach
+integrity_severity: High               # attacker can drive session = integrity of all user actions
+availability_severity: n/a             # XSS does not disrupt service availability
+
+# Residual CIA (after remediation: HttpOnly + CSP + escaping + dep audit)
+residual_confidentiality_severity: Low
+residual_integrity_severity: Low
+residual_availability_severity: n/a
 source:
   - src/auth/oauth.ts
   - src/frontend/index.html
@@ -56,6 +66,21 @@ is public. `Impact: High` — session theft = account takeover. Matrix →
 The formal controls live in the items whose
 `links.mitigates: [THR-EXAMPLE-001]` — here `SDS-EXAMPLE-001` and
 `TC-EXAMPLE-001` (same items as for the RSK example).
+
+## CIA impact analysis
+
+### Confidentiality
+High — the session cookie is the primary credential. If stolen, the attacker
+gains read access to all data visible to the victim's account.
+
+### Integrity
+High — by driving the victim's browser silently, the attacker can perform
+any state-changing action the victim is authorized to perform (submit forms,
+update records, trigger workflows).
+
+### Availability
+Not affected — XSS does not prevent the application from responding to
+legitimate requests; no denial-of-service vector from this threat.
 
 ## Notes
 

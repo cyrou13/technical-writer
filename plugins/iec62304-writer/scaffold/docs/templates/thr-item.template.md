@@ -13,6 +13,16 @@ impact: Low                            # Low | Medium | High
 risk_level: Low                        # Low | Medium | High (3x3 matrix from the skill)
 acceptable: true                       # before mitigation
 residual_acceptable: true              # after mitigation
+
+# CIA triad (IEC 81001-5-1 + IEC TR 60601-4-5) — severity per dimension
+confidentiality_severity: n/a          # n/a | Low | Medium | High
+integrity_severity: n/a                # n/a | Low | Medium | High
+availability_severity: n/a             # n/a | Low | Medium | High
+
+# Residual CIA (after remediation)
+residual_confidentiality_severity: n/a
+residual_integrity_severity: n/a
+residual_availability_severity: n/a
 source:
   - [TODO path/to/file]
 links:
@@ -40,6 +50,17 @@ links:
 
 - [TODO informal list; formal controls live in the SRS/SDS/TC items
       whose `links.mitigates: [<this ID>]`]
+
+## CIA impact analysis
+
+### Confidentiality
+[TODO Describe how the threat affects confidentiality, or state "Not affected" if n/a]
+
+### Integrity
+[TODO]
+
+### Availability
+[TODO]
 
 ## Notes
 

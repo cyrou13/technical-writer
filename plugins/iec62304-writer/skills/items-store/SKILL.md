@@ -199,7 +199,20 @@ impact: High                      # Low | Medium | High
 risk_level: High                  # matrice 3×3 du skill cyber-risk-analysis
 acceptable: false
 residual_acceptable: true
+
+# CIA triad (IEC 81001-5-1 + IEC TR 60601-4-5) — severity per dimension
+confidentiality_severity: n/a          # n/a | Low | Medium | High
+integrity_severity: n/a                # n/a | Low | Medium | High
+availability_severity: n/a             # n/a | Low | Medium | High
+
+# Residual CIA (after remediation)
+residual_confidentiality_severity: n/a # n/a | Low | Medium | High
+residual_integrity_severity: n/a       # n/a | Low | Medium | High
+residual_availability_severity: n/a    # n/a | Low | Medium | High
 ```
+
+`risk_level` SHOULD equal `max(confidentiality_severity, integrity_severity, availability_severity)`
+where `n/a` maps to `Low`. See the skill `cyber-risk-analysis` for the full CIA rationale.
 
 Les contrôles d'un THR sont calculés comme pour un RSK : items dont
 `links.mitigates` contient l'ID du THR. Le lien `links.triggers:

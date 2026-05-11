@@ -159,6 +159,52 @@ Un THR est **traité** si :
 
 Sinon, il apparaît dans `_to_implement.md` (groupe **B. Cyber**).
 
+## CIA impact dimensions (IEC 81001-5-1)
+
+### Why rate CIA separately from STRIDE
+
+STRIDE classifies the **attack vector** — what the attacker does (spoof,
+tamper, deny…). CIA measures the **impact on security properties** — what is
+lost for the protected asset. The same STRIDE category can produce very
+different CIA profiles depending on the asset (e.g., Spoofing a session token
+hits Confidentiality + Integrity; Spoofing a log entry mainly hits Integrity).
+Separating them matches the Avicenna cyber risk table (annex1-RISK-TABLE.xlsx
+"Cybersecurity risk analysis" sheet) and aligns with IEC TR 60601-4-5.
+
+### Allowed values
+
+`n/a` | `Low` | `Medium` | `High`
+
+`n/a` means the dimension is not affected by this threat. Example: a
+Denial-of-Service threat typically has `confidentiality_severity: n/a` and
+`integrity_severity: n/a`.
+
+### Projection of CIA onto risk_level
+
+`risk_level = max(C, I, A)` where `n/a` is treated as `Low`.
+
+Mapping: `n/a` → Low, `Low` → Low, `Medium` → Medium, `High` → High.
+
+This means a threat that scores `High` on any single CIA dimension yields
+`risk_level: High`, regardless of lower scores on the others.
+
+The existing `impact` field (Low/Medium/High) SHOULD equal `risk_level` once
+CIA dimensions are filled — it remains for backward compatibility and for
+humans who want a single "global impact" label before computing CIA.
+
+### Typical STRIDE → CIA projection
+
+This table is indicative. Always justify per-threat based on the actual asset.
+
+| STRIDE | Confidentiality | Integrity | Availability |
+|---|---|---|---|
+| S — Spoofing | Medium–High (identity assumed) | High (actions authorized under wrong identity) | n/a |
+| T — Tampering | n/a–Low | High (data altered) | Low–Medium (corrupted data may block processing) |
+| R — Repudiation | Low (audit log missing) | High (non-repudiation broken) | n/a |
+| I — Information disclosure | High | n/a | n/a |
+| D — Denial of service | n/a | n/a | High |
+| E — Elevation of privilege | High (elevated access) | High (authorized to modify anything) | Medium–High (can disrupt as admin) |
+
 ## Garde-fous
 
 - **Pas d'invention.** Un THR doit pouvoir être rattaché à un fichier

@@ -541,6 +541,13 @@ def render_risk_detail(ctx: BuildContext, r: Item) -> list[str]:
 
 
 def render_threat_detail(_ctx: BuildContext, t: Item) -> list[str]:
+    # CIA fields — defensive get for backward compatibility with pre-CIA items
+    c_sev = t.get("confidentiality_severity") or "—"
+    i_sev = t.get("integrity_severity") or "—"
+    a_sev = t.get("availability_severity") or "—"
+    rc_sev = t.get("residual_confidentiality_severity") or "—"
+    ri_sev = t.get("residual_integrity_severity") or "—"
+    ra_sev = t.get("residual_availability_severity") or "—"
     return [
         f"### {t.id} — {t.title}",
         "",
@@ -550,6 +557,14 @@ def render_threat_detail(_ctx: BuildContext, t: Item) -> list[str]:
         f"- **Likelihood:** {t.get('likelihood') or '—'} · **Impact:** {t.get('impact') or '—'} · "
         f"**Level:** {t.get('risk_level') or '—'} · **Acceptable:** {t.get('acceptable')}",
         f"- **Residual acceptable:** {t.get('residual_acceptable')}",
+        "",
+        "**CIA impact (IEC 81001-5-1):**",
+        "",
+        "| Dimension | Initial | Residual |",
+        "|---|---|---|",
+        f"| Confidentiality | {c_sev} | {rc_sev} |",
+        f"| Integrity | {i_sev} | {ri_sev} |",
+        f"| Availability | {a_sev} | {ra_sev} |",
         "",
     ]
 
@@ -784,10 +799,19 @@ def csv_row_for_rsk(ctx: BuildContext, r: Item) -> list[str]:
 
 
 def csv_row_for_thr(_ctx: BuildContext, t: Item) -> list[str]:
+    # Compact CIA summary for the "Initial Severity" column (stays within 18-col schema)
+    c = t.get("confidentiality_severity") or "n/a"
+    i = t.get("integrity_severity") or "n/a"
+    a = t.get("availability_severity") or "n/a"
+    cia_initial = f"Conf={c}, Integ={i}, Avail={a}"
+    rc = t.get("residual_confidentiality_severity") or "n/a"
+    ri = t.get("residual_integrity_severity") or "n/a"
+    ra = t.get("residual_availability_severity") or "n/a"
+    cia_residual = f"Conf={rc}, Integ={ri}, Avail={ra}"
     return [
         t.id, "Cyber", "", "", str(t.get("asset") or ""), "", "",
-        "", "", str(t.get("impact") or ""), str(t.get("likelihood") or ""),
-        str(t.get("risk_level") or ""), "", "", "", "", "",
+        "", "", cia_initial, str(t.get("likelihood") or ""),
+        str(t.get("risk_level") or ""), "", "", cia_residual, "", "",
         str(t.get("residual_acceptable")),
     ]
 

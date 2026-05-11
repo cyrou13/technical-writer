@@ -695,6 +695,21 @@ def build_cyber_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_
             f"**Residual acceptable:** "
             f"{'yes' if fm.get('residual_acceptable', True) else 'no'}"
         )
+        # CIA triad (IEC 81001-5-1) — defensive get, backward compatible
+        c_sev = fm.get("confidentiality_severity", "—") or "—"
+        i_sev = fm.get("integrity_severity", "—") or "—"
+        a_sev = fm.get("availability_severity", "—") or "—"
+        rc_sev = fm.get("residual_confidentiality_severity", "—") or "—"
+        ri_sev = fm.get("residual_integrity_severity", "—") or "—"
+        ra_sev = fm.get("residual_availability_severity", "—") or "—"
+        lines.append("")
+        lines.append("**CIA impact (IEC 81001-5-1):**")
+        lines.append("")
+        lines.append("| Dimension | Initial | Residual |")
+        lines.append("|---|---|---|")
+        lines.append(f"| Confidentiality | {c_sev} | {rc_sev} |")
+        lines.append(f"| Integrity | {i_sev} | {ri_sev} |")
+        lines.append(f"| Availability | {a_sev} | {ra_sev} |")
         triggers = thr.links.get("triggers") or []
         if triggers:
             lines.append(f"**Triggers (RSK):** {', '.join(triggers)}")
