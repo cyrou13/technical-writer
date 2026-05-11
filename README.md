@@ -41,8 +41,26 @@ Puis dans le repo cible :
 /doc-init                  # scaffolde tools/build_docs.py + dt-config.yaml + docs/templates/
 /doc-init --with-examples  # idem + items d'exemple liés (MAP/SRS/SDS/TC/RSK/THR)
 /doc-62304                 # pipeline complet : codemap → SRS/SDS/TC/RSK/THR → build → revue
-/doc-srs-export                # livrable RAQA-ready (cover, signataires, traçabilité §3 → MAP)
+/doc-srs-export            # livrable RAQA-ready (cover, signataires, traçabilité §3 → MAP)
 ```
+
+### Note sur le namespace des slash commands
+
+Selon ta config Claude Code (cache plugin, mode profile, plusieurs
+plugins chargés), il peut être nécessaire de **préfixer chaque
+commande par le namespace du plugin** :
+
+```bash
+/iec62304-writer:doc-init
+/iec62304-writer:doc-init --update
+/iec62304-writer:doc-migrate
+# etc.
+```
+
+Si Claude Code te dit `Unknown command: /doc-init`, c'est le cas —
+utilise toujours la forme préfixée. Toutes les commandes de ce README
+s'utilisent indifféremment avec ou sans le préfixe `iec62304-writer:`
+selon ton setup.
 
 ## Livrables produits
 
