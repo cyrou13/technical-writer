@@ -156,6 +156,14 @@ else
   SKIPPED+=("tools/build_str_export.py (existe — utilise --update pour remplacer)")
 fi
 
+# build_migrate.py — overwrite uniquement si --update
+if [ ! -f tools/build_migrate.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_migrate.py" tools/build_migrate.py
+  CREATED+=("tools/build_migrate.py")
+else
+  SKIPPED+=("tools/build_migrate.py (existe — utilise --update pour remplacer)")
+fi
+
 # test-results.example.json — copié uniquement si absent (exemple CI — jamais overwrite)
 if [ ! -f test-results.example.json ]; then
   cp "${CLAUDE_PLUGIN_ROOT}/scaffold/test-results.example.json" test-results.example.json
@@ -256,7 +264,10 @@ Afficher en ≤ 10 lignes :
   sections narratives QMS (intended use, warnings, etc.) avant
   `/doc-srs-export`,
 - rappel : éditer `docs/test_plan_intro.md` pour remplir les sections
-  narratives du STD.
+  narratives du STD,
+- rappel : si tu reviens sur un projet déjà initialisé avec une ancienne
+  version du plugin, lance `/doc-migrate` pour voir ce qui doit être
+  synchronisé (additif uniquement, ne touche pas à ton contenu existant).
 
 ## Garde-fous
 

@@ -116,6 +116,7 @@ Puis dans le repo cible :
 | `/doc-stp-export [--strict] [--md-only]` | Produit le Software Test Plan (Avicenna `AV-DP-XXX-STP`) via `tools/build_stp_export.py` |
 | `/doc-stdr-export [--strict] [--md-only]` | Produit le Software Test Description and Reports (Avicenna `AV-DP-XXX-STDR`) — ingère `test-results.json` produit par CI — via `tools/build_stdr_export.py` |
 | `/doc-str-export [--strict] [--md-only]` | Produit le Software Test Report (Avicenna `AV-DP-XXX-STR-auto`) synthèse pass/fail depuis `test-results.json` — via `tools/build_str_export.py` |
+| `/doc-migrate [--apply] [--stdout]` | Audit de migration après upgrade du plugin : détecte les clés manquantes dans dt-config.yaml, les anchors manquants dans dt-clinical-context.md, les items au schéma incomplet, et les scripts outdated. Mode additif-only (`--apply`) ou dry-run (défaut). |
 
 ## Layout du plugin
 
@@ -222,6 +223,20 @@ dans front/back) est conseillé pour la traçabilité 62304.
 | Export DOCX intégré | `/doc-srs-export`, `/doc-sdd-export`, `/doc-stp-export`, `/doc-stdr-export`, `/doc-str-export`, `/doc-risk-export` (pandoc invoqué automatiquement si `rendering.reference_docx` est configuré) |
 | Export Excel (inventory) | `/doc-risk-xlsx` (4-onglets Design/Production/Usability/Cybersecurity) |
 | Item DOORS-like editing | `/doc-item <ID>` |
+
+## Recette de reprise sur un projet existant
+
+Si le plugin a été mis à jour depuis la dernière initialisation du projet,
+lance d'abord `/doc-migrate` pour identifier les écarts :
+
+```
+/doc-migrate           # dry-run — rapport dans docs/generated/migration-report.md
+/doc-migrate --apply   # applique les changements additifs (A+B uniquement)
+/doc-init --update     # refresh les scripts tools/build_*.py si section D le signale
+```
+
+`/doc-migrate` est additif-only : il n'écrase jamais le contenu existant de
+`dt-config.yaml`, `docs/dt-clinical-context.md`, ni aucun item.
 
 ## Workflow complet (code → livrable RAQA)
 
