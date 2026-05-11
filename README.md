@@ -78,6 +78,7 @@ Puis dans le repo cible :
 | `dossier-technique-export` | Spec du livrable SRS RAQA-ready à partir de `dt-config.yaml` + `dt-clinical-context.md` + items |
 | `risk-report-export` | Spec du livrable Risk Analysis Report ISO 14971 — chaîne causale §C.2, hiérarchie de contrôle §7.2, résiduel quantitatif §7.4, cascade §7.5 |
 | `production-risk-analysis` | Référence AAMI TIR57 + IEC 81001-5-1 §6.1 — risques de packaging/delivery/deployment/update (PRSK) |
+| `risk-xlsx-export` | Spec du livrable Excel 4-onglets matching le format Avicenna `annex1-RISK-TABLE.xlsx` (dépendance `openpyxl`) |
 
 ### Sub-agents
 
@@ -105,6 +106,7 @@ Puis dans le repo cible :
 | `/doc-build [--strict]` | Lance `tools/build_docs.py` |
 | `/doc-export [--strict] [--md-only]` | Produit le livrable SRS QMS-ready dans `docs/export/` via `tools/build_export.py` |
 | `/doc-risk-export [--strict] [--md-only]` | Produit le Risk Analysis Report ISO 14971-compliant (+ table CSV d'inventaire) dans `docs/export/` via `tools/build_risk_export.py` |
+| `/doc-risk-xlsx [--strict]` | Produit l'inventaire Excel 4-onglets (Design / Production / Usability / Cybersecurity) matching le format Avicenna `annex1-RISK-TABLE.xlsx` via `tools/build_risk_xlsx.py` (nécessite `openpyxl`) |
 
 ## Layout du plugin
 

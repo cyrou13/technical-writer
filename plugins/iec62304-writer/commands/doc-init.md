@@ -108,6 +108,14 @@ else
   SKIPPED+=("tools/build_risk_export.py (existe — utilise --update pour remplacer)")
 fi
 
+# build_risk_xlsx.py — overwrite uniquement si --update
+if [ ! -f tools/build_risk_xlsx.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_risk_xlsx.py" tools/build_risk_xlsx.py
+  CREATED+=("tools/build_risk_xlsx.py")
+else
+  SKIPPED+=("tools/build_risk_xlsx.py (existe — utilise --update pour remplacer)")
+fi
+
 # Templates — ne jamais overwrite
 for tpl in map-item srs-item sds-item tc-item rsk-item prsk-item thr-item usc-item ursk-item; do
   src="${CLAUDE_PLUGIN_ROOT}/scaffold/docs/templates/${tpl}.template.md"
