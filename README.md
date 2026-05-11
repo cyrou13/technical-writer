@@ -116,6 +116,12 @@ selon ton setup.
 | `usability-analyst` | Scan UI → `docs/items/USC/*.md` + `URSK/*.md` + SRS-VIEWER-* + TC E2E |
 | `production-risk-analyst` | Scan CI/CD + Docker + deploy → `docs/items/PRSK/*.md` + SRS-SIGNING/SBOM (AAMI TIR57) |
 | `items-refresher` | Remplit sémantiquement les `[TODO]` placeholders insérés par `/doc-refresh-items --apply`. Inférence pour RSK (initiating_causes, foreseeable_sequence, hierarchy, residual) depuis hazard + source. Projection CIA pour THR depuis STRIDE + impact. Ne touche jamais aux champs déjà remplis. |
+
+### Coverage-gap prompts skill
+
+| Skill | Rôle |
+|---|---|
+| `prompts-generator` | Spec du générateur de prompts coverage-gap : transforme chaque SRS orphelin en fichier prompt autonome (impl / unit-tests / E2E Playwright) sous `docs/generated/prompts/` pour pilotage manuel d'autres sessions Claude Code. |
 | `doc-updater` | Détecte orphelins, items stale, gaps de couverture → `_update_diff.md` |
 | `compliance-reviewer` | Revue 62304 Classe A → `99_compliance_review.md` |
 
@@ -137,6 +143,7 @@ selon ton setup.
 | `/doc-str-export [--strict] [--md-only]` | Produit le Software Test Report (Avicenna `AV-DP-XXX-STR-auto`) synthèse pass/fail depuis `test-results.json` — via `tools/build_str_export.py` |
 | `/doc-migrate [--apply] [--stdout]` | Audit de migration après upgrade du plugin : détecte les clés manquantes dans dt-config.yaml, les anchors manquants dans dt-clinical-context.md, les items au schéma incomplet, et les scripts outdated. Mode additif-only (`--apply`) ou dry-run (défaut). |
 | `/doc-refresh-items [--apply] [--cat CAT] [--stdout] [--auto-fill]` | Refresh additif des items existants quand le schéma frontmatter a évolué (RSK étendu ISO 14971 §C.2, THR étendu CIA, …). Insère les champs manquants comme `[TODO]` placeholders. Avec `--auto-fill`, enchaîne avec le sub-agent `items-refresher` qui remplit sémantiquement les `[TODO]` depuis hazard / STRIDE / source code. Items restent en `status: Draft` pour re-approbation. |
+| `/doc-prompts [--cat impl\|unit\|e2e\|all] [--srs ID] [--clean]` | Génère des prompts ready-to-paste pour les SRS orphelins (sans SDS implémentant et/ou sans TC vérifiant). 3 types : impl, unit-tests, E2E Playwright (si UI). Un fichier par SRS sous `docs/generated/prompts/`, à coller dans une autre session Claude Code pour combler le gap. |
 
 ## Layout du plugin
 

@@ -164,6 +164,14 @@ else
   SKIPPED+=("tools/refresh_items.py (existe — utilise --update pour remplacer)")
 fi
 
+# build_prompts.py — overwrite uniquement si --update
+if [ ! -f tools/build_prompts.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_prompts.py" tools/build_prompts.py
+  CREATED+=("tools/build_prompts.py")
+else
+  SKIPPED+=("tools/build_prompts.py (existe — utilise --update pour remplacer)")
+fi
+
 # build_migrate.py — overwrite uniquement si --update
 if [ ! -f tools/build_migrate.py ] || [ "$UPDATE" = "1" ]; then
   cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_migrate.py" tools/build_migrate.py
