@@ -10,13 +10,14 @@ séparées.
 
 ## Langue des artefacts générés
 
-Tous les fichiers produits par le plugin sous `docs/` (items SRS/SDS/TC/
-RSK/THR/USC/URSK, agrégats `docs/generated/*.md`, rapports de revue,
-markers `[TODO]`/`[GAP-...]`) sont **rédigés en anglais**, indépendamment
-de la langue de la conversation avec Claude Code. Cette contrainte est
-forcée à chaque couche (commandes, sub-agents, skills, templates) pour
-garantir des livrables conformes IEC 62304 dans la langue de référence
-des normes.
+Tous les fichiers produits par le plugin sous `docs/` (items MAP / SRS /
+SDS / TC / RSK / PRSK / THR / USC / URSK, agrégats
+`docs/generated/*.md`, livrables `docs/export/*.{md,docx,csv,xlsx}`,
+rapports de revue, markers `[TODO]`/`[GAP-...]`) sont **rédigés en
+anglais**, indépendamment de la langue de la conversation avec
+Claude Code. Cette contrainte est forcée à chaque couche (commandes,
+sub-agents, skills, templates) pour garantir des livrables conformes
+IEC 62304 dans la langue de référence des normes.
 
 ## Installation
 
@@ -122,39 +123,56 @@ Puis dans le repo cible :
 iec62304-writer/
 ├── .claude-plugin/
 │   └── plugin.json
-├── skills/                    # 11 skills (dont srs-export)
-├── agents/                    # 9 sub-agents
-├── commands/                  # 6 slash commands (init, 62304, item, build, update, export)
+├── skills/                    # 17 skills (référentiels + exports)
+├── agents/                    # 10 sub-agents
+├── commands/                  # 12 slash commands
 ├── scaffold/                  # assets copiés par /doc-init
 │   ├── tools/
-│   │   ├── build_docs.py      # agrégats internes /doc-build
-│   │   └── build_srs_export.py    # livrable QMS-ready /doc-srs-export
-│   ├── dt-config.yaml         # config QMS (signataires, refs, id_format) — édité à la main
+│   │   ├── _lib.py                  # helpers partagés (YAML parser, Item, ...)
+│   │   ├── build_docs.py            # agrégats internes /doc-build
+│   │   ├── build_srs_export.py      # /doc-srs-export
+│   │   ├── build_sdd_export.py      # /doc-sdd-export
+│   │   ├── build_stp_export.py      # /doc-stp-export
+│   │   ├── build_stdr_export.py     # /doc-stdr-export (ingère test-results.json)
+│   │   ├── build_str_export.py      # /doc-str-export (idem)
+│   │   ├── build_risk_export.py     # /doc-risk-export (.md + .csv)
+│   │   └── build_risk_xlsx.py       # /doc-risk-xlsx (Excel 4-onglets)
+│   ├── dt-config.yaml         # config QMS (signataires, refs, id_format, external_resources) — édité à la main
+│   ├── test-results.example.json    # spec du format CI consommé par stdr/str-export
 │   └── docs/
-│       ├── templates/         # 8 squelettes (MAP/SRS/SDS/TC/RSK/THR/USC/URSK)
-│       ├── dt-clinical-context.md # narratives QMS (intended use, warnings…) — édité à la main
-│       └── test_plan_intro.md # narrative STD (maintenu à la main)
+│       ├── templates/         # 9 squelettes (MAP/SRS/SDS/TC/RSK/PRSK/THR/USC/URSK)
+│       ├── dt-clinical-context.md   # narratives QMS — édité à la main
+│       └── test_plan_intro.md       # narrative STD (legacy, intégré dans 30_STD)
 └── examples/                  # items démo (copiés via --with-examples)
-    ├── MAP/  SRS/  SDS/  TC/  RSK/  THR/
+    └── MAP/  SRS/  SDS/  TC/  RSK/  PRSK/  THR/
 ```
 
 ## Layout produit dans le repo cible (après `/doc-init`)
 
 ```
 mon-projet/
-├── tools/
-│   ├── build_docs.py         # agrégats internes
-│   └── build_srs_export.py       # livrable QMS-ready
-├── dt-config.yaml            # config QMS (signataires, refs, id_format) — édité à la main
+├── tools/                          # tous copiés par /doc-init
+│   ├── _lib.py                     # helpers partagés
+│   ├── build_docs.py               # agrégats internes
+│   ├── build_srs_export.py
+│   ├── build_sdd_export.py
+│   ├── build_stp_export.py
+│   ├── build_stdr_export.py
+│   ├── build_str_export.py
+│   ├── build_risk_export.py
+│   └── build_risk_xlsx.py
+├── dt-config.yaml                  # config QMS — édité à la main
+├── test-results.example.json       # exemple format CI — à remplacer par test-results.json en CI
 └── docs/
-    ├── templates/            # squelettes
-    ├── items/                # source de vérité (édités à la main ou par les agents)
-    │   ├── MAP/              # ★ inputs upstream (master / stakeholder reqs) — saisis à la main
-    │   ├── SRS/  SDS/  TC/  RSK/  THR/  USC/  URSK/
-    ├── dt-clinical-context.md # narratives QMS (intended use, warnings, etc.) — édité à la main
-    ├── test_plan_intro.md    # narrative du STD — édité à la main
-    ├── generated/            # produit par /doc-build (NE PAS éditer)
-    └── export/               # produit par /doc-srs-export — livrable QMS-ready
+    ├── templates/                  # 9 squelettes
+    ├── items/                      # source de vérité
+    │   ├── MAP/                    # ★ inputs upstream (master / stakeholder reqs) — saisis à la main
+    │   ├── SRS/  SDS/  TC/
+    │   ├── RSK/  PRSK/  THR/       # ★ risk safety / production / cyber
+    │   └── USC/  URSK/             # ★ usability
+    ├── dt-clinical-context.md      # narratives QMS — édité à la main
+    ├── generated/                  # produit par /doc-build (NE PAS éditer)
+    └── export/                     # produit par /doc-*-export — livrables QMS-ready
 ```
 
 ## Multi-repo (front + back, monorepo de repos)
@@ -201,22 +219,35 @@ dans front/back) est conseillé pour la traçabilité 62304.
 | Coverage views | `40_traceability.md` + `coverage.json` |
 | Item revisions / audit log | git history + commits signés |
 | Workflow review/approve | `status: Draft → Approved`, PR + reviewers |
-| Export DOCX/PDF | `pandoc docs/generated/*.md -o doc.pdf` |
+| Export DOCX intégré | `/doc-srs-export`, `/doc-sdd-export`, `/doc-stp-export`, `/doc-stdr-export`, `/doc-str-export`, `/doc-risk-export` (pandoc invoqué automatiquement si `rendering.reference_docx` est configuré) |
+| Export Excel (inventory) | `/doc-risk-xlsx` (4-onglets Design/Production/Usability/Cybersecurity) |
 | Item DOORS-like editing | `/doc-item <ID>` |
 
 ## Workflow complet (code → livrable RAQA)
 
 ```
-1. /doc-init                       # scaffolde tout (dt-config.yaml, templates, tools)
-2. Éditer dt-config.yaml           # signataires, identifier, revision history, id_format
-3. Saisir docs/items/MAP/*.md      # master reqs upstream (recopiés du PMAP) — manuel
-4. Éditer docs/dt-clinical-context.md  # intended use, warnings, glossaire — manuel
-5. /doc-62304                      # génère SRS/SDS/TC/RSK/THR/USC/URSK depuis le code
-6. /doc-update (occasionnel)       # après évolution du code
-7. /doc-srs-export                     # produit docs/export/<id>-<vXX>-SRS.md (+ .docx)
-8. /doc-risk-export                # produit docs/export/<id>-<vXX>-RISK-REPORT.md (+ .docx + .csv)
-9. Re-rendre en .docx via pandoc   # avec un --reference-doc=template.docx si voulu
-10. Revue RAQA, signature          # workflow Word / git commit signé
+ 1. /doc-init                       # scaffolde tout (dt-config.yaml, templates, tools)
+ 2. Éditer dt-config.yaml           # signataires, identifier, revision history, id_format,
+                                    # external_resources (pointeurs Obsidian/QMS), test_results_path
+ 3. Saisir docs/items/MAP/*.md      # master reqs upstream (recopiés du PMAP) — manuel
+ 4. Éditer docs/dt-clinical-context.md  # intended use, warnings, glossaire, end-users,
+                                    # characteristics-affecting-safety, etc. — manuel
+ 5. /doc-62304                      # génère SRS/SDS/TC/RSK/PRSK/THR/USC/URSK depuis le code
+ 6. /doc-update (occasionnel)       # après évolution du code
+
+ 7. /doc-srs-export                 # SRS    — docs/export/<id>-<vXX>-SRS.md  (+ .docx)
+ 8. /doc-sdd-export                 # SDD    — docs/export/<id>-<vXX>-SDD.md  (+ .docx)
+ 9. /doc-stp-export                 # STP    — docs/export/<id>-<vXX>-STP.md  (+ .docx)
+10. /doc-risk-export                # Risk Report — (.md + .docx + .csv inventory)
+11. /doc-risk-xlsx                  # Risk Table  — Excel 4-onglets Avicenna-compatible
+                                    # (nécessite `pip install openpyxl`)
+
+   # Après chaque run CI qui produit `test-results.json` :
+12. /doc-stdr-export                # STDR   — Test description + résultats par fonctionnalité
+13. /doc-str-export                 # STR    — Synthèse pass/fail pour l'auto report
+
+14. Revue RAQA, signature           # workflow Word / git commit signé
+    + compléter les sections jaunes <mark>[TODO ...]</mark> dans les .docx
     + compléter manuellement §2.9 Adequacy of Device Safety et §4.3 Benefit/Risk Analysis
     + signer le RISK-PLAN (méthodologie QMS) hors du plugin
 ```
@@ -225,6 +256,31 @@ dans front/back) est conseillé pour la traçabilité 62304.
 QMS-side context (intended use, signataires, references du dossier
 technique) qui doit venir du système qualité, pas du code. Le plugin
 les attend mais ne tente pas de les inférer.
+
+## Stratégie hybride `external_resources` + yellow TODO
+
+Pour chaque section narrative (architecture générale, intended use,
+class diagram, COTS control, etc.), les commandes `/doc-*-export`
+appliquent une **résolution en 3 étapes** :
+
+1. **`dt-config.yaml: external_resources.<anchor>`** pointe vers un
+   fichier → inliné verbatim (utile pour pointer une note Obsidian
+   QMS, un Mermaid externe, un SBOM exporté…).
+2. **`docs/dt-clinical-context.md`** a une section `## <anchor>` →
+   inlinée.
+3. Aucun des deux → **TODO surligné jaune** via `<mark>...</mark>`,
+   rendu par pandoc en surbrillance Word avec un hint pour l'auteur QMS.
+
+Exemple `dt-config.yaml` :
+```yaml
+external_resources:
+  general-system-architecture: docs/qms/system-architecture.md
+  class-diagram: docs/qms/diagrams/class-diagram.md
+```
+
+Tous les `<mark>[TODO ...]</mark>` restants apparaissent en **fond
+jaune dans le `.docx`** sans aucune config pandoc supplémentaire —
+l'auteur RAQA voit instantanément ce qui reste à remplir.
 
 ## Format d'ID configurable
 
@@ -269,26 +325,56 @@ suivent le format courant.
 
 ## CI
 
+Tous les scripts `build_*.py` supportent `--strict` (exit ≠ 0 en cas de
+défaut). Workflow CI typique :
+
 ```yaml
-- run: python tools/build_docs.py --strict
+- run: python tools/build_docs.py --strict           # agrégats internes
+- run: python tools/build_srs_export.py --strict     # SRS deliverable
+- run: python tools/build_sdd_export.py --strict     # SDD
+- run: python tools/build_stp_export.py --strict     # STP
+- run: python tools/build_risk_export.py --strict    # Risk Report (.md + .csv)
+- run: python tools/build_risk_xlsx.py --strict      # Risk Table (xlsx)
+
+# Après l'exécution de la suite de tests :
+- run: pytest --junit-xml=junit.xml ...
+- run: <convert junit.xml → test-results.json schema>  # cf. test-results.example.json
+- run: python tools/build_stdr_export.py --strict    # STDR (description + résultats)
+- run: python tools/build_str_export.py --strict     # STR  (synthèse pass/fail)
 ```
 
 `--strict` échoue sur :
 
-- marqueur `[TODO]`, `[GAP-62304]` ou `[GAP-CYBER]`,
-- RSK avec `severity: Critical` ou `Catastrophic` (Classe A invalide),
-- RSK ou THR avec `residual_acceptable: false`,
-- RSK ou THR avec `acceptable: false` sans aucun contrôle.
+- `build_docs.py` : marqueurs `[TODO]` / `[GAP-62304]` / `[GAP-CYBER]` /
+  `[GAP-USE]` ; RSK ou THR ou URSK avec `severity: Critical` /
+  `Catastrophic` (Classe A invalide) ou `residual_acceptable: false`.
+- `build_*_export.py` (SRS/SDD/STP/STDR/STR) : tout `<mark>[TODO ...]</mark>`
+  restant dans le rendu — utile pour gater la submission RAQA.
+- `build_risk_export.py` : tout RSK / PRSK / THR avec
+  `residual_acceptable: false`.
+- `build_risk_xlsx.py` : tout risque avec `residual_acceptable: false`
+  (cellule surlignée rouge).
+- `build_stdr_export.py` / `build_str_export.py` : tout TC en statut
+  `failed` dans `test-results.json`.
 
-## Limites v1
+## Limites connues
 
-- Classe A uniquement. Pour B/C, dériver un skill `iec62304-class-b` et
-  étendre les agents (intégration §5.6, gestion plus stricte des SOUP).
-- Pas d'export DOCX/PDF intégré (`pandoc` à brancher).
-- STD = description seule. Un Software Test Report (STR) parseur
-  `junit.xml` / `pytest --json` reste possible en v2.
-- Le `risk-analyst` infère les hazards depuis le code ; les hazards
-  d'usage clinique restent à apporter par le système qualité.
-- Le `security-analyst` ne lance pas de scan actif. Si un rapport
+- **IEC 62304 Classe A uniquement.** Pour B/C, dériver un skill
+  `iec62304-class-b` et étendre les agents (intégration §5.6, gestion
+  plus stricte des SOUP).
+- **Pas de génération de diagrammes** (UML class diagram, workflow
+  diagram). L'utilisateur peut pointer un fichier externe via
+  `external_resources.class-diagram` (Mermaid, PlantUML, .png) ou
+  laisser le yellow TODO pour intégration manuelle.
+- **Benefit-risk analysis** (ISO 14971 §8) : explicitement
+  non-générable. Les sections §2.9 du Risk Report et §4.3 Conclusion
+  restent en yellow TODO — jugement humain RAQA obligatoire.
+- **Le `risk-analyst` infère les hazards depuis le code** ; les hazards
+  d'usage clinique purs (Intended Use, contre-indications) restent à
+  apporter par le système qualité via `dt-clinical-context.md`.
+- **Le `security-analyst` ne lance pas de scan actif.** Si un rapport
   `npm audit` / `pip-audit` / Snyk est fourni, il l'ingère ; sinon il
   recommande l'audit sans inventer de CVE.
+- **`test-results.json` non auto-généré.** Le format est documenté dans
+  `scaffold/test-results.example.json` ; la conversion `junit.xml` →
+  `test-results.json` reste à brancher dans le pipeline CI du produit.
