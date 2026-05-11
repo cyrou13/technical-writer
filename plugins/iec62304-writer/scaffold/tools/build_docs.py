@@ -44,6 +44,21 @@ FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.DOTALL)
 
 CLASS_A_INVALIDATING_SEVERITY = {"Critical", "Catastrophic"}
 
+SEVERITY_INT: dict[str, int] = {
+    "Negligible": 1,
+    "Minor": 2,
+    "Serious": 3,
+    "Critical": 4,
+    "Catastrophic": 5,
+}
+PROBABILITY_INT: dict[str, int] = {
+    "Improbable": 1,
+    "Remote": 2,
+    "Occasional": 3,
+    "Probable": 4,
+    "Frequent": 5,
+}
+
 
 @dataclass
 class Item:
@@ -160,6 +175,8 @@ def _coerce_scalar(s: str):
         return s[1:-1]
     if s.startswith("'") and s.endswith("'"):
         return s[1:-1]
+    if s in ("null", "Null", "NULL", "~"):
+        return None
     if s in ("true", "True"):
         return True
     if s in ("false", "False"):
@@ -431,9 +448,21 @@ def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
         fm = rsk.frontmatter
         lines.append(f"### {rsk.id} — {rsk.title}")
         lines.append("")
+
+        # ISO 14971 category label
+        risk_cat = fm.get("risk_category", "—")
+        lines.append(f"**Category:** {risk_cat}")
+
         lines.append(
             f"**Status:** {rsk.status} · **Version:** {fm.get('version', '?')}"
         )
+
+        # ISO 14971 §C.2 context
+        sw_function = fm.get("software_function", "—")
+        sw_item = fm.get("software_item", "—")
+        lines.append(f"**Software function:** {sw_function}")
+        lines.append(f"**Software item:** {sw_item}")
+
         lines.append(
             f"**Severity:** {fm.get('severity', '?')} · "
             f"**Probability:** {fm.get('probability', '?')} · "
@@ -445,10 +474,84 @@ def build_risk_analysis(by_cat, controls_by_target, impl_by_srs, verif_by_srs):
             f"**Residual acceptable:** "
             f"{'yes' if fm.get('residual_acceptable', True) else 'no'}"
         )
+
+        # ISO 14971 §7.2 control hierarchy
+        ctrl_hier = fm.get("control_hierarchy", "—")
+        lines.append(f"**Control hierarchy:** {ctrl_hier}")
+
         srcs = fm.get("source") or []
         if srcs:
             lines.append("**Source:** " + ", ".join(f"`{s}`" for s in srcs))
         lines.append("")
+
+        # Initiating causes (block scalar — preserve line breaks)
+        if "initiating_causes" in fm:
+            raw_causes = fm["initiating_causes"] or ""
+            lines.append("**Initiating causes:**")
+            lines.append("")
+            for cause_line in str(raw_causes).splitlines():
+                lines.append(cause_line)
+            lines.append("")
+
+        # Foreseeable sequence (block scalar — preserve line breaks)
+        if "foreseeable_sequence" in fm:
+            raw_seq = fm["foreseeable_sequence"] or ""
+            lines.append("**Foreseeable sequence of events:**")
+            lines.append("")
+            for seq_line in str(raw_seq).splitlines():
+                lines.append(seq_line)
+            lines.append("")
+
+        # Residual risk table
+        res_prob = fm.get("residual_probability", "—")
+        res_sev = fm.get("residual_severity", "—")
+        res_level = fm.get("residual_risk_level", "—")
+        lines.append("**Residual risk assessment:**")
+        lines.append("")
+        lines.append("| | Initial | Residual |")
+        lines.append("|---|---|---|")
+        lines.append(
+            f"| Probability | {fm.get('probability', '—')} | {res_prob} |"
+        )
+        lines.append(
+            f"| Severity | {fm.get('severity', '—')} | {res_sev} |"
+        )
+        lines.append(
+            f"| Risk level | {fm.get('risk_level', '—')} | {res_level} |"
+        )
+
+        # Numerical risk index (P × S)
+        init_sev_int = SEVERITY_INT.get(fm.get("severity", ""), 0)
+        init_prob_int = PROBABILITY_INT.get(fm.get("probability", ""), 0)
+        res_sev_int = SEVERITY_INT.get(res_sev, 0)
+        res_prob_int = PROBABILITY_INT.get(res_prob, 0)
+        if init_sev_int and init_prob_int:
+            init_idx = init_sev_int * init_prob_int
+            res_idx_str = (
+                str(res_sev_int * res_prob_int)
+                if res_sev_int and res_prob_int
+                else "—"
+            )
+            lines.append(
+                f"| Risk index (S×P) | {init_idx} | {res_idx_str} |"
+            )
+        lines.append("")
+
+        # Arising risks (ISO 14971 §7.5)
+        arising = fm.get("arising_risks") or []
+        if arising:
+            lines.append(
+                "**Arising risks:** " + ", ".join(str(r) for r in arising)
+            )
+            lines.append("")
+
+        # Labeling disclosure (ISO 14971 §7.6 / information_for_safety)
+        labeling = fm.get("labeling_disclosure")
+        if labeling is not None:
+            lines.append("**Labeling disclosure:**")
+            lines.append("")
+            lines.append(str(labeling))
+            lines.append("")
 
         controls = controls_by_target.get(rsk.id, [])
         if controls:

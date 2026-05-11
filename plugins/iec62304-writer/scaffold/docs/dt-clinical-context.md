@@ -7,7 +7,7 @@
   deliverable (see anchors next to each H2). Any H2 not listed here is
   ignored. Edit by hand — no agent touches this file.
 
-  Recognized sections:
+  Recognized sections (consumed by /doc-export — SRS deliverable):
     ## document-overview         → §1.1
     ## abbreviations             → §1.2.1 (free-form text or markdown table)
     ## glossary                  → §1.2.2
@@ -16,6 +16,10 @@
     ## connected-devices         → §2.1.4
     ## personnel-and-training    → §2.x (placed after the main requirements)
     ## packaging                 → §2.x (placed after the main requirements)
+
+  Additional sections (consumed by /doc-risk-export — Risk Report):
+    ## end-users                            → §2.2 of Risk Report
+    ## characteristics-affecting-safety     → §2.3 of Risk Report (ISO TR 24971)
 -->
 
 ## document-overview
@@ -62,3 +66,27 @@ the labeling / IFU.]
 
 [TODO Software delivery format: installer, container image, OTA update,
 USB key shipped to site. Reference the corresponding SOP.]
+
+## end-users
+
+[TODO Describe the end users of the device — role, training,
+qualification, language, jurisdiction. ISO 14971 §C.2 requires this
+to scope the foreseeable hazards.]
+
+## characteristics-affecting-safety
+
+[TODO Per ISO TR 24971:2020 §A, list the device characteristics that
+affect safety:
+
+- Intended use (clinical context, criticality, decision support level)
+- Patient population (age, vulnerability, contraindications)
+- Connected systems (PACS, modality, viewer, HL7 broker)
+- Software dependencies (OS, libraries, OS services)
+- User environment (lighting, fatigue, multi-patient context)
+- Data sources and inputs (modality, reconstruction kernel, slice
+  thickness, acquisition protocol)
+- Outputs and their downstream consumers
+- Operational lifetime, update and disposal strategy
+
+Each characteristic should be one sentence stating the fact, with no
+risk evaluation — that is done in the risk table.]

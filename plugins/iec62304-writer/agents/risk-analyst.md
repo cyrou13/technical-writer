@@ -46,17 +46,58 @@ exposent un hazard plausible.
 Critère : un hazard doit pouvoir être rattaché à au moins un fichier
 source. Sinon, pas de RSK — pas de spéculation.
 
-### 2. Créer ou mettre à jour les items RSK
+### 2. Créer ou mettre à jour les items RSK (schéma ISO 14971-compliant)
 
 Pour chaque hazard retenu :
 
 - Allouer le prochain `RSK-<DOMAIN>-<NNN>` libre (domaines : `AUTH`,
   `DATA`, `API`, `CFG`, `OBS`, `SEC`, …).
-- Remplir `hazard`, `hazardous_situation`, `harm`, `severity`,
-  `probability` (si pertinent), `risk_level`, `acceptable` (avant
-  mitigation).
+- Catégoriser : `risk_category: Design` par défaut pour les risques
+  inférés du code source. Réserver `Production` aux risques de
+  packaging / supply chain (rare en mode code-driven). `Usability`
+  est traité séparément par `usability-analyst` (→ URSK).
+- Remplir le **contexte d'origine** : `software_function` (fonction
+  métier où le risque émerge, ex. "User authentication"),
+  `software_item` (module / fichier responsable, ex. `src/auth/oauth.ts`).
+- Remplir la **chaîne causale complète** (ISO 14971 §C.2 — obligatoire) :
+  - `hazard` — source potentielle de dommage (1 phrase).
+  - `initiating_causes` — liste de déclencheurs indépendants. Si tu
+    n'es pas sûr, mets `[TODO]` plutôt que d'inventer.
+  - `foreseeable_sequence` — chaîne `(1) → (2) → ... → hazardous
+    situation`. Sans cette chaîne, l'item n'est pas ISO 14971-conforme.
+    L'agent doit produire au moins 2 étapes même si la chaîne est
+    courte ; `[TODO]` accepté pour les étapes inférables uniquement
+    avec contexte clinique.
+  - `hazardous_situation` — circonstance d'exposition.
+  - `harm` — dommage envisagé, concret.
+- Remplir le **risque initial** : `severity` / `probability` (en
+  utilisant les enums ISO 14971), puis `risk_level` calculé via la
+  matrice du skill `risk-analysis` (index = sev_int × prob_int).
+  `acceptable: true` si `risk_level: Low` et aucune mitigation n'est
+  nécessaire ; `false` sinon.
+- Choisir le `control_hierarchy` (ISO 14971 §7.2) le plus haut
+  praticable : `inherent_design` > `protective_measure` >
+  `information_for_safety`. Justifier dans `## Risk controls` pourquoi
+  un niveau supérieur n'est pas atteignable.
 - `source:` pointe les fichiers concernés.
-- `residual_acceptable:` rempli **après** étape 4.
+- Les champs `residual_*`, `arising_risks` et `labeling_disclosure`
+  sont remplis à **l'étape 5** (après les contrôles).
+
+### 2bis. Rédiger les sections narratives obligatoires
+
+Le corps Markdown de l'item DOIT contenir au minimum :
+
+- `## Hazard`
+- `## Initiating causes`
+- `## Foreseeable sequence of events`
+- `## Hazardous situation`
+- `## Harm`
+- `## Initial risk justification` (pourquoi sev/prob/risk_level)
+- `## Risk controls` (chosen hierarchy + justification + liste informelle)
+- `## Residual risk justification` (post-mitigation, peut être [TODO] avant étape 5)
+- `## Notes` (cascade arising_risks, labeling, contexte additionnel)
+
+Cf. le template `docs/templates/rsk-item.template.md`.
 
 ### 3. Identifier les contrôles existants
 
@@ -90,16 +131,47 @@ pas suffisant (ex. seulement une SRS sans TC), créer les items manquants :
 
 Toujours `priority: Must` pour une mitigation.
 
-### 5. Conclure sur l'acceptabilité résiduelle
+### 5. Évaluation résiduelle quantitative (ISO 14971 §7.4)
 
-Une fois les contrôles posés, mettre à jour `residual_acceptable` :
+Une fois les contrôles posés, re-évaluer **quantitativement** :
 
-- `true` si l'ensemble des contrôles, une fois implémentés et vérifiés,
-  ramène le risque à `Low`.
-- `false` si même avec les contrôles, le risque reste `Medium`/`High`
-  → **alerter** : la classification A est probablement à revoir.
-  Insérer `[GAP-62304] §7 — risque résiduel non acceptable` dans le
-  corps du RSK.
+- `residual_probability` ∈ {Improbable, Remote, Occasional, Probable, Frequent}.
+  En général les contrôles SW réduisent la probabilité.
+- `residual_severity` ∈ {Negligible, Minor, Serious, Critical, Catastrophic}.
+  Les contrôles SW réduisent rarement la sévérité — laisser `severity` ==
+  `residual_severity` est typique, sauf si un contrôle inhérent élimine
+  une classe de harm.
+- `residual_risk_level` = projection (`residual_p_int × residual_s_int`)
+  sur la matrice du skill `risk-analysis`.
+- `residual_acceptable` :
+  - `true` si `residual_risk_level: Low` ET tous les `arising_risks`
+    sont eux-mêmes traités.
+  - `false` sinon → **alerter** : la classification A est probablement
+    à revoir. Insérer `[GAP-62304] §7.4 — residual risk not acceptable`
+    dans le corps du RSK.
+
+Rédiger `## Residual risk justification` qui explique chaque réduction
+(ou non-réduction) dimension par dimension.
+
+### 6. Cascade — arising_risks (ISO 14971 §7.5)
+
+Si une mitigation **crée** un nouveau risque (par exemple : ajouter un
+filtre de rejet crée un risque de faux négatif clinique), l'agent doit :
+
+1. Créer un nouvel item `RSK-<DOMAIN>-<NNN>` pour ce nouveau risque,
+   en remplissant les champs comme tout RSK normal.
+2. Ajouter son ID dans `arising_risks` de l'item parent.
+
+`arising_risks` est une liste d'IDs RSK. Par défaut `[]`.
+
+### 7. Labeling disclosure (ISO 14971 §7.6)
+
+Si `control_hierarchy: information_for_safety`, alors `labeling_disclosure`
+doit contenir le **texte verbatim** à inclure dans l'IFU / le labeling.
+Si le texte n'est pas encore décidé, mettre `[TODO]` en string et insérer
+`[GAP-62304] §7.6 — labeling text required` dans le corps.
+
+Si `control_hierarchy` est autre, `labeling_disclosure: null`.
 
 ## Garde-fous
 
@@ -116,4 +188,9 @@ Une fois les contrôles posés, mettre à jour `residual_acceptable` :
 - Nombre de RSK créés / mis à jour / inchangés.
 - Nombre de contrôles ajoutés sur des items existants.
 - Nombre d'items SRS/TC de mitigation créés.
-- Liste des RSK avec `residual_acceptable: false` (alerte).
+- Nombre de RSK avec `arising_risks` non vide (cascade).
+- Nombre de RSK avec `control_hierarchy: information_for_safety`
+  (→ labeling disclosure à valider en revue QMS).
+- Liste des RSK avec `residual_acceptable: false` (alerte Classe A).
+- Liste des RSK avec champs ISO 14971 §C.2 marqués `[TODO]`
+  (incompréhension de la chaîne causale — RAQA input requis).

@@ -100,6 +100,14 @@ else
   SKIPPED+=("tools/build_export.py (existe — utilise --update pour remplacer)")
 fi
 
+# build_risk_export.py — overwrite uniquement si --update
+if [ ! -f tools/build_risk_export.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_risk_export.py" tools/build_risk_export.py
+  CREATED+=("tools/build_risk_export.py")
+else
+  SKIPPED+=("tools/build_risk_export.py (existe — utilise --update pour remplacer)")
+fi
+
 # Templates — ne jamais overwrite
 for tpl in map-item srs-item sds-item tc-item rsk-item thr-item usc-item ursk-item; do
   src="${CLAUDE_PLUGIN_ROOT}/scaffold/docs/templates/${tpl}.template.md"

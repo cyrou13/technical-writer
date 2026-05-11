@@ -139,23 +139,54 @@ interfaces:
     - openid-client (npm)
 ```
 
-## RSK — frontmatter spécifique
+## RSK — frontmatter spécifique (ISO 14971-compliant)
 
 ```yaml
-hazard: state OAuth2 prévisible permettant CSRF
-hazardous_situation: |
-  L'utilisateur clique sur un lien forgé alors qu'il est connecté à l'IdP.
-harm: Détournement de session, accès non autorisé au compte
+# Origine
+risk_category: Design            # Design | Production | Usability
+software_function: User authentication
+software_item: src/auth/oauth.ts
+
+# Chaîne causale (ISO 14971 §C.2)
+hazard: Predictable OAuth2 state enabling CSRF
+initiating_causes: |
+  - Developer uses a non-cryptographic randomness source.
+  - Library default produces low-entropy state values.
+foreseeable_sequence: |
+  (1) The application generates a predictable `state` value.
+  (2) An attacker crafts a forged callback URL with a guessed state.
+  (3) The victim, authenticated to the IdP, clicks the forged link.
+  (4) The application accepts the callback — hazardous situation reached.
+hazardous_situation: The victim's session is bound to the attacker's IdP identity.
+harm: Unauthorized access to the victim's account.
+
+# Risque initial
 severity: Serious                # Negligible | Minor | Serious | Critical | Catastrophic
 probability: Remote              # Improbable | Remote | Occasional | Probable | Frequent
-risk_level: Medium               # Low | Medium | High
+risk_level: Medium               # Low | Medium | High (calculé matrice)
 acceptable: false                # avant mitigation
+
+# Hiérarchie de contrôle (ISO 14971 §7.2)
+control_hierarchy: inherent_design   # inherent_design | protective_measure | information_for_safety
+
+# Risque résiduel (ISO 14971 §7.4)
+residual_probability: Improbable
+residual_severity: Serious
+residual_risk_level: Low
 residual_acceptable: true        # après mitigation
+
+# Cascade (ISO 14971 §7.5)
+arising_risks: []                # IDs RSK créés par la mitigation
+
+# IFU disclosure (requis si control_hierarchy=information_for_safety)
+labeling_disclosure: null        # null sinon
 ```
 
-Les contrôles ne sont **pas** stockés sur le RSK : ils sont calculés au
-build à partir des items qui ont `RSK-XXX` dans `links.mitigates`. Voir
-le skill `risk-analysis`.
+Les contrôles formels (SRS/SDS/TC) ne sont **pas** stockés sur le RSK : ils
+sont calculés au build à partir des items qui ont `RSK-XXX` dans
+`links.mitigates`. Voir le skill `risk-analysis` pour le mapping numérique
+sev/prob → index P×S, la matrice d'acceptabilité, et les règles
+ISO 14971 §C.2 / §7.2 / §7.4 / §7.5.
 
 ## THR — frontmatter spécifique
 

@@ -2,6 +2,11 @@
 # Décommenter si tu préfères ne pas versionner les agrégats :
 # docs/generated/
 
+# Plugin scaffold should never contain generated artefacts (would get
+# copied into target repos by /doc-init).
+plugins/iec62304-writer/scaffold/docs/generated/
+plugins/iec62304-writer/scaffold/docs/export/
+
 # Python
 __pycache__/
 *.pyc
