@@ -52,7 +52,7 @@ uv pip install openpyxl
 ```
 
 `openpyxl` est la seule dépendance non-stdlib du plugin — toutes les
-autres commandes (`/doc-62304`, `/doc-build`, `/doc-export`,
+autres commandes (`/doc-62304`, `/doc-build`, `/doc-srs-export`,
 `/doc-risk-export`) tournent en stdlib pure.
 
 ## Inputs

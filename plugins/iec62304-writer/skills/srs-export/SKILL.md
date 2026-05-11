@@ -1,5 +1,5 @@
 ---
-name: dossier-technique-export
+name: srs-export
 description: Génère le livrable SRS habillé pour le dossier technique (cover page signataires, revision history, project references, sections cliniques inlinées, table de traçabilité §3) à partir des items et de `dt-config.yaml`. À invoquer pour produire `docs/export/<identifier>-SRS.md` (+ `.docx` optionnel via pandoc) après que les items SRS / MAP sont stables.
 ---
 
@@ -145,7 +145,7 @@ non-bloquant. **Ne jamais** échouer l'export pour absence de pandoc.
 - L'export **ne modifie aucun item** sous `docs/items/`. Lecture seule.
 - L'export **ne touche pas** `docs/generated/` (sortie de `/doc-build`).
 - L'export écrit **uniquement** dans `docs/export/`.
-- Idempotent : ré-exécuter `/doc-export` deux fois de suite avec des
+- Idempotent : ré-exécuter `/doc-srs-export` deux fois de suite avec des
   items inchangés produit le même fichier byte-pour-byte (sauf la date
   de génération si présente dans le rendu — préférer une date stable
   depuis `dt-config.yaml: document.date`).

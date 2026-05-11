@@ -258,7 +258,7 @@ def load_items(category: str, items_dir: Path) -> list[Item]:
 
 
 # ---------------------------------------------------------------------------
-# Clinical context (narrative QMS sections inlined by /doc-export and
+# Clinical context (narrative QMS sections inlined by /doc-srs-export and
 # /doc-risk-export).
 # ---------------------------------------------------------------------------
 

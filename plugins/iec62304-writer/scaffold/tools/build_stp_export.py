@@ -147,7 +147,7 @@ def version_label(config: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Cover and revision history (mirrors build_export.py pattern)
+# Cover and revision history (mirrors build_srs_export.py pattern)
 # ---------------------------------------------------------------------------
 
 

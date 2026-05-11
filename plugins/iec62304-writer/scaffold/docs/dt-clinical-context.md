@@ -3,11 +3,11 @@
   These sections do NOT come from code — they come from the QMS, the
   Intended Use document, and the Risk Management File.
 
-  `/doc-export` inlines the sections below at fixed anchors of the final
+  `/doc-srs-export` inlines the sections below at fixed anchors of the final
   deliverable (see anchors next to each H2). Any H2 not listed here is
   ignored. Edit by hand — no agent touches this file.
 
-  Recognized sections (consumed by /doc-export — SRS deliverable):
+  Recognized sections (consumed by /doc-srs-export — SRS deliverable):
     ## document-overview         → §1.1
     ## abbreviations             → §1.2.1 (free-form text or markdown table)
     ## glossary                  → §1.2.2

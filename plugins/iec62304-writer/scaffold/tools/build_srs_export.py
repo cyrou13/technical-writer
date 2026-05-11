@@ -442,7 +442,7 @@ def main() -> int:
 
     # Write log
     header = [
-        f"build_export run at {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
+        f"build_srs_export run at {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
         f"identifier={identifier} version_label={version_label}",
         "",
     ]

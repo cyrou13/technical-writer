@@ -100,12 +100,12 @@ else
   SKIPPED+=("tools/build_docs.py (existe — utilise --update pour remplacer)")
 fi
 
-# build_export.py — overwrite uniquement si --update
-if [ ! -f tools/build_export.py ] || [ "$UPDATE" = "1" ]; then
-  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_export.py" tools/build_export.py
-  CREATED+=("tools/build_export.py")
+# build_srs_export.py — overwrite uniquement si --update
+if [ ! -f tools/build_srs_export.py ] || [ "$UPDATE" = "1" ]; then
+  cp "${CLAUDE_PLUGIN_ROOT}/scaffold/tools/build_srs_export.py" tools/build_srs_export.py
+  CREATED+=("tools/build_srs_export.py")
 else
-  SKIPPED+=("tools/build_export.py (existe — utilise --update pour remplacer)")
+  SKIPPED+=("tools/build_srs_export.py (existe — utilise --update pour remplacer)")
 fi
 
 # build_risk_export.py — overwrite uniquement si --update
@@ -246,7 +246,7 @@ printf '  %s\n' "${SKIPPED[@]}"
 
 Afficher en ≤ 10 lignes :
 - nombre de fichiers créés vs sautés,
-- emplacements clés (`tools/build_docs.py`, `tools/build_export.py`,
+- emplacements clés (`tools/build_docs.py`, `tools/build_srs_export.py`,
   `dt-config.yaml`, `docs/items/`, `docs/templates/`),
 - prochain pas : `/doc-62304` pour lancer le pipeline complet, ou
   `/doc-item SRS-XXX-001 "..."` pour créer un item à la main,
@@ -254,7 +254,7 @@ Afficher en ≤ 10 lignes :
   AVANT de lancer `/doc-62304` si on veut un format d'ID Avicenna-style,
 - rappel : éditer `docs/dt-clinical-context.md` pour remplir les
   sections narratives QMS (intended use, warnings, etc.) avant
-  `/doc-export`,
+  `/doc-srs-export`,
 - rappel : éditer `docs/test_plan_intro.md` pour remplir les sections
   narratives du STD.
 

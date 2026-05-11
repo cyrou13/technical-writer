@@ -52,7 +52,7 @@ l'ancre dans l'ordre suivant :
 
 Les anchors suivantes sont lues depuis `dt-clinical-context.md` (ou
 `external_resources`). Elles étendent les anchors déjà définies par
-`/doc-export` (SRS) et `/doc-risk-export` (Risk Report) :
+`/doc-srs-export` (SRS) et `/doc-risk-export` (Risk Report) :
 
 | Anchor | Section STP | Description attendue |
 |---|---|---|
@@ -68,7 +68,7 @@ Les anchors suivantes sont lues depuis `dt-clinical-context.md` (ou
 | `tests-schedule` | §5 | Calendrier planifié avec dates et jalons |
 | `qualification` | §6 | Qualification plateforme et personnel |
 
-Anchors héritées (partagées avec `/doc-export`) :
+Anchors héritées (partagées avec `/doc-srs-export`) :
 `abbreviations`, `glossary`, `personnel-and-training`.
 
 ## Inputs requis

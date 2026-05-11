@@ -40,7 +40,7 @@ Puis dans le repo cible :
 /doc-init                  # scaffolde tools/build_docs.py + dt-config.yaml + docs/templates/
 /doc-init --with-examples  # idem + items d'exemple liés (MAP/SRS/SDS/TC/RSK/THR)
 /doc-62304                 # pipeline complet : codemap → SRS/SDS/TC/RSK/THR → build → revue
-/doc-export                # livrable RAQA-ready (cover, signataires, traçabilité §3 → MAP)
+/doc-srs-export                # livrable RAQA-ready (cover, signataires, traçabilité §3 → MAP)
 ```
 
 ## Livrables produits
@@ -57,7 +57,7 @@ Puis dans le repo cible :
 | — | `docs/generated/_to_implement.md` | — | Backlog actionnable A/B/C/D/E |
 | — | `docs/generated/coverage.json` | — | Métriques machine-readable |
 | 99 | `docs/generated/99_compliance_review.md` | — | Revue de conformité |
-| Export | `docs/export/<doc-id>-<vXX>-SRS.md` (+ `.docx` optionnel) | — | Livrable QMS-ready (cover signataires, revision history, §1 framing, §2 requirements, §3 traçabilité → MAP). Produit par `/doc-export`. |
+| Export | `docs/export/<doc-id>-<vXX>-SRS.md` (+ `.docx` optionnel) | — | Livrable QMS-ready (cover signataires, revision history, §1 framing, §2 requirements, §3 traçabilité → MAP). Produit par `/doc-srs-export`. |
 
 ## Composants du plugin
 
@@ -75,7 +75,7 @@ Puis dans le repo cible :
 | `risk-analysis` | ISO 14971 + 62304 §7, hazards safety |
 | `cyber-risk-analysis` | IEC 81001-5-1 + AAMI TIR57 + STRIDE |
 | `iec62366-usability` | IEC 62366-1 — use scenarios, use-related risks, summative validation |
-| `dossier-technique-export` | Spec du livrable SRS RAQA-ready à partir de `dt-config.yaml` + `dt-clinical-context.md` + items |
+| `srs-export` | Spec du livrable SRS RAQA-ready à partir de `dt-config.yaml` + `dt-clinical-context.md` + items |
 | `risk-report-export` | Spec du livrable Risk Analysis Report ISO 14971 — chaîne causale §C.2, hiérarchie de contrôle §7.2, résiduel quantitatif §7.4, cascade §7.5 |
 | `production-risk-analysis` | Référence AAMI TIR57 + IEC 81001-5-1 §6.1 — risques de packaging/delivery/deployment/update (PRSK) |
 | `risk-xlsx-export` | Spec du livrable Excel 4-onglets matching le format Avicenna `annex1-RISK-TABLE.xlsx` (dépendance `openpyxl`) |
@@ -108,7 +108,7 @@ Puis dans le repo cible :
 | `/doc-update [Vx.y]` | Mise à jour incrémentale après évolution du code (orphelins, stale, gaps) |
 | `/doc-item <ID> [titre]` | CRUD d'un item unique |
 | `/doc-build [--strict]` | Lance `tools/build_docs.py` |
-| `/doc-export [--strict] [--md-only]` | Produit le livrable SRS QMS-ready dans `docs/export/` via `tools/build_export.py` |
+| `/doc-srs-export [--strict] [--md-only]` | Produit le livrable SRS QMS-ready dans `docs/export/` via `tools/build_srs_export.py` |
 | `/doc-risk-export [--strict] [--md-only]` | Produit le Risk Analysis Report ISO 14971-compliant (+ table CSV d'inventaire) dans `docs/export/` via `tools/build_risk_export.py` |
 | `/doc-risk-xlsx [--strict]` | Produit l'inventaire Excel 4-onglets (Design / Production / Usability / Cybersecurity) matching le format Avicenna `annex1-RISK-TABLE.xlsx` via `tools/build_risk_xlsx.py` (nécessite `openpyxl`) |
 | `/doc-sdd-export [--strict] [--md-only]` | Produit le Software Design Description (Avicenna `AV-DP-XXX-SDD`) via `tools/build_sdd_export.py` |
@@ -122,13 +122,13 @@ Puis dans le repo cible :
 iec62304-writer/
 ├── .claude-plugin/
 │   └── plugin.json
-├── skills/                    # 11 skills (dont dossier-technique-export)
+├── skills/                    # 11 skills (dont srs-export)
 ├── agents/                    # 9 sub-agents
 ├── commands/                  # 6 slash commands (init, 62304, item, build, update, export)
 ├── scaffold/                  # assets copiés par /doc-init
 │   ├── tools/
 │   │   ├── build_docs.py      # agrégats internes /doc-build
-│   │   └── build_export.py    # livrable QMS-ready /doc-export
+│   │   └── build_srs_export.py    # livrable QMS-ready /doc-srs-export
 │   ├── dt-config.yaml         # config QMS (signataires, refs, id_format) — édité à la main
 │   └── docs/
 │       ├── templates/         # 8 squelettes (MAP/SRS/SDS/TC/RSK/THR/USC/URSK)
@@ -144,7 +144,7 @@ iec62304-writer/
 mon-projet/
 ├── tools/
 │   ├── build_docs.py         # agrégats internes
-│   └── build_export.py       # livrable QMS-ready
+│   └── build_srs_export.py       # livrable QMS-ready
 ├── dt-config.yaml            # config QMS (signataires, refs, id_format) — édité à la main
 └── docs/
     ├── templates/            # squelettes
@@ -154,7 +154,7 @@ mon-projet/
     ├── dt-clinical-context.md # narratives QMS (intended use, warnings, etc.) — édité à la main
     ├── test_plan_intro.md    # narrative du STD — édité à la main
     ├── generated/            # produit par /doc-build (NE PAS éditer)
-    └── export/               # produit par /doc-export — livrable QMS-ready
+    └── export/               # produit par /doc-srs-export — livrable QMS-ready
 ```
 
 ## Multi-repo (front + back, monorepo de repos)
@@ -213,7 +213,7 @@ dans front/back) est conseillé pour la traçabilité 62304.
 4. Éditer docs/dt-clinical-context.md  # intended use, warnings, glossaire — manuel
 5. /doc-62304                      # génère SRS/SDS/TC/RSK/THR/USC/URSK depuis le code
 6. /doc-update (occasionnel)       # après évolution du code
-7. /doc-export                     # produit docs/export/<id>-<vXX>-SRS.md (+ .docx)
+7. /doc-srs-export                     # produit docs/export/<id>-<vXX>-SRS.md (+ .docx)
 8. /doc-risk-export                # produit docs/export/<id>-<vXX>-RISK-REPORT.md (+ .docx + .csv)
 9. Re-rendre en .docx via pandoc   # avec un --reference-doc=template.docx si voulu
 10. Revue RAQA, signature          # workflow Word / git commit signé

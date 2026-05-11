@@ -10,7 +10,7 @@ regardless of the user's conversational language or any global
 `CLAUDE.md` instruction. Conversational replies MAY follow the user's
 language; written outputs are English-only.
 
-Exécute `python tools/build_export.py` à la racine du repo cible et
+Exécute `python tools/build_srs_export.py` à la racine du repo cible et
 rapporte les résultats. Le script lit `dt-config.yaml`,
 `docs/dt-clinical-context.md` et les items sous `docs/items/`, et
 écrit le livrable dans `docs/export/`.
@@ -42,7 +42,7 @@ fi
 ### 2. Lancer le build
 
 ```bash
-python tools/build_export.py
+python tools/build_srs_export.py
 ```
 
 Si `python3` est nécessaire à la place de `python`, ré-essayer
@@ -51,7 +51,7 @@ ne pas masquer.
 
 ### 3. Rendu .docx (si applicable)
 
-Le script `build_export.py` invoque pandoc lui-même si
+Le script `build_srs_export.py` invoque pandoc lui-même si
 `dt-config.yaml: rendering.reference_docx` est défini et pandoc est
 disponible. Pas d'action côté Claude.
 
@@ -77,7 +77,7 @@ disponible. Pas d'action côté Claude.
 - Ne JAMAIS modifier les items sous `docs/items/` ni les sorties de
   `/doc-build` sous `docs/generated/`.
 - L'export est **complémentaire** à `/doc-build`, pas un remplacement —
-  `/doc-build` produit les agrégats internes, `/doc-export` produit le
+  `/doc-build` produit les agrégats internes, `/doc-srs-export` produit le
   livrable QMS.
 - Ne JAMAIS commit ou push automatiquement — la sortie reste locale.
 - Si `dt-config.yaml: approvals` contient encore des `[TODO]` ET le

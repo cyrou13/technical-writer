@@ -63,7 +63,7 @@ TC_TYPE_LABELS = ("Unit", "Integration", "System", "E2E")
 
 
 # ---------------------------------------------------------------------------
-# Domain extraction (mirrors build_export.py logic)
+# Domain extraction (mirrors build_srs_export.py logic)
 # ---------------------------------------------------------------------------
 
 

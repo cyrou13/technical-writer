@@ -63,7 +63,7 @@ ce qu'on **regarde en daily**.
 ## Anchors clinical-context.md additionnels
 
 Ce livrable consomme **deux anchors** dans `docs/dt-clinical-context.md`
-qui ne sont PAS utilisés par `/doc-export` (le livrable SRS) :
+qui ne sont PAS utilisés par `/doc-srs-export` (le livrable SRS) :
 
 - `## end-users` → §2.2 du Risk Report
 - `## characteristics-affecting-safety` → §2.3 du Risk Report

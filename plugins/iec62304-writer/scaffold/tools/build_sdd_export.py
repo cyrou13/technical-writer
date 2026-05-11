@@ -50,7 +50,7 @@ EXPORT_DIR = ROOT / "docs" / "export"
 
 
 # ---------------------------------------------------------------------------
-# BuildContext + cover/intro builders (mirrored from build_export.py with the
+# BuildContext + cover/intro builders (mirrored from build_srs_export.py with the
 # SDD-specific tweaks).
 # ---------------------------------------------------------------------------
 
