@@ -129,24 +129,29 @@ def _extract_top_level_blocks(text: str) -> dict[str, str]:
 def audit_config(
     repo_root: Path,
     scaffold_root: Path,
-) -> tuple[list[str], str]:
-    """Return (keys_to_add, append_block).
+) -> tuple[list[str], str, bool]:
+    """Return (keys_to_add, append_block, user_file_missing).
 
-    keys_to_add  — top-level keys missing from the user config
-    append_block — verbatim YAML text to append (empty string if nothing to add)
+    keys_to_add        — top-level keys missing from the user config
+    append_block       — verbatim YAML text to append (empty string if nothing to add)
+    user_file_missing  — True when dt-config.yaml does not exist in the target repo
+                         (in that case, run `/doc-init` to scaffold the full file —
+                         `--apply` is a poor substitute since it skips the scaffold
+                         header and structure)
     """
     user_config_path = repo_root / "dt-config.yaml"
     scaffold_config_path = scaffold_root / "dt-config.yaml"
 
     if not scaffold_config_path.is_file():
-        return [], ""
+        return [], "", False
 
     scaffold_text = scaffold_config_path.read_text(encoding="utf-8")
     scaffold_parsed = parse_yaml(scaffold_text)
     scaffold_keys = list(scaffold_parsed.keys())
 
     if not user_config_path.is_file():
-        return scaffold_keys, scaffold_text
+        # Signal to the caller: scaffolding-needed, not a partial migration.
+        return scaffold_keys, scaffold_text, True
 
     user_text = user_config_path.read_text(encoding="utf-8")
     user_parsed = parse_yaml(user_text)
@@ -154,7 +159,7 @@ def audit_config(
 
     missing_keys = [k for k in scaffold_keys if k not in user_keys]
     if not missing_keys:
-        return [], ""
+        return [], "", False
 
     # Build verbatim append block from scaffold source
     scaffold_blocks = _extract_top_level_blocks(scaffold_text)
@@ -164,7 +169,7 @@ def audit_config(
         parts.append(block)
 
     append_block = "".join(parts)
-    return missing_keys, append_block
+    return missing_keys, append_block, False
 
 
 def apply_config(repo_root: Path, append_block: str, today: str) -> None:
@@ -203,26 +208,26 @@ def _extract_anchor_blocks(text: str) -> dict[str, str]:
 def audit_clinical_context(
     repo_root: Path,
     scaffold_root: Path,
-) -> tuple[list[str], str]:
-    """Return (anchors_to_add, append_block)."""
+) -> tuple[list[str], str, bool]:
+    """Return (anchors_to_add, append_block, user_file_missing)."""
     user_path = repo_root / "docs" / "dt-clinical-context.md"
     scaffold_path = scaffold_root / "docs" / "dt-clinical-context.md"
 
     if not scaffold_path.is_file():
-        return [], ""
+        return [], "", False
 
     scaffold_text = scaffold_path.read_text(encoding="utf-8")
     scaffold_anchors = _extract_anchors(scaffold_text)
 
     if not user_path.is_file():
-        return scaffold_anchors, scaffold_text
+        return scaffold_anchors, scaffold_text, True
 
     user_text = user_path.read_text(encoding="utf-8")
     user_anchors = set(_extract_anchors(user_text))
 
     missing_anchors = [a for a in scaffold_anchors if a not in user_anchors]
     if not missing_anchors:
-        return [], ""
+        return [], "", False
 
     scaffold_blocks = _extract_anchor_blocks(scaffold_text)
     parts: list[str] = []
@@ -231,7 +236,7 @@ def audit_clinical_context(
         parts.append(block)
 
     append_block = "\n".join(parts)
-    return missing_anchors, append_block
+    return missing_anchors, append_block, False
 
 
 def apply_clinical_context(repo_root: Path, append_block: str, today: str) -> None:
@@ -269,7 +274,21 @@ def audit_items(repo_root: Path, scaffold_root: Path) -> dict[str, list[tuple[st
         tpl_match = FRONTMATTER_RE.match(tpl_text)
         if not tpl_match:
             continue
-        tpl_fields = set(parse_yaml(tpl_match.group(1)).keys())
+        tpl_parsed = parse_yaml(tpl_match.group(1))
+
+        # Filter out fields whose template default is an empty container or null.
+        # These are typically rendered as Markdown body sections in real items
+        # (e.g. TC `preconditions`/`steps`/`expected` are `[]` in the template
+        # but filled in `## Preconditions` / `## Steps` etc.), so flagging them
+        # as "missing" produces noisy false positives on existing items.
+        def _is_required(value: object) -> bool:
+            if value is None:
+                return False
+            if isinstance(value, (list, dict)) and not value:
+                return False
+            return True
+
+        tpl_fields = {k for k, v in tpl_parsed.items() if _is_required(v)}
 
         cat_dir = items_dir / cat
         if not cat_dir.is_dir():
@@ -298,12 +317,20 @@ def audit_items(repo_root: Path, scaffold_root: Path) -> dict[str, list[tuple[st
 # ---------------------------------------------------------------------------
 
 def audit_scripts(repo_root: Path, scaffold_root: Path) -> list[tuple[str, str]]:
-    """Return [(script_name, status)] where status is MISSING or OUTDATED."""
+    """Return [(script_name, status)] where status is MISSING or OUTDATED.
+
+    Audits every `tools/*.py` file present in the scaffold — that includes
+    `_lib.py` (shared helpers) on top of all `build_*.py` scripts. Without
+    `_lib.py`, none of the build_*_export.py scripts can be imported.
+    """
     scaffold_tools = scaffold_root / "tools"
     repo_tools = repo_root / "tools"
     issues: list[tuple[str, str]] = []
 
-    for scaffold_script in sorted(scaffold_tools.glob("build_*.py")):
+    candidates = sorted(
+        list(scaffold_tools.glob("build_*.py")) + list(scaffold_tools.glob("_lib.py"))
+    )
+    for scaffold_script in candidates:
         name = scaffold_script.name
         repo_script = repo_tools / name
         if not repo_script.is_file():
@@ -321,7 +348,9 @@ def audit_scripts(repo_root: Path, scaffold_root: Path) -> list[tuple[str, str]]
 def render_report(
     today: str,
     config_keys: list[str],
+    config_missing_file: bool,
     clinical_anchors: list[str],
+    clinical_missing_file: bool,
     items_audit: dict[str, list[tuple[str, list[str]]]],
     scripts_audit: list[tuple[str, str]],
     apply_mode: bool,
@@ -332,10 +361,42 @@ def render_report(
         "",
     ]
 
+    # TL;DR — high-level counters
+    n_items_incomplete = sum(len(v) for v in items_audit.values())
+    n_scripts_missing = sum(1 for _, s in scripts_audit if s == "MISSING")
+    n_scripts_outdated = sum(1 for _, s in scripts_audit if s == "OUTDATED")
+    lines += [
+        "## TL;DR",
+        "",
+        f"- **A.** dt-config.yaml: "
+        + ("file missing — run `/doc-init` first" if config_missing_file
+           else (f"{len(config_keys)} key(s) to add" if config_keys else "✓ up to date")),
+        f"- **B.** dt-clinical-context.md: "
+        + ("file missing — run `/doc-init` first" if clinical_missing_file
+           else (f"{len(clinical_anchors)} anchor(s) to add" if clinical_anchors else "✓ up to date")),
+        f"- **C.** items with incomplete frontmatter: **{n_items_incomplete}** "
+        f"across {len(items_audit)} categor{'ies' if len(items_audit) != 1 else 'y'}",
+        f"- **D.** tools scripts: **{n_scripts_missing}** missing, "
+        f"**{n_scripts_outdated}** outdated",
+        "",
+        "---",
+        "",
+    ]
+
     # A
     lines.append("## A. dt-config.yaml")
     lines.append("")
-    if not config_keys:
+    if config_missing_file:
+        lines += [
+            "⚠ **`dt-config.yaml` does not exist in this repo.** This is not a",
+            "migration scenario — the file has never been scaffolded.",
+            "",
+            "**Run `/doc-init` instead.** That will create the full file with",
+            "the proper header comments, sections, and defaults. `--apply` is",
+            "not appropriate here (it would create a malformed file without",
+            "the scaffold structure).",
+        ]
+    elif not config_keys:
         lines.append("✓ Up to date")
     else:
         for k in config_keys:
@@ -346,7 +407,12 @@ def render_report(
     # B
     lines.append("## B. docs/dt-clinical-context.md")
     lines.append("")
-    if not clinical_anchors:
+    if clinical_missing_file:
+        lines += [
+            "⚠ **`docs/dt-clinical-context.md` does not exist in this repo.**",
+            "Run `/doc-init` to scaffold the full file with all anchors.",
+        ]
+    elif not clinical_anchors:
         lines.append("✓ Up to date")
     else:
         for a in clinical_anchors:
@@ -354,7 +420,7 @@ def render_report(
             lines.append(f"- {a}: {status}")
     lines.append("")
 
-    # C
+    # C — group by missing-fields signature to compress repetition
     lines.append("## C. Items — frontmatter completeness")
     lines.append("")
     if not items_audit:
@@ -362,9 +428,27 @@ def render_report(
     else:
         for cat, incomplete in sorted(items_audit.items()):
             lines.append(f"### {cat}")
+            lines.append("")
+            # Group items by their missing-fields signature
+            groups: dict[tuple[str, ...], list[str]] = {}
             for item_id, missing in incomplete:
-                fields_str = ", ".join(missing)
-                lines.append(f"- {item_id}: missing fields [{fields_str}]")
+                groups.setdefault(tuple(missing), []).append(item_id)
+            for missing_sig, item_ids in sorted(groups.items()):
+                fields_str = ", ".join(missing_sig)
+                if len(item_ids) == 1:
+                    lines.append(f"- `{item_ids[0]}`: missing [{fields_str}]")
+                else:
+                    lines.append(
+                        f"- **{len(item_ids)} items** all missing "
+                        f"[{fields_str}]:"
+                    )
+                    # Show first 5, then "... +N more" if longer
+                    preview = item_ids[:5]
+                    rest = len(item_ids) - len(preview)
+                    inline = ", ".join(f"`{i}`" for i in preview)
+                    if rest > 0:
+                        inline += f", ... (+{rest} more)"
+                    lines.append(f"  {inline}")
             lines.append("")
     if items_audit:
         lines.append(
@@ -394,22 +478,32 @@ def render_report(
     lines.append("## Next actions")
     lines.append("")
     next_actions: list[str] = []
-    if config_keys and not apply_mode:
+
+    # Always recommend /doc-init first when sentinel files are absent.
+    if config_missing_file or clinical_missing_file:
         next_actions.append(
-            "Run `/doc-migrate --apply` to append missing keys to `dt-config.yaml`"
+            "**Run `/doc-init` first** — sentinel files (dt-config.yaml or "
+            "dt-clinical-context.md) are missing. `/doc-migrate --apply` is "
+            "designed for partial updates, not initial scaffolding."
         )
-    if clinical_anchors and not apply_mode:
-        next_actions.append(
-            "Run `/doc-migrate --apply` to append missing sections"
-            " to `docs/dt-clinical-context.md`"
-        )
+    else:
+        if config_keys and not apply_mode:
+            next_actions.append(
+                "Run `/doc-migrate --apply` to append missing keys to `dt-config.yaml`"
+            )
+        if clinical_anchors and not apply_mode:
+            next_actions.append(
+                "Run `/doc-migrate --apply` to append missing sections"
+                " to `docs/dt-clinical-context.md`"
+            )
     if items_audit:
         next_actions.append(
             "Review items listed in section C and add missing frontmatter fields manually"
         )
     if scripts_audit:
         next_actions.append(
-            "Run `/doc-init --update` to refresh outdated or missing `tools/build_*.py` scripts"
+            "Run `/doc-init --update` to refresh outdated or missing `tools/` scripts"
+            " (build_*.py and _lib.py)"
         )
     if not next_actions:
         next_actions.append("No action required — project is in sync with the current plugin version")
@@ -449,10 +543,12 @@ def main(argv: list[str] | None = None) -> int:
     today = date.today().isoformat()
 
     # --- A ---
-    config_keys, config_append = audit_config(repo_root, scaffold_root)
+    config_keys, config_append, config_missing_file = audit_config(repo_root, scaffold_root)
 
     # --- B ---
-    clinical_anchors, clinical_append = audit_clinical_context(repo_root, scaffold_root)
+    clinical_anchors, clinical_append, clinical_missing_file = audit_clinical_context(
+        repo_root, scaffold_root
+    )
 
     # --- C ---
     items_audit = audit_items(repo_root, scaffold_root)
@@ -462,13 +558,25 @@ def main(argv: list[str] | None = None) -> int:
 
     # --- Apply ---
     if args.apply:
-        if config_append:
+        if config_missing_file:
+            print(
+                "[A] SKIP: dt-config.yaml does not exist. Run `/doc-init` to "
+                "scaffold the full file with proper header/structure.",
+                file=sys.stderr,
+            )
+        elif config_append:
             print(
                 f"[A] Appending {len(config_keys)} key(s) to dt-config.yaml: "
                 + ", ".join(config_keys)
             )
             apply_config(repo_root, config_append, today)
-        if clinical_append:
+        if clinical_missing_file:
+            print(
+                "[B] SKIP: docs/dt-clinical-context.md does not exist. Run "
+                "`/doc-init` to scaffold the full file.",
+                file=sys.stderr,
+            )
+        elif clinical_append:
             print(
                 f"[B] Appending {len(clinical_anchors)} section(s) to"
                 " docs/dt-clinical-context.md: " + ", ".join(clinical_anchors)
@@ -479,7 +587,9 @@ def main(argv: list[str] | None = None) -> int:
     report = render_report(
         today=today,
         config_keys=config_keys,
+        config_missing_file=config_missing_file,
         clinical_anchors=clinical_anchors,
+        clinical_missing_file=clinical_missing_file,
         items_audit=items_audit,
         scripts_audit=scripts_audit,
         apply_mode=args.apply,
