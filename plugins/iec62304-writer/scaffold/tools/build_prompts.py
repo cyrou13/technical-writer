@@ -7,11 +7,16 @@ emits up to 3 prompt files under `docs/generated/prompts/`:
   - <SRS-ID>-unit-tests.md — prompt to write the unit tests
   - <SRS-ID>-e2e.md        — prompt for Playwright E2E (only if UI signal)
 
-UI detection heuristics:
-  - SRS source paths include `*.tsx`, `*.vue`, `*.svelte`, `*.jsx`,
-    `frontend/`, `ui/`, `web/`, `viewer/`
-  - SRS has a parent USC (use scenario) → user-facing
-  - SRS title/description mentions "user", "screen", "page", "form"
+UI detection heuristics (multi-tier, see _has_ui_signal):
+  - Inspection-verified SRS are never UI (doc/code review).
+  - SRS has a parent USC (use scenario) → UI (strongest positive).
+  - Source paths : UI hints (`*.tsx`, `viewer/`, `frontend/`, ...) are
+    overridden by backend hints (`maestra/`, `service.py`, `Dockerfile`,
+    `.gitlab-ci.yml`, `applications/`, ...). All-backend sources = not UI.
+  - Text: only strong multi-word phrases count ("user clicks", "the
+    page shows", "click the", "keyboard navigation", ...). Single words
+    like "viewer", "interface", "operator" do NOT trigger anymore —
+    they appear too often in backend prose.
 
 Reads:
     docs/items/SRS/*.md          (target requirements)
@@ -54,28 +59,79 @@ UI_PATH_HINTS = (
     ".tsx", ".jsx", ".vue", ".svelte", "frontend/", "ui/", "web/",
     "viewer/", "frontend\\", "ui\\", "web\\", "viewer\\",
 )
-UI_TEXT_HINTS = (
+
+# Counter-signals : these path patterns indicate backend/CI/infra, NOT UI.
+# Even if a UI hint also matches, presence of a strong backend hint means
+# the SRS likely needs unit tests, not E2E.
+NON_UI_PATH_HINTS = (
+    "/maestra/", "/dicom-node/", "/dicom-out/", "/applications/",
+    "/adapters/", "/server/", "/backend/", "/api/", "/cli/",
+    "maestra/", "dicom-node/", "dicom-out/", "applications/", "adapters/",
+    "service.py", "/main.py", "__init__.py",
+    ".gitlab-ci.yml", ".github/workflows/", "ci/", "Dockerfile",
+    "docker-compose", "deploy/", "/scripts/", "Makefile",
+    "pyproject.toml", "requirements.txt",
+)
+
+# Strong UI phrases — multi-word, hard to mismatch in backend prose.
+# Single-word hints ("viewer", "interface", "form", "button") were too
+# broad: backend SRS routinely mention "the viewer sends a request" or
+# "the API interface" without being UI work.
+UI_STRONG_PHRASES = (
     "user clicks", "user enters", "user sees", "user navigates",
-    "screen", "page", "form", "button", "menu", "modal", "dialog",
-    "viewer", "operator", "interface",
+    "user selects", "user types", "user scrolls", "user drags",
+    "the screen displays", "the page shows", "the form is",
+    "the button is", "the menu is", "the modal is", "the dialog is",
+    "click the", "press the", "tap the", "select the",
+    "render the", "displayed to the user",
+    "keyboard shortcut", "keyboard navigation", "drag and drop",
 )
 
 
 def _has_ui_signal(srs: Item, usc_items: list[Item]) -> bool:
-    """Return True if this SRS likely has a UI surface."""
-    sources = srs.fm.get("source") or []
-    for s in sources:
-        s_lower = str(s).lower()
-        if any(h in s_lower for h in UI_PATH_HINTS):
-            return True
+    """Return True if this SRS likely has a UI surface.
 
-    text = (srs.title + " " + (srs.fm.get("description") or "") + " " + srs.body).lower()
-    if any(h in text for h in UI_TEXT_HINTS):
-        return True
+    Multi-tier heuristic to avoid over-classification :
 
+    1. Inspection-verified SRS are never UI (they're doc/code reviews).
+    2. Direct USC parent link is the strongest positive signal.
+    3. Path-based : require at least one UI path AND no overriding
+       backend/CI path. If sources are exclusively backend → not UI,
+       regardless of body text (avoids "viewer" / "interface" false
+       positives in backend descriptions).
+    4. Text-based : only **strong multi-word phrases** count.
+    """
+    # 1. Inspection verification = doc/code review, never UI work.
+    verification = str(srs.fm.get("verification") or "").lower()
+    if verification == "inspection":
+        return False
+
+    # 2. USC parent link — strongest positive signal, short-circuit.
     parents = (srs.fm.get("links") or {}).get("parent") or []
     usc_ids = {u.id for u in usc_items}
     if any(p in usc_ids for p in parents):
+        return True
+
+    # 3. Path-based : classify sources.
+    sources = [str(s).lower() for s in (srs.fm.get("source") or [])]
+    has_ui_path = any(any(h in s for h in UI_PATH_HINTS) for s in sources)
+    has_non_ui_path = any(
+        any(h in s for h in NON_UI_PATH_HINTS) for s in sources
+    )
+
+    if sources:
+        # All sources are clearly backend/CI/infra → not UI.
+        if has_non_ui_path and not has_ui_path:
+            return False
+        # At least one UI path and no contradicting backend path → UI.
+        if has_ui_path and not has_non_ui_path:
+            return True
+        # Mixed (both UI and backend paths) → fall through to text check.
+
+    # 4. Text-based : only strong multi-word phrases.
+    text = (srs.title + " " + (srs.fm.get("description") or "")
+            + " " + srs.body).lower()
+    if any(p in text for p in UI_STRONG_PHRASES):
         return True
 
     return False
