@@ -32,6 +32,8 @@ from pathlib import Path
 # Shared helpers
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    build_dir,
+    deliverable_dir,
     Item,
     load_clinical_context,
     load_items,
@@ -649,7 +651,7 @@ def try_pandoc(
     if not pandoc:
         ctx.log("INFO: pandoc not found — .docx not produced")
         return False
-    src, is_temp = pandoc_input(md_path, EXPORT_DIR / "figures", log=ctx.log)
+    src, is_temp = pandoc_input(md_path, build_dir(ROOT, ctx.config, EXPORT_DIR) / "figures", log=ctx.log)
     cmd = [pandoc, str(src), "--toc", "--toc-depth=3", "-o", str(docx_path)]
     if reference_docx and reference_docx.is_file():
         cmd.insert(2, f"--reference-doc={reference_docx}")
@@ -778,10 +780,9 @@ def main() -> int:
     # -- Output paths --
     ident = stp_identifier(config)
     ver = version_label(config)
-    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    md_path = EXPORT_DIR / f"{ident}-{ver}-STP.md"
-    docx_path = EXPORT_DIR / f"{ident}-{ver}-STP.docx"
-    log_path = EXPORT_DIR / f"{ident}-{ver}-stp-export.log"
+    md_path = deliverable_dir(ROOT, ctx.config, f"{ident}-{ver}-STP", EXPORT_DIR) / f"{ident}-{ver}-STP.md"
+    docx_path = deliverable_dir(ROOT, ctx.config, f"{ident}-{ver}-STP", EXPORT_DIR) / f"{ident}-{ver}-STP.docx"
+    log_path = build_dir(ROOT, ctx.config, EXPORT_DIR) / f"{ident}-{ver}-stp-export.log"
 
     md_path.write_text(md, encoding="utf-8")
 

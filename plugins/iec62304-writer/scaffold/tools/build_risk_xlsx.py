@@ -44,6 +44,8 @@ except ImportError:
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    build_dir,
+    deliverable_dir,
     Item,
     load_items,
     parse_yaml,
@@ -413,9 +415,8 @@ def main() -> int:
     doc = (config.get("document") or {}) if config else {}
     identifier = str(doc.get("identifier") or "UNKNOWN").strip()
     version_label = str(doc.get("version_label") or "V01").strip()
-    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    xlsx_path = EXPORT_DIR / f"{identifier}-{version_label}-RISK-TABLE.xlsx"
-    log_path = EXPORT_DIR / f"{identifier}-{version_label}-risk-xlsx.log"
+    xlsx_path = deliverable_dir(ROOT, config, f"{identifier}-{version_label}-RISK-TABLE", EXPORT_DIR) / f"{identifier}-{version_label}-RISK-TABLE.xlsx"
+    log_path = build_dir(ROOT, config, EXPORT_DIR) / f"{identifier}-{version_label}-risk-xlsx.log"
 
     wb.save(xlsx_path)
     ctx.log(f"OK: wrote {xlsx_path.relative_to(ROOT)}")

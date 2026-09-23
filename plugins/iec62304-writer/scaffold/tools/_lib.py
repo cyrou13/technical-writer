@@ -13,6 +13,7 @@ Python 3.12+, stdlib only.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import os
 import re
@@ -595,3 +596,68 @@ def strip_internal_sections(body: str, headers: tuple[str, ...] = INTERNAL_SECTI
         end = m.end() + nxt.start() if nxt else len(body)
         body = (body[: m.start()].rstrip() + "\n\n" + body[end:].lstrip()).strip()
     return body
+
+
+# ---------------------------------------------------------------------------
+# Where a deliverable is written
+# ---------------------------------------------------------------------------
+#
+# With `submission.root` in dt-config.yaml, every exporter writes its deliverable
+# straight into the numbered folder of the submission tree whose number is the
+# document number (house convention: `05.Risk Management` holds `…-10-005-…`), so
+# there is one copy of each document and no staging directory to keep in step.
+# The build's own records (export logs, rendered diagrams) are not deliverables
+# and go under docs/generated/build. Without `submission.root` everything goes to
+# the exporter's fallback directory (docs/export), which is what a project with no
+# submission tree, and the test suite, get.
+
+_DOC_NUMBER_RE = re.compile(r"-\d{2}-(\d{3})(?=-)")
+_SLOT_NUMBER_RE = re.compile(r"^(\d+)[. ]")
+
+
+def submission_root(root: Path, config: dict | None) -> Path | None:
+    """The submission tree the deliverables are written into, or None."""
+    rel = str(((config or {}).get("submission") or {}).get("root") or "").strip()
+    return (root / rel) if rel else None
+
+
+def deliverable_dir(root: Path, config: dict | None, stem: str, fallback: Path) -> Path:
+    """The folder a deliverable named `stem` is written to (created if needed).
+
+    `submission.folders` is a list of `{match, folder}` entries (fnmatch on the
+    stem), for a project whose file names do not carry a document number.
+    Otherwise the folder is the numbered slot whose number is the document number
+    in `stem` (`…-NN-NNN-…`). A stem that matches neither is an error rather than
+    a silent fallback: a deliverable that lands outside the tree would ship
+    without anything claiming it.
+    """
+    tree = submission_root(root, config)
+    if tree is None:
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+    for entry in ((config or {}).get("submission") or {}).get("folders") or []:
+        if isinstance(entry, dict) and fnmatch.fnmatchcase(stem, str(entry.get("match") or "")):
+            out = tree / str(entry.get("folder") or "")
+            out.mkdir(parents=True, exist_ok=True)
+            return out
+    m = _DOC_NUMBER_RE.search(stem)
+    if not m:
+        raise ValueError(
+            f"{stem}: no document number (…-NN-NNN-…) and no `submission.folders` "
+            f"pattern matches it; cannot place it in {tree}")
+    number = int(m.group(1))
+    slots = [d for d in sorted(tree.iterdir()) if d.is_dir()
+             and (sm := _SLOT_NUMBER_RE.match(d.name)) and int(sm.group(1)) == number] \
+        if tree.is_dir() else []
+    if len(slots) != 1:
+        raise ValueError(
+            f"{stem}: document number {number:03d} matches {len(slots)} folder(s) of {tree} "
+            f"(expected one numbered folder; lay out the tree first)")
+    return slots[0]
+
+
+def build_dir(root: Path, config: dict | None, fallback: Path) -> Path:
+    """Where an exporter keeps its build records (log, rendered diagrams), created if needed."""
+    out = (root / "docs" / "generated" / "build") if submission_root(root, config) else fallback
+    out.mkdir(parents=True, exist_ok=True)
+    return out

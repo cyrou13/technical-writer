@@ -47,6 +47,8 @@ from pathlib import Path
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    build_dir,
+    deliverable_dir,
     Item,
     load_clinical_context,
     load_items,
@@ -1056,7 +1058,7 @@ def try_pandoc(
     if not pandoc:
         ctx.log(f"INFO: pandoc not found — .docx not produced for {md_path.name}")
         return False
-    src, is_temp = pandoc_input(md_path, EXPORT_DIR / "figures", log=ctx.log)
+    src, is_temp = pandoc_input(md_path, build_dir(ROOT, ctx.config, EXPORT_DIR) / "figures", log=ctx.log)
     cmd = [pandoc, str(src), "--toc", "--toc-depth=3", "-o", str(docx_path)]
     if reference_docx and reference_docx.is_file():
         cmd.insert(2, f"--reference-doc={reference_docx}")
@@ -1252,27 +1254,26 @@ def main() -> int:
     titles = derive_doc_titles(config)
 
     # Render
-    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
     version_label = identifiers["version_label"]
     rendered: dict[str, tuple[Path, str]] = {}
 
     if args.only in (None, "uef"):
         md = render_uef(ctx, identifiers, titles["uef"])
-        path = EXPORT_DIR / f"{identifiers['uef']}-{version_label}-UEF.md"
+        path = deliverable_dir(ROOT, ctx.config, f"{identifiers['uef']}-{version_label}-UEF", EXPORT_DIR) / f"{identifiers['uef']}-{version_label}-UEF.md"
         path.write_text(md, encoding="utf-8")
         rendered["uef"] = (path, md)
         ctx.log(f"OK: wrote {path.relative_to(ROOT)} ({md.count(chr(10))} lines)")
 
     if args.only in (None, "use"):
         md = render_use(ctx, identifiers, titles["use"])
-        path = EXPORT_DIR / f"{identifiers['use']}-{version_label}-USE.md"
+        path = deliverable_dir(ROOT, ctx.config, f"{identifiers['use']}-{version_label}-USE", EXPORT_DIR) / f"{identifiers['use']}-{version_label}-USE.md"
         path.write_text(md, encoding="utf-8")
         rendered["use"] = (path, md)
         ctx.log(f"OK: wrote {path.relative_to(ROOT)} ({md.count(chr(10))} lines)")
 
     if args.only in (None, "annex1"):
         md = render_annex1(ctx, identifiers, titles["annex1"])
-        path = EXPORT_DIR / f"{identifiers['annex1']}-{version_label}-UEF-Annex1.md"
+        path = deliverable_dir(ROOT, ctx.config, f"{identifiers['annex1']}-{version_label}-UEF-Annex1", EXPORT_DIR) / f"{identifiers['annex1']}-{version_label}-UEF-Annex1.md"
         path.write_text(md, encoding="utf-8")
         rendered["annex1"] = (path, md)
         ctx.log(f"OK: wrote {path.relative_to(ROOT)} ({md.count(chr(10))} lines)")
@@ -1306,7 +1307,7 @@ def main() -> int:
         ctx.log(f"WARN: {len(unmitigated)} URSK item(s) without any SRS.links.mitigates pointing at them")
 
     # Log file
-    log_path = EXPORT_DIR / f"{identifiers['uef']}-{version_label}-use-export.log"
+    log_path = build_dir(ROOT, ctx.config, EXPORT_DIR) / f"{identifiers['uef']}-{version_label}-use-export.log"
     header = [
         f"build_use_export run at {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
         f"uef={identifiers['uef']} use={identifiers['use']} annex1={identifiers['annex1']}",

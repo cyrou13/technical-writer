@@ -26,6 +26,19 @@ document:
 # documents must carry the same identifier (SL-10). The usability triplet
 # (UEF / USE / UEF-Annex1) is configured under `usability.document` below.
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Submission tree (optional). Without it every exporter writes to docs/export/.
+# With it, each deliverable is written straight into its folder of the tree:
+# the folder whose number is the document number (…-NN-006-… → "06.…"), or the
+# first `folders` entry whose `match` (fnmatch on the file stem) fits.
+# Export logs and rendered diagrams go to docs/generated/build/.
+# -----------------------------------------------------------------------------
+# submission:
+#   root: submission/C_HD_XXX
+#   folders:                       # only for file names without a document number
+#     - match: "*-SRS"
+#       folder: "06.SRS"
+
 documents:
   srs: "[TODO e.g. AV-DP-XXX-10-006-SRS]"   # == document.identifier
   sdd: "[TODO e.g. AV-DP-XXX-10-007-SDD]"

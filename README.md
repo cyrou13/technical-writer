@@ -273,13 +273,38 @@ produced and the reviewer applies the rules by hand.
 | — | `docs/generated/_to_implement.md` | — | Actionable A/B/C/D/E backlog |
 | — | `docs/generated/coverage.json` | — | Machine-readable metrics |
 | 99 | `docs/generated/99_compliance_review.md` | — | Compliance review — DECISION findings first, then gate offenders, then coverage |
-| Export | `docs/export/<doc-id>-<vXX>-SRS.md` (+ optional `.docx`) | IEC 62304 §5.2 | QMS-ready SRS (signed cover, revision history, §1 framing with references table, §2 requirements — one section per kind, each requirement a heading, §3 traceability → MAP, §4.1 parameter registry). `/doc-srs-export`. |
+| Export | `docs/export/` (or its `submission.root` folder) `<doc-id>-<vXX>-SRS.md` (+ optional `.docx`) | IEC 62304 §5.2 | QMS-ready SRS (signed cover, revision history, §1 framing with references table, §2 requirements — one section per kind, each requirement a heading, §3 traceability → MAP, §4.1 parameter registry). `/doc-srs-export`. |
 | Export | `docs/export/<doc-id>-<vXX>-SDD.md` (+ `.docx`) | IEC 62304 §5.3-§5.4 | Software Design Description (modules rendered once, §3.8 parameter registry, OTS table from `docs/ots.yaml`, the six narrative sections, threat records, rationale appendix, unresolved-anomalies appendix). `/doc-sdd-export`. |
 | Export | `docs/export/<doc-id>-<vXX>-STP.md`, `-STDR.md`, `-STR.md` (+ `.docx`) | IEEE 829 / §5.5 / §5.7 | Test Plan / Test Description and Reports / Test Report — each under its own `documents.<x>` identifier; STDR and STR carry the run metadata of the bound run. `/doc-stp-export`, `/doc-stdr-export`, `/doc-str-export`. |
 | Export | `docs/export/<doc-id>-<vXX>-RAR.md` (+ `.docx` + `.csv`) | ISO 14971 / IEC 81001-5-1 / IEC 62366-1 | Risk Analysis Report (harm-based scales, per-record controls and residual argument, threat records, class argument). `/doc-risk-export`. |
 | Export | `docs/export/<doc-id>-<vXX>-RISK-TABLE.xlsx` | ISO 14971 | 4-tab Excel inventory (Design / Production / Usability / Cybersecurity). `/doc-risk-xlsx`. |
 | Export | `docs/export/<doc-id>-<vXX>-UEF.md` + `-USE.md` + `-UEF-Annex1.md` (+ optional `.docx`) | IEC 62366-1 | QMS-ready usability triplet: Usability Engineering File (use specification + risk assessment + formative + summative), Summative Evaluation (protocol + report + Annex A questionnaire), Annex 1 IECEE clause-by-clause. `/doc-use-export`. |
 | — | `docs/generated/prompts/`, `docs/generated/migration-report.md` | — | Coverage-gap prompts, migration audit — never a deliverable |
+
+### Where the exports land: straight into the submission tree
+
+By default every exporter writes into `docs/export/`. A project that keeps its
+technical file as a numbered folder tree sets `submission.root` in
+`dt-config.yaml`, and each exporter then writes its deliverable **directly into
+its folder of that tree** — one copy of each document, no staging directory to
+copy from:
+
+```yaml
+submission:
+  root: submission/C_HD_XXX          # the tree, relative to the repository root
+  # Optional, for file names without a document number:
+  # folders:
+  #   - match: "*-SRS"                # fnmatch on the file stem
+  #     folder: "06.SRS"
+```
+
+The folder is found from the document number in the identifier
+(`AV-DP-XXX-10-006-SRS` → the folder whose name starts with `06`, the house
+convention "folder number = document number"), or from the first
+`submission.folders` entry whose `match` fits the file stem. A deliverable that
+matches neither is refused rather than written somewhere else. The build's own
+records — the export logs and the rendered diagrams — are not deliverables and
+go to `docs/generated/build/`.
 
 ## Plugin components
 
