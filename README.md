@@ -273,6 +273,7 @@ produced and the reviewer applies the rules by hand.
 | — | `docs/generated/_to_implement.md` | — | Actionable A/B/C/D/E backlog |
 | — | `docs/generated/coverage.json` | — | Machine-readable metrics |
 | 99 | `docs/generated/99_compliance_review.md` | — | Compliance review — DECISION findings first, then gate offenders, then coverage |
+| Export | `<doc-id>-<vXX>-PMP.md` (+ `.docx`) in the `01.` folder of `submission.root` | ISO 13485 §7.3.2 / IEC 62304 §5.1 | Project Management Plan in the house chapters: team, WBS, planning with a Gantt chart (Annex A), suppliers, reviews, documentation rules and the document numbering table, life cycle, test phases. Facts from `project_management:`, prose from `docs/dt-pmp-context.md`. `/doc-pmp-export` (reference exporter, synced from CINA-CTP). |
 | Export | `docs/export/` (or its `submission.root` folder) `<doc-id>-<vXX>-SRS.md` (+ optional `.docx`) | IEC 62304 §5.2 | QMS-ready SRS (signed cover, revision history, §1 framing with references table, §2 requirements — one section per kind, each requirement a heading, §3 traceability → MAP, §4.1 parameter registry). `/doc-srs-export`. |
 | Export | `docs/export/<doc-id>-<vXX>-SDD.md` (+ `.docx`) | IEC 62304 §5.3-§5.4 | Software Design Description (modules rendered once, §3.8 parameter registry, OTS table from `docs/ots.yaml`, the six narrative sections, threat records, rationale appendix, unresolved-anomalies appendix). `/doc-sdd-export`. |
 | Export | `docs/export/<doc-id>-<vXX>-STP.md`, `-STDR.md`, `-STR.md` (+ `.docx`) | IEEE 829 / §5.5 / §5.7 | Test Plan / Test Description and Reports / Test Report — each under its own `documents.<x>` identifier; STDR and STR carry the run metadata of the bound run. `/doc-stp-export`, `/doc-stdr-export`, `/doc-str-export`. |
@@ -363,6 +364,7 @@ go to `docs/generated/build/`.
 | `/doc-update [Vx.y]` | Incremental update after the code changed (orphans, stale, gaps); step 8 reports the lint counts |
 | `/doc-item <ID> [title]` | CRUD of one item from the templates |
 | `/doc-build [--strict \| --internal \| --release]` | Working build (`tools/build_docs.py`), internal copy with the open-points register, or gated release export of every deliverable |
+| `/doc-pmp-export [--internal \| --release] [--md-only]` | Project Management Plan via `tools/build_pmp_export.py` (reference exporter synced from CINA-CTP; `project_management:` + `docs/dt-pmp-context.md`) |
 | `/doc-srs-export [--strict \| --internal \| --release] [--md-only]` | QMS-ready SRS in `docs/export/` via `tools/build_srs_export.py` |
 | `/doc-sdd-export [--strict \| --internal \| --release] [--md-only]` | Software Design Description via `tools/build_sdd_export.py` |
 | `/doc-stp-export [--strict \| --internal \| --release] [--md-only]` | Software Test Plan via `tools/build_stp_export.py` |

@@ -36,6 +36,8 @@ into the plugin:
 | `build_srs_export.py` | Software Requirements Specification (one section per `kind`, each requirement a heading, references table, parameter registry §4.1) |
 | `build_sdd_export.py` | Software Design Description (modules rendered once, whole parameter registry §3.8, OTS table from `docs/ots.yaml` deduplicated, the six narrative sections, threat records, rationale appendix, unresolved anomalies appendix) |
 | `build_stp_export.py`, `build_stdr_export.py`, `build_str_export.py` | Software Test Plan / Description and Results / Report — each under its own `documents.<x>` identifier |
+| `build_pmap_export.py` | Project Master Plan (house chapters of the CINA-BAT PMAP: context, device description, intended use, market history, predicate, use requirements `MAP-…`, intended-use traceability, validation plan) |
+| `build_pmp_export.py` | Project Management Plan (house chapters of the CINA-CSpine / CINA-CTP PMP) from `project_management:` and `docs/dt-pmp-context.md`; the team's names are exempt from the register rule in this document only, Annex A (planning, Gantt) is a dated record |
 | `build_risk_export.py` | risk analysis report (Design / Production / Usability tabs, per-record controls and residual argument, threat records, scales, `.xlsx`) |
 | `build_open_points.py` | the open-points register (`## Open questions` + markers) — `--internal` only |
 | `build_rationale.py` | the SDD rationale appendix from the `## Design notes` sections |

@@ -40,6 +40,7 @@ document:
 #       folder: "06.SRS"
 
 documents:
+  pmp: "[TODO e.g. AV-DP-XXX-10-001-PMP]"   # project management plan (tools/build_pmp_export.py)
   srs: "[TODO e.g. AV-DP-XXX-10-006-SRS]"   # == document.identifier
   sdd: "[TODO e.g. AV-DP-XXX-10-007-SDD]"
   rar: "[TODO e.g. AV-DP-XXX-10-005-RAR]"
@@ -147,6 +148,120 @@ approvals:
   approved_by:
     name: "[TODO]"
     role: "[TODO Regulatory Manager / Quality Manager / ...]"
+
+# Signatories per document (optional), overriding `approvals` role by role. Keys
+# are the `documents:` keys. A role may hold several signatories (a list); each
+# gets its own signature box. The signature date column is left blank: it is the
+# date of the signature, never a planned date.
+# document_approvals:
+#   pmp:
+#     written_by:
+#       name: "[TODO]"
+#       role: "Project Manager"
+#     verified_by:
+#       - name: "[TODO]"
+#         role: "Production Manager"
+#       - name: "[TODO]"
+#         role: "Chief Technology Officer"
+#     approved_by:
+#       name: "[TODO]"
+#       role: "Chief Executive Officer"
+
+# -----------------------------------------------------------------------------
+# Project management — the facts of the Project Management Plan
+# (tools/build_pmp_export.py; its prose is docs/dt-pmp-context.md). Write a
+# value still to be confirmed as a `[TODO …]` marker: the draft prints it and
+# the release gate refuses the document until it is replaced. The names of the
+# team are the PMP's subject: the register rule that keeps personal names out of
+# every other deliverable does not apply to it.
+# -----------------------------------------------------------------------------
+project_management:
+  org_chart: "[TODO organisation chart and version, e.g. AV-ORG v34]"
+  # §1.3. `document:` names a key of `documents:` (number and title derived);
+  # a common or external document is written out with identifier + title.
+  references:
+    - id: R1
+      identifier: AV-DP-COMMON-004-QAL
+      title: Quality Assurance Plan
+    - id: R2
+      identifier: AV-DP-COMMON-003-SDP
+      title: Software Development Plan
+    - id: R3
+      identifier: AV-DP-COMMON-002-CMP
+      title: Software Configuration Management Plan
+    - id: R4
+      identifier: AV-DP-COMMON-005-ASD
+      title: Applicable Standards Document
+    - id: R5
+      document: pmap
+  # §2.1. One row per title; `names` is a list.
+  team:
+    - title: Project Manager
+      names: ["[TODO]"]
+      responsibilities: "[TODO]"
+  # §2.2. Task types of the WBS codification `<project>-<type>-<index>`.
+  task_types:
+    - letter: M
+      meaning: Management
+    - letter: S
+      meaning: Specification
+    - letter: E
+      meaning: Engineering (general and detailed conception, Risk analysis)
+    - letter: R
+      meaning: Realization (coding and unit testing)
+    - letter: T
+      meaning: Integration and software Verification tests
+    - letter: V
+      meaning: Software Validation tests
+    - letter: C
+      meaning: Clinical Evaluation
+    - letter: D
+      meaning: Documentation
+    - letter: P
+      meaning: Post-release maintenance
+    - letter: X
+      meaning: Others
+  # A row without `owner` is a task-type heading.
+  wbs:
+    - id: AV-M
+      description: MANAGEMENT
+    - id: AV-M-100
+      description: Project Management
+      owner: "[TODO]"
+  # §2.2 and Annex A (a dated record: the only place of the plan where dates
+  # are printed). `start: null` = not recorded (open marker in the table, the
+  # end-of-phase review only in the Gantt chart).
+  planning:
+    tool: "[TODO e.g. the Asana project XXX]"
+    recorded_on: YYYY-MM-DD
+    development_period: "[TODO e.g. May 2026 to October 2026]"
+    regulatory_period: "[TODO e.g. November 2026 for the notified body acceptance]"
+    target_release: "[TODO e.g. CINA-XXX V1.0.0]"
+    phases:
+      - phase: Project launch
+        tasks: [AV-M-100]
+        start: null
+        end: null
+        review: Launch review
+        review_date: null
+    milestones:
+      - milestone: "[TODO e.g. FDA 510(k) submission]"
+        date: null
+  # §2.4.2. One entry per supplier type; an empty list reads "No supplier".
+  suppliers: []
+  # §4.2. The documentation area of the shared drive, root first.
+  documentation_tree:
+    - folder: MD File
+      purpose: root directory
+    - folder: "[TODO C_HD_XXX]"
+      purpose: Documentation specific to the project
+    - folder: C_COMMON
+      purpose: common documentation between different projects
+  procedures:
+    documentation_control: AV-P01
+    document_identification: AV-I09-04
+    suppliers: AV-P13
+    problem_resolution: AV-P12
 
 # -----------------------------------------------------------------------------
 # Revision history — one row per released version of THIS document.

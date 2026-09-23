@@ -1,5 +1,5 @@
 ---
-description: Scaffolds the current repository for the 62304 pipeline — copies tools/*.py (working build, working-draft exporters, migrate / refresh / prompts / audit tools), docs/templates/, docs/static/, docs/test_plan_intro.md, docs/ots.yaml, docs/dt-clinical-context.md (six required SDD sections, empty), dt-config.yaml, test-results.example.json, and creates docs/items/. Run once per target repository; --update refreshes the tools.
+description: Scaffolds the current repository for the 62304 pipeline — copies tools/*.py (working build, working-draft exporters, migrate / refresh / prompts / audit tools), docs/templates/, docs/static/, docs/test_plan_intro.md, docs/ots.yaml, docs/dt-clinical-context.md (six required SDD sections, empty), docs/dt-pmp-context.md (the house PMP prose), dt-config.yaml, test-results.example.json, and creates docs/items/. Run once per target repository; --update refreshes the tools.
 ---
 
 ## OUTPUT LANGUAGE — STRICT
@@ -128,7 +128,7 @@ for tpl in map-item srs-item sds-item tc-item rsk-item prsk-item thr-item usc-it
 done
 
 # Hand-maintained files — NEVER overwritten
-for f in docs/test_plan_intro.md docs/ots.yaml docs/dt-clinical-context.md dt-config.yaml; do
+for f in docs/test_plan_intro.md docs/ots.yaml docs/dt-clinical-context.md docs/dt-pmp-context.md dt-config.yaml; do
   if [ ! -f "$f" ]; then
     cp "${CLAUDE_PLUGIN_ROOT}/scaffold/$f" "$f"; CREATED+=("$f")
   else
@@ -177,7 +177,9 @@ echo; echo "=== Skipped ==="; printf '  %s\n' "${SKIPPED[@]}"
   label, date, `revision_history`, `lint.forbidden_terms`),
   `docs/test_plan_intro.md`, the six empty sections of
   `docs/dt-clinical-context.md` (the architecture-writer and
-  security-analyst fill them from the code, a human reviews),
+  security-analyst fill them from the code, a human reviews), the
+  `project_management:` block of `dt-config.yaml` and the `[TODO]`s of
+  `docs/dt-pmp-context.md` (the PMP — facts from the project team),
 - next step: `/doc-62304`, or `/doc-item SRS-XXX-001 "…"`,
 - the reference exporters must be synced from the CINA-CTP repository
   (`tools/README.md`) before `/doc-build --release` can produce a

@@ -475,6 +475,23 @@ def _mmdc_path() -> str | None:
     return os.environ.get("MMDC") or shutil.which("mmdc")
 
 
+#: Browsers puppeteer can drive when the one it downloads is absent (an npx
+#: install fetches mermaid-cli but not its Chrome): without one every diagram
+#: silently stays a code block in the .docx.
+_SYSTEM_BROWSERS = ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser")
+
+
+def _puppeteer_env() -> dict[str, str]:
+    """The environment of mmdc: PUPPETEER_EXECUTABLE_PATH set to a system browser
+    when the caller has not set it and one is installed."""
+    env = dict(os.environ)
+    if not env.get("PUPPETEER_EXECUTABLE_PATH"):
+        found = next((shutil.which(b) for b in _SYSTEM_BROWSERS if shutil.which(b)), None)
+        if found:
+            env["PUPPETEER_EXECUTABLE_PATH"] = found
+    return env
+
+
 def _puppeteer_config() -> str | None:
     """MERMAID_PUPPETEER_CONFIG, else tools/puppeteer.json when the repo ships one."""
     env = os.environ.get("MERMAID_PUPPETEER_CONFIG")
@@ -531,7 +548,7 @@ def render_mermaid_for_pandoc(
             if puppeteer_config:
                 cmd += ["-p", puppeteer_config]
             try:
-                proc = subprocess.run(cmd, capture_output=True, text=True,
+                proc = subprocess.run(cmd, capture_output=True, text=True, env=_puppeteer_env(),
                                       timeout=MERMAID_RENDER_TIMEOUT_S)
             except subprocess.TimeoutExpired:
                 _log(f"WARN: figure {n} timed out after {MERMAID_RENDER_TIMEOUT_S}s — left as a code block")
