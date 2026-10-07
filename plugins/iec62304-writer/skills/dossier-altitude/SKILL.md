@@ -314,6 +314,29 @@ exit codes, image digest and UDI, logs, permitted settings) when the device
 follows the common contract; never an entry-point path, uid, base image, SRS/TC
 column or verification table.
 
+## Clinical and bench performance reports
+
+**Clinical validation report (30–40 pages + image annex).** Skeleton: introduction
+with explicit objectives; intended use quoted; methodology (material; data with
+sources, inclusion/exclusion, protocol, independence from development; reference
+standard; statistics in bullets); results (data distribution, primary endpoint,
+secondary endpoints, stratification on ≥ 4 axes, discordant cases in an appendix
+with a cause per case, processing time); affirmative conclusion. Numbered tables,
+no teaching prose. Substantial-equivalence argument belongs to the 510(k) SE
+section; engineering step reviews to the test report; image plates to an annex.
+
+**Acceptance criteria.** Pre-specified, dated and signed before the validation
+data are scored, derived from the predicate and literature, never from the
+device's own results; applied to a cohort never used in development. Cohorts seen
+during development are supporting evidence, declared as such. A pre-specification
+date is never backdated. Add a reader study only when the claim or the predicate
+needs one.
+
+**Bench report.** Separate, ≈ 12 pages, device vocabulary, no code names; a
+criterion that expects a bias states why. Counts reconcile across the test case,
+the report and the tables; a statistic undefined on the data (e.g. ICC with zero
+reference variance) is not printed.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -336,3 +359,4 @@ instead.
 - 2026-10-07 — STP, STDR, STR (decisions S08.1–S10.2).
 - 2026-10-07 — Methods (decisions S12.1–S12.4).
 - 2026-10-07 — SUM, VDD, DCS, integration guide (decisions S13.1, S14.1, S15.1, S36.1).
+- 2026-10-07 — clinical and bench performance reports (decisions S18.1–S18.4).
