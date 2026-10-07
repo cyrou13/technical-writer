@@ -139,7 +139,11 @@ word for word and adds only what the project really needs.
 cyber report, OTS/SBOM assessment and penetration test report are kept for a US
 submission, but each threat is written once (the risk assessment); the others
 hold a table or a reference; one references block. A penetration test report is
-issued only from a performed test (external provider).
+issued only from a performed test: an external provider, or an internal campaign
+on the release image (method NIST SP 800-115, each trial and result recorded)
+whose report states the testers' independence and has the protocol and results
+reviewed by someone who did not develop the device; the cyber report then says
+why no external test was performed.
 
 ## Requirement cartouche (rendering)
 
