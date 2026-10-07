@@ -337,6 +337,33 @@ criterion that expects a bias states why. Counts reconcile across the test case,
 the report and the tables; a statistic undefined on the data (e.g. ICC with zero
 reference variance) is not printed.
 
+## Usability, labels, lifetime, declarations, reviews, model card
+
+**Usability engineering file (≈ 14 pages).** Short use specification in a/b/c
+lists with resource requirements; 3–4 use scenarios of 5–6 steps, no internal
+IDs; hazardous situations = one sentence referring to the risk table's usability
+tab; UI specification by reference to the SRS. No task may imply a clinical
+decision the device does not claim (e.g. treatment selection). Service or
+traceability activities are not use scenarios. Summative protocol (≈ 14 pages)
+organised by scenario with participants, cases, environment, data and criteria in
+≈ 300 words, never development preconditions; it is conducted before submission.
+
+**Labels.** Deliver the artwork (front, translated texts), not a specification.
+
+**Expected lifetime.** One page: duration and a 3–5-sentence rationale tied to
+the support windows of the base OS and interpreter, and to the corrective
+releases that keep them supported. Check the base image's support end against
+the claimed duration.
+
+**Declarations (e.g. animal origin).** A signed letter, no TF apparatus.
+
+**Design reviews.** A workbook, one tab per phase, header with an independent
+reviewer and participants, checklist OK/KO/NA/Comments/Action, filled from
+reviews actually held. Never prose about missing reviews.
+
+**Model card.** One CHAI card at device level covering every ML component, with
+key metrics including stratified (fairness) results; no gap-tracking preamble.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -360,3 +387,4 @@ instead.
 - 2026-10-07 — Methods (decisions S12.1–S12.4).
 - 2026-10-07 — SUM, VDD, DCS, integration guide (decisions S13.1, S14.1, S15.1, S36.1).
 - 2026-10-07 — clinical and bench performance reports (decisions S18.1–S18.4).
+- 2026-10-07 — usability, labels, lifetime, declarations, reviews, model card (decisions S21.1–S37.1).
