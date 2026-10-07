@@ -393,6 +393,16 @@ tracking stays internal; at issue there is no partial or open verdict). 81001
 includes the normative Annexes F and G and a Gap/Notes prose column. Landscape,
 Regulatory Affairs header.
 
+## Identifier numbering in a first release
+
+A first release (V1.0) has no history to preserve. A merged or obsolete record is
+deleted, not given a Retired or Deprecated status, and each TYPE-AREA family is
+numbered 001..N without gaps. During a regroup, delete the records and re-parent
+their children. Then run one renumbering pass at the end, which rewrites every
+reference in the store, the generators, the tests and the code comments. Do not
+renumber piecemeal. The retirement convention (Retired status plus a history line)
+applies from the first revision after a release.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
