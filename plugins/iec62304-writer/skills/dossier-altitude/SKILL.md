@@ -184,6 +184,41 @@ ERROR/WARNING/INFO/DEBUG, level settable); a product requirement that every
 output DICOM object carries the UDI; a section on what the host platform must
 provide; a one-line reference to the test plan for verification.
 
+## SDD — Software Design Description
+
+**Altitude.** Architecture and identified units, not developer documentation. For
+a class B device, IEC 62304 §5.4.1 asks for units to be identified; per-unit
+detailed design (§5.4.2–5.4.3) is class C only. Target 35–45 pages,
+9,000–12,000 words; table of contents 3 levels; reference structure 1–5
+(introduction, architecture, design, security, COTS/SOUP).
+
+**Design chapter.** 8–10 software items in one table (item, description, SRS
+requirements). The application-specific chapter is three tables — input checks,
+processing units each pointing to its Methods section, outputs — plus one
+specialisation figure, with the sentence "processing details and performance
+verification: Methods". Never a function signature, a dataclass field or a
+source path; class and method names only in tables.
+
+**What leaves the SDD.**
+- Design rationale with development results: ≈ 8 major decisions go to the
+  Methods (one paragraph each, key figure); the rest to the internal engineering
+  record.
+- The full parameter register: only a ≈ 2-page table of clinically significant
+  parameters and security limits stays.
+- Known anomalies, expected failures, unaccepted residuals: STR, release notes,
+  risk file.
+- Internal references (issue numbers, decision codes, test paths).
+
+**Security and SOUP.** Threats as one table row each (component, scenario, risk,
+mitigation, 40–60 words) referring to the cyber risk assessment, the single
+detailed source; multi-patient, patchability and use-case views half a page each.
+SOUP: direct dependencies only (≈ 12) with version constraint and role, then
+"the authoritative list is the SBOM" and a reference to the OTS assessment.
+
+**Inactive code.** When inactive code ships in the image, an appendix lists the
+groups (reason, unreachability control) and a compact generated list of regions
+(file and range per group), ≈ 3 pages.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -202,3 +237,4 @@ instead.
 - 2026-10-07 — PMP (decisions S01.1–S01.10).
 - 2026-10-07 — Risk management (decisions S05.1–S05.16).
 - 2026-10-07 — SRS (decisions S06.1–S06.8).
+- 2026-10-07 — SDD (decisions S07.1–S07.5).
