@@ -205,8 +205,7 @@ source path; class and method names only in tables.
   record.
 - The full parameter register: only a ≈ 2-page table of clinically significant
   parameters and security limits stays.
-- Known anomalies, expected failures, unaccepted residuals: STR, release notes,
-  risk file.
+- Known anomalies, expected failures, unaccepted residuals: VDD and risk file.
 - Internal references (issue numbers, decision codes, test paths).
 
 **Security and SOUP.** Threats as one table row each (component, scenario, risk,
@@ -218,6 +217,44 @@ SOUP: direct dependencies only (≈ 12) with version constraint and role, then
 **Inactive code.** When inactive code ships in the image, an appendix lists the
 groups (reason, unreachability control) and a compact generated list of regions
 (file and range per group), ≈ 3 pages.
+
+## Test documentation — STP, STDR, STR
+
+**Test plan (≈ 20 pages, ≈ 3,500 words).** Describes the test platform, not the
+software factory: platform in 5 bullets, test datasets named functionally (one
+line each), installation "Docker image from the registry, cf. VDD", personnel =
+tester / technical manager / regulatory manager. Never a CI job name, a CI
+variable or a repository path. Planned tests are objectives ("Verify that
+<device> …", ≈ 15–25 words), requirement cells merged per group. Security testing
+= one paragraph referring to the cyber risk assessment. Schedule = one sentence
+(PMP); qualification = table Phase / Accountable / Organises / Executes /
+Platform. From V02 the history lists test cases added / changed / renamed.
+
+**Test description and report (body ≈ 60 pages).** One card per test case, 5
+fields, ≤ 90 words: ID with status ☑ OK ☐ KO ☐ Not run; description; requirements;
+analyst = a named person who reviews the run (never "automated"); execution mode
+(run date, build, expected result in one functional sentence ≤ 40 words, N/N
+passed). Never one expected clause per test function. Manual cards use the step
+table # / Description / Expected / Observed. A table of named datasets is cited
+by the cards. Verdict is binary (OK / KO / Not run); an expected failure is OK
+with a known anomaly listed in the VDD. The rationale section states the verdict
+rules and justifies each derogating test case. Clinical-validation and usability
+cards reduce to ID, status and a reference to their report.
+
+**Evidence.** A generated annex, separate document: run metadata and the matrix
+test case → test module → passed / failed. No per-function list (it leaks
+excluded code and buries the reader); the full JUnit is archived with the
+release. Bound run = release build, clean tree, in the image, no unmapped
+failure, no TODO.
+
+**Automated test report (8–10 pages, ≤ 1,200 words).** Four chapters: CI
+platform with a diagram and the repeatability / reproducibility properties;
+local platforms in two sentences; results = acceptance criterion, a 3-row
+synthesis, reference to the release package, conclusion. No per-module table,
+no traceability, no package versions.
+
+**Known anomalies.** Listed in the VDD only (IEC 62304 §5.8.2–5.8.3), with a
+reference to the risk file — never in the SDD or the test report.
 
 ## Requirement cartouche (rendering)
 
@@ -238,3 +275,4 @@ instead.
 - 2026-10-07 — Risk management (decisions S05.1–S05.16).
 - 2026-10-07 — SRS (decisions S06.1–S06.8).
 - 2026-10-07 — SDD (decisions S07.1–S07.5).
+- 2026-10-07 — STP, STDR, STR (decisions S08.1–S10.2).
