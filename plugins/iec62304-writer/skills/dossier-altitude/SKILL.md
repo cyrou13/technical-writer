@@ -94,6 +94,53 @@ word for word and adds only what the project really needs.
 - **Zero TODO at signature**: each open fact (task owner, supplier, target
   release) is resolved with the owner before export, or the sentence goes.
 
+## Risk management (ISO 14971, IEC 62366-1, IEC 81001-5-1)
+
+**Plan.**
+- The acceptability scale is the house one, word for word, in plan, register and
+  report alike: RL = probability × severity on the 5×5 matrix; 1–6 negligible,
+  7–10 tolerable (≤ 30 % of hazards, reduced as low as possible), ≥ 11
+  unacceptable; a caution ("could") for 1–6 and a warning ("should") for 7–10 in
+  the instructions for use. Never invent another scale.
+- A benefit-risk section with a Benefit Level scale (probability × magnitude of
+  benefit) and the rule BL > RL; benefits come from the clinical evaluation.
+- The software-safety-class justification lives in the report only.
+- Security plan: C/I/A scales defined in four levels before use (never a count of
+  register entries beside a level); activities named (SAST, SCA/SBOM, image scan,
+  signing, security testing), never CI job names.
+
+**Register (xlsx).**
+- One risk per **functional hazard**, not per code module (approved file: 10 design,
+  5 production, 9 usability, 7 cyber; a quantitative device may carry 12–15
+  design risks). The code stage goes in the software-item column (SDD item name,
+  never a file path).
+- Process / QMS risks (empty test evidence, unreproducible evidence, build
+  traceability) are not design hazards: production or QMS records.
+- Always consider "validation data not representative of the intended population".
+- The house 26-column template; the control measure is written in text (30–60
+  words), never only a list of IDs or "(see linked items)". Caps: hazard ≤ 8 words,
+  causes ≤ 20, sequence ≤ 25, situation ≤ 15; ≈ 165 words per row.
+- The ISO/TR 24971 Annex A sheet answers every question (≈ 47) with the patient
+  hazard and the register risk.
+
+**Report.**
+- No risk is rewritten in the report: team, update note, two P×S matrices
+  (before / after control) listing the IDs; production and cyber details stay in
+  the register and the cyber assessment. No test status, no file path. Target
+  ≈ 22–25 pages.
+- Residual evaluation in the house form: maximum RL after control, share of
+  tolerable risks against 30 %, combined hazardous situations, IFU disclosures.
+  A report is a conclusion, not a work-tracking table: close or rule every open
+  residual before export.
+- Safety claims section present. Neutral tone (no "argument stated so it can be
+  attacked", no "evidence still owed"); counts drawn from the register.
+
+**Cybersecurity documents (FDA §524B).** Threat model, cyber risk assessment,
+cyber report, OTS/SBOM assessment and penetration test report are kept for a US
+submission, but each threat is written once (the risk assessment); the others
+hold a table or a reference; one references block. A penetration test report is
+issued only from a performed test (external provider).
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -110,3 +157,4 @@ instead.
 - 2026-10-07 — transverse rules, PMAP, requirement cartouche (CINA-CTP review,
   decisions S00.1–S00.11).
 - 2026-10-07 — PMP (decisions S01.1–S01.10).
+- 2026-10-07 — Risk management (decisions S05.1–S05.16).
