@@ -159,6 +159,34 @@ lint:
   forbidden_terms: []
 
 # -----------------------------------------------------------------------------
+# One owner document per topic (skill dossier-altitude): the owner states the
+# topic in full, every other document refers to it in one sentence. `document`
+# is a key of `documents:` (add the key when the document joins the file);
+# `section` names the owner's section when one section owns the topic.
+# -----------------------------------------------------------------------------
+topic_owners:
+  - topic: algorithms and the arterial input function
+    owners:
+      - document: methods
+  - topic: threats
+    owners:
+      - document: cra
+  - topic: parameters
+    owners:
+      - document: sdd
+        section: "3.8"
+  - topic: glossary
+    owners:
+      - document: pmap
+  - topic: known anomalies
+    owners:
+      - document: vdd
+  - topic: results
+    owners:
+      - document: pcr
+      - document: methods
+
+# -----------------------------------------------------------------------------
 # Project references — cross-document pointers used in §1.3 of the deliverables.
 # `id` is the local label used inline (e.g. "[R1]"), `identifier` is the
 # external document number, `title` is the human-readable name. An entry that

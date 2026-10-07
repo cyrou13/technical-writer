@@ -47,6 +47,8 @@ from pathlib import Path
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    altitude_lint,
+    report_altitude_lint,
     Item,
     load_clinical_context,
     load_items,
@@ -1317,6 +1319,18 @@ def main() -> int:
     log_path.write_text("\n".join(header + ctx.log_lines) + "\n", encoding="utf-8")
     for kind, (p, _md) in rendered.items():
         print(str(p))
+
+    # Transverse rules of the dossier (skill dossier-altitude): the usability file is
+    # outside the verification chain, so it names no item-store identifier either.
+    if args.strict:
+        failed = False
+        for key, (_path, text) in rendered.items():
+            offenders = altitude_lint(text, doc="USE" if key == "use" else "UEF")
+            if offenders:
+                report_altitude_lint(key.upper(), offenders)
+                failed = True
+        if failed:
+            return 1
 
     # Strict gate
     if args.strict and (total_todos or unmitigated):

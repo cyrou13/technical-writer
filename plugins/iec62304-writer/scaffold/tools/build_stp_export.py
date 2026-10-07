@@ -32,6 +32,8 @@ from pathlib import Path
 # Shared helpers
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    altitude_lint,
+    report_altitude_lint,
     Item,
     load_clinical_context,
     load_items,
@@ -819,6 +821,12 @@ def main() -> int:
     print(str(md_path))
 
     # -- Strict gate --
+    # Transverse rules of the dossier (skill dossier-altitude): blocking under --strict.
+    if args.strict:
+        offenders = altitude_lint(md, doc="STP")
+        if offenders:
+            report_altitude_lint("STP", offenders)
+            return 1
     if args.strict and marks > 0:
         print(
             f"STRICT: {marks} <mark>[TODO ...]</mark> marker(s) remain — failing",

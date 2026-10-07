@@ -30,6 +30,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    altitude_lint,
+    report_altitude_lint,
+    test_card_offenders,
     Item,
     load_clinical_context,
     load_items,
@@ -653,6 +656,12 @@ def main() -> int:
     print(str(md_path))
 
     # Strict gate
+    # Transverse rules of the dossier (skill dossier-altitude): blocking under --strict.
+    if args.strict:
+        offenders = altitude_lint(md, doc="STDR", extra=test_card_offenders(tcs))
+        if offenders:
+            report_altitude_lint("STDR", offenders)
+            return 1
     if args.strict:
         problems: list[str] = []
         if todos:

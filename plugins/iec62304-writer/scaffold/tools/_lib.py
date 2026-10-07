@@ -595,3 +595,225 @@ def strip_internal_sections(body: str, headers: tuple[str, ...] = INTERNAL_SECTI
         end = m.end() + nxt.start() if nxt else len(body)
         body = (body[: m.start()].rstrip() + "\n\n" + body[end:].lstrip()).strip()
     return body
+
+
+# ---------------------------------------------------------------------------
+# Altitude lint — the transverse rules of the dossier (skill dossier-altitude)
+# ---------------------------------------------------------------------------
+#
+# A deliverable is read by a reviewer, not by a developer. Outside a generated
+# annex the body names no code (T1): no code span, no repository path, no test
+# name, no configuration key, no TODO. Each field stays within its word cap
+# (T3): a requirement 30–80 words; a test card's free text (description and
+# expected result) ≤ 90 words with the expected result ≤ 40; a cell of the design
+# risk register per its cap. No evidence list sits in a body (T4): evidence goes
+# to a generated annex. A document outside the verification chain names no
+# identifier of the item store (T5). The exporters run it under --strict.
+
+#: Documents outside the verification chain (T5), by the `doc` tag the exporter passes.
+NON_VERIFICATION_DOCS = frozenset({
+    "SUM", "USER-GUIDE", "UEF", "USE", "INTEGRATION-GUIDE", "DICOM-CS", "LABELS",
+    "MODEL-CARD", "LIFETIME", "DECLARATION",
+})
+
+#: Between these two lines the code-in-text, evidence-list and internal-id rules do
+#: not read (a generated annex: a run identity, an inventory rendered from a lock, a
+#: checklist evidence column). Markers are still refused there. HTML comments: the
+#: exporter removes them with `strip_lint_pragmas` before writing.
+GENERATED_ANNEX_BEGIN = "<!-- release-lint: generated annex -->"
+GENERATED_ANNEX_END = "<!-- release-lint: end generated annex -->"
+
+_OPEN_MARKER_RE = re.compile(r"\[(?:TODO|DRAFT|GAP-)|\bTODO\b")
+_MARKER_SPAN_RE = re.compile(r"\[\\\[(?:TODO|DRAFT|GAP-).*?\]\{\.mark\}|\\?\[(?:TODO|DRAFT|GAP-)[^\]]*\]")
+_INTERNAL_ID_RE = re.compile(r"\b(?:SRS|SDS|TC|RSK|URSK|PRSK|USC|THR|MAP)-[A-Z0-9]+(?:-[A-Z0-9]+)+\b")
+_CODE_SPAN_RE = re.compile(r"`[^`\n]+`")
+_TEST_NAME_RE = re.compile(r"\btest_[a-z0-9_]{3,}\b|::[A-Za-z_]\w*")
+_PY_PATH_RE = re.compile(r"(?<![\w/.-])[A-Za-z_][\w.-]*(?:/[\w.-]+)*\.py\b")
+_REPO_REL_PATH_RE = re.compile(
+    r"(?<![\w/.-])(?:src|app|lib|tests|tools|scripts|docs|prod|static|submission)/[\w./@+…-]*")
+_ABS_PATH_RE = re.compile(r"(?<![\w.])/(?:data\d*|home|tmp|mnt|srv|root|Users)/[\w./@+-]+")
+_CONFIG_KEY_RE = re.compile(r"(?<![\w./@#-])[a-z][a-z0-9]*(?:_[a-z0-9]+)+(?![\w/(-])")
+_NUMBERED_LABEL_RE = re.compile(r"[a-z]+(?:_\d+)+")
+_ADDRESS_RE = re.compile(r"\]\([^)]*\)|<https?://[^>]*>|https?://\S+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+_LIST_OR_ROW_RE = re.compile(r"^\s*(?:[-*+]\s|\d+[.)]\s|\|)")
+EVIDENCE_LIST_MIN_LINES = 3
+
+
+def strip_lint_pragmas(md: str) -> str:
+    """The deliverable without the lint pragmas: they steer the lint, they are not text."""
+    return "\n".join(ln for ln in md.split("\n") if ln.strip() not in (GENERATED_ANNEX_BEGIN, GENERATED_ANNEX_END))
+
+
+def _code_in_text(line: str) -> list[tuple[str, str]]:
+    text = _ADDRESS_RE.sub(" ", _MARKER_SPAN_RE.sub(" ", line))
+    # A code span is refused as such; what it carries is read too.
+    out = [("code-span", m.group(0)[:60]) for m in _CODE_SPAN_RE.finditer(text)]
+    plain = text.replace("`", " ")
+    out += [("repo-path", m.group(0)) for m in _ABS_PATH_RE.finditer(plain)]
+    py_spans = [m.span() for m in _PY_PATH_RE.finditer(plain)]
+    out += [("code-path", plain[a:b]) for a, b in py_spans]
+    for m in _REPO_REL_PATH_RE.finditer(plain):
+        a, b = m.start(), m.start() + len(m.group(0).rstrip("."))
+        if not any(a < pb and pa < b for pa, pb in py_spans):
+            out.append(("code-path", plain[a:b]))
+    out += [("test-name", m.group(0)) for m in _TEST_NAME_RE.finditer(plain)]
+    out += [("config-key", m.group(0)) for m in _CONFIG_KEY_RE.finditer(plain)
+            if not m.group(0).startswith("test_") and not _NUMBERED_LABEL_RE.fullmatch(m.group(0))]
+    return out
+
+
+def _names_evidence(line: str) -> bool:
+    text = _ADDRESS_RE.sub(" ", _MARKER_SPAN_RE.sub(" ", line))
+    return bool(_TEST_NAME_RE.search(text) or _PY_PATH_RE.search(text) or _REPO_REL_PATH_RE.search(text))
+
+
+def altitude_lint(body_md: str, *, doc: str, extra: list[str] | None = None) -> list[str]:
+    """Every offender of the transverse rules in a deliverable body, as `kind: detail`.
+
+    Kinds: marker, code-span, code-path, repo-path, test-name, config-key,
+    evidence-list, internal-id (T1/T4/T5); `word-cap` (T3) comes through `extra`
+    from `requirement_offenders`, `test_card_offenders` and `risk_cell_offenders`.
+    Fenced blocks and generated annexes are not read by the code rules.
+    """
+    out: list[str] = []
+    in_fence = annex = False
+    run: list[int] = []
+    user_facing = doc.upper() in NON_VERIFICATION_DOCS
+
+    def close_run() -> None:
+        if len(run) >= EVIDENCE_LIST_MIN_LINES:
+            out.append(f"evidence-list: lines {run[0]}-{run[-1]}: {len(run)} entries naming tests or code")
+        run.clear()
+
+    for n, line in enumerate(body_md.splitlines(), 1):
+        for m in _OPEN_MARKER_RE.finditer(line):
+            out.append(f"marker: line {n}: {line[m.start():m.start() + 60].strip()}")
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if line.strip() == GENERATED_ANNEX_BEGIN:
+            annex = True
+            close_run()
+            continue
+        if line.strip() == GENERATED_ANNEX_END:
+            annex = False
+            continue
+        if in_fence or annex:
+            continue
+        for kind, term in _code_in_text(line):
+            out.append(f"{kind}: line {n}: {term}")
+        if _LIST_OR_ROW_RE.match(line) and _names_evidence(line):
+            run.append(n)
+        else:
+            close_run()
+        if user_facing:
+            for m in _INTERNAL_ID_RE.finditer(line):
+                out.append(f"internal-id: line {n}: {m.group(0)}")
+    close_run()
+    return out + list(extra or [])
+
+
+# Word caps per field (T3) ---------------------------------------------------
+
+REQUIREMENT_MIN_WORDS, REQUIREMENT_MAX_WORDS = 30, 80
+TEST_CARD_MAX_WORDS, TEST_CARD_EXPECTED_MAX_WORDS = 90, 40
+#: A cell of the design risk register: field → (min, max) words.
+RISK_CELL_CAPS: dict[str, tuple[int, int]] = {
+    "hazard": (1, 8),
+    "initiating_causes": (1, 20),
+    "foreseeable_sequence": (1, 25),
+    "hazardous_situation": (1, 15),
+    "control_measure": (30, 60),
+}
+_RISK_CELL_SECTIONS = {
+    "hazard": "Hazard", "initiating_causes": "Initiating causes",
+    "foreseeable_sequence": "Foreseeable sequence of events", "hazardous_situation": "Hazardous situation",
+}
+_ENUMERATOR_RE = re.compile(r"\(?\d+[.)]|[-*+→—–]")
+_DRAFT_SPAN_RE = re.compile(r"\[(?:DRAFT|TODO)[^\]]*\]")
+
+
+def word_count(text: object) -> int:
+    """Words of a field; bullets, enumerators and open DRAFT/TODO markers are not words."""
+    clean = _DRAFT_SPAN_RE.sub(" ", str(text or ""))
+    return sum(1 for tok in clean.split()
+               if re.search(r"[A-Za-z0-9]", tok) and not _ENUMERATOR_RE.fullmatch(tok))
+
+
+def body_section(body: str, header: str) -> str:
+    """The text of `## <header>` in an item body ("" when absent)."""
+    m = re.search(rf"^##\s+{re.escape(header)}\s*$", body, flags=re.MULTILINE)
+    if not m:
+        return ""
+    nxt = re.search(r"^##\s+", body[m.end():], flags=re.MULTILINE)
+    return body[m.end(): m.end() + nxt.start() if nxt else len(body)].strip()
+
+
+def _active(item: Item) -> bool:
+    return item.status not in ("Deprecated", "Retired")
+
+
+def requirement_offenders(items: list[Item]) -> list[str]:
+    """Requirement statements (`## Description`) outside 30–80 words, kind `word-cap`."""
+    out: list[str] = []
+    for it in sorted(items, key=lambda i: i.id):
+        if not _active(it) or str(it.get("kind") or "") == "process":
+            continue
+        n = word_count(body_section(it.body, "Description") or it.body)
+        if not REQUIREMENT_MIN_WORDS <= n <= REQUIREMENT_MAX_WORDS:
+            out.append(f"word-cap: {it.id} statement: {n} words "
+                       f"(cap {REQUIREMENT_MIN_WORDS}–{REQUIREMENT_MAX_WORDS})")
+    return out
+
+
+def test_card_offenders(tcs: list[Item]) -> list[str]:
+    """Test cards above their cap, kind `word-cap`: the free text only (description and
+    expected result); the form labels, requirement ids and result line are the frame."""
+    out: list[str] = []
+    for tc in sorted(tcs, key=lambda i: i.id):
+        if not _active(tc):
+            continue
+        description = (str(tc.get("objective") or "").strip() or body_section(tc.body, "Description")
+                       or tc.title)
+        expected = word_count(tc.get("acceptance") or body_section(tc.body, "Expected results"))
+        total = word_count(description) + expected
+        if expected > TEST_CARD_EXPECTED_MAX_WORDS:
+            out.append(f"word-cap: {tc.id} expected: {expected} words (cap {TEST_CARD_EXPECTED_MAX_WORDS})")
+        if total > TEST_CARD_MAX_WORDS:
+            out.append(f"word-cap: {tc.id} card: {total} words (cap {TEST_CARD_MAX_WORDS})")
+    return out
+
+
+def control_measure_text(item: Item) -> str:
+    """The first paragraph of `## Risk controls`, without a "Chosen hierarchy" lead sentence."""
+    section = body_section(strip_internal_sections(item.body), "Risk controls")
+    first = section.split("\n\n")[0] if section else ""
+    return re.sub(r"^Chosen hierarchy:\s*\*\*[^*]+\*\*\.\s*", "", first).strip()
+
+
+def risk_cell_offenders(items: list[Item]) -> list[str]:
+    """Design-register cells (RSK) outside their cap, kind `word-cap`."""
+    out: list[str] = []
+    for it in sorted(items, key=lambda i: i.id):
+        if it.category != "RSK" or not _active(it):
+            continue
+        for field, (lo, hi) in RISK_CELL_CAPS.items():
+            if field == "control_measure":
+                text = control_measure_text(it)
+            else:
+                text = it.fm.get(field) or body_section(it.body, _RISK_CELL_SECTIONS[field])
+            n = word_count(text)
+            if not lo <= n <= hi:
+                out.append(f"word-cap: {it.id} {field}: {n} words (cap {lo}–{hi})")
+    return out
+
+
+def report_altitude_lint(doc: str, offenders: list[str]) -> None:
+    """Print the offenders of `altitude_lint` on stderr, counts by kind first."""
+    counts: dict[str, int] = {}
+    for o in offenders:
+        counts[o.split(":", 1)[0]] = counts.get(o.split(":", 1)[0], 0) + 1
+    print(f"ALTITUDE LINT — {doc}: {len(offenders)} offender(s): "
+          + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())), file=sys.stderr)
+    for o in offenders:
+        print(f"  - {o}", file=sys.stderr)

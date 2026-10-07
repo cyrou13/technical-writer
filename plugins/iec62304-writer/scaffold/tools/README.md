@@ -17,9 +17,15 @@ counts a `[TODO]` in `## Open questions` as an offender (a release
 refuses open questions anyway).
 
 The scaffolded `build_*_export.py` are in the same situation: they strip
-nothing, lint nothing beyond `<mark>[TODO]</mark>` and `residual_acceptable`,
-and print a per-item version. What they produce is a working draft, never
-a signed deliverable.
+nothing and print a per-item version. Their `--strict` runs, besides the
+`<mark>[TODO]</mark>` and `residual_acceptable` checks, the transverse rules
+of the dossier (`_lib.altitude_lint`, skill dossier-altitude): no code span,
+repository path, test name, configuration key or TODO in a body; word caps
+(requirement 30–80 words, test card ≤ 90 with expected ≤ 40, design-register
+cells); no evidence list in a body; no item-store identifier in a document
+outside the verification chain. A generated annex is exempt from the code
+rules between the `release-lint: generated annex` pragmas. What they produce
+is a working draft, never a signed deliverable.
 
 ## The reference exporters live in the CINA-CTP repository
 

@@ -38,6 +38,9 @@ from pathlib import Path
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    altitude_lint,
+    report_altitude_lint,
+    risk_cell_offenders,
     Item,
     load_clinical_context,
     load_items,
@@ -835,6 +838,12 @@ def main() -> int:
     log_path.write_text("\n".join(header + ctx.log_lines) + "\n", encoding="utf-8")
     print(str(md_path))
 
+    # Transverse rules of the dossier (skill dossier-altitude): blocking under --strict.
+    if args.strict:
+        offenders = altitude_lint(md, doc="RAR", extra=risk_cell_offenders(rsk))
+        if offenders:
+            report_altitude_lint("RAR", offenders)
+            return 1
     if args.strict and (todos or n_rsk_blocked or n_prsk_blocked):
         print(
             f"STRICT: {len(todos)} [TODO], {n_rsk_blocked} RSK + {n_prsk_blocked} PRSK not acceptable — failing",

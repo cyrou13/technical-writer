@@ -34,6 +34,8 @@ from pathlib import Path
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    altitude_lint,
+    report_altitude_lint,
     Item,
     load_clinical_context,
     load_items,
@@ -824,6 +826,12 @@ def main() -> int:
     log_path.write_text("\n".join(header + ctx.log_lines) + "\n", encoding="utf-8")
     print(str(md_path))
 
+    # Transverse rules of the dossier (skill dossier-altitude): blocking under --strict.
+    if args.strict:
+        offenders = altitude_lint(md, doc="SDD")
+        if offenders:
+            report_altitude_lint("SDD", offenders)
+            return 1
     if args.strict and n_todos:
         print(f"STRICT: {n_todos} [TODO] markers remain — failing", file=sys.stderr)
         return 1

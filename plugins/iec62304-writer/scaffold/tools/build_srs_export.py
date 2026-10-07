@@ -29,6 +29,9 @@ from pathlib import Path
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    altitude_lint,
+    report_altitude_lint,
+    requirement_offenders,
     Item,
     load_clinical_context,
     load_items,
@@ -567,6 +570,12 @@ def main() -> int:
     log_path.write_text("\n".join(header + ctx.log_lines) + "\n", encoding="utf-8")
     print(str(md_path))
 
+    # Transverse rules of the dossier (skill dossier-altitude): blocking under --strict.
+    if args.strict:
+        offenders = altitude_lint(md, doc="SRS", extra=requirement_offenders(srs))
+        if offenders:
+            report_altitude_lint("SRS", offenders)
+            return 1
     # Strict gate
     if args.strict:
         unparented = sum(
