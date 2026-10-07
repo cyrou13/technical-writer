@@ -25,10 +25,29 @@ quantitative device keeps what makes it differ (rule marked *adapted*).
   unit ("3000 HU", "6 s"), never as the key that holds them.
 - **No measured result outside a results document.** A plan, a glossary or a
   description never carries a verification figure (it goes stale at the next
-  regeneration and reads as an unsupported claim).
+  regeneration and reads as an unsupported claim). The Methods' verification
+  sections and the clinical report are results documents; their figures are
+  injected from the metrics files, never typed.
 - **No TODO, no "evidence still owed", no draft banner in a release export.**
 - **One source per information.** A topic is written once, in the document that
   owns it; the others refer to it.
+  Keep a "topic → owner" table in the generator configuration: algorithms →
+  Methods; threats → cyber risk assessment; parameters → SDD parameter table;
+  glossary → PMAP; known anomalies → VDD; results → clinical report and Methods.
+- **No internal identifiers outside the verification chain.** SRS-/TC-/RSK-/USC-/
+  THR- identifiers appear only in SRS, SDD, test and risk documents and the
+  traceability matrix — never in the user guide, usability file, integration
+  guide, labels, model card or declarations.
+- **Enforced by a blocking release lint**, outside generated annexes: backticks,
+  repository paths, test names, configuration keys, TODO; word caps per field
+  (requirement 30–80 words; test card ≤ 90 with expected ≤ 40; risk cells per the
+  register caps); evidence lists in a body; internal identifiers in
+  non-verification documents.
+- **Word template (house).** A4; dates MM/DD/YYYY; no page break per chapter; H1
+  in capitals numbered by Word; "** End of Document **"; no draft banner and no
+  build date (draft state = version + empty signature table); signature table
+  role / name and function / date / Signature; no title H1 or identifier block in
+  the body (the header carries them).
 
 ## PMAP — Project Master Plan (MAP items)
 
@@ -364,6 +383,16 @@ reviews actually held. Never prose about missing reviews.
 **Model card.** One CHAI card at device level covering every ML component, with
 key metrics including stratified (fairness) results; no gap-tracking preamble.
 
+## Standards checklists (IEC 62304, 82304-1, 81001-5-1)
+
+One row per "shall" sub-clause with the normative text; verdicts Yes/No (62304,
+82304) and C/PC/NC/NA/NE (81001); a QMS-covered clause is "Yes" citing the
+procedure; evidence = document number and section. No section describing how the
+checklist is built, no open-points chapter, no "Open point:" in cells (gap
+tracking stays internal; at issue there is no partial or open verdict). 81001
+includes the normative Annexes F and G and a Gap/Notes prose column. Landscape,
+Regulatory Affairs header.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -388,3 +417,4 @@ instead.
 - 2026-10-07 — SUM, VDD, DCS, integration guide (decisions S13.1, S14.1, S15.1, S36.1).
 - 2026-10-07 — clinical and bench performance reports (decisions S18.1–S18.4).
 - 2026-10-07 — usability, labels, lifetime, declarations, reviews, model card (decisions S21.1–S37.1).
+- 2026-10-07 — standards checklists and transverse rules T1–T7 (decisions S29.1, T1–T7); arbitration closed.
