@@ -17,7 +17,7 @@ What this script produces from it:
 * the style set completed with pandoc's own (Compact, Body Text, Table, ...): a
   paragraph naming a style the document lacks breaks table rendering;
 * headings flush with the margin (the exporters number them in the text), each
-  chapter on a new page in capitals; tables with single borders and a grey bold
+  chapter in capitals, no page break before it; A4 portrait; tables with single borders and a grey bold
   header row;
 * four paragraph styles for the requirement idiom of the source document — the
   identifier on a grey band, the title in italic navy, the text in blue, the
@@ -28,7 +28,7 @@ automatic, left-aligned width); `_lib.finish_docx()` sets them after pandoc runs
 
 Usage:
     python tools/make_reference_docx.py --from <approved.docx> [--out docs/templates/avicenna-reference.docx]
-    python tools/make_reference_docx.py --requirements-only   # requirement styles only, in place
+    python tools/make_reference_docx.py --restyle-only        # house styles and A4 page, in place
 
 The output is committed: the build must not depend on a file that lives in
 someone's downloads directory.
@@ -96,7 +96,8 @@ def _heading(level: int, *, before: int, indent: int, page_break: bool, rpr: str
 #: away from the margin.
 RESTYLED: dict[str, tuple[str, str]] = {
     "Normal": ('<w:spacing w:after="120"/><w:jc w:val="both"/>', ""),
-    "Heading1": _heading(1, before=240, indent=432, page_break=True,
+    # No page break before a chapter (house template).
+    "Heading1": _heading(1, before=480, indent=432, page_break=False,
                          rpr='<w:b/><w:bCs/><w:caps/><w:sz w:val="28"/><w:szCs w:val="28"/>'),
     "Heading2": _heading(2, before=360, indent=576, page_break=False,
                          rpr='<w:b/><w:bCs/><w:sz w:val="24"/><w:szCs w:val="24"/>'),
@@ -148,7 +149,16 @@ def empty_body(xml: str) -> str:
     sect = re.search(r"<w:sectPr\b.*?</w:sectPr>", xml, re.S)
     head = xml.split("<w:body>", 1)[0]
     tail = "</w:body></w:document>"
-    return f"{head}<w:body>{sect.group(0) if sect else ''}{tail}"
+    return a4_page(f"{head}<w:body>{sect.group(0) if sect else ''}{tail}")
+
+
+#: The house page: A4 portrait (twips), whatever the paper of the source document.
+A4_PAGE = '<w:pgSz w:w="11906" w:h="16838" w:orient="portrait"/>'
+
+
+def a4_page(xml: str) -> str:
+    """Set the page size of every section of a document part to A4 portrait."""
+    return re.sub(r"<w:pgSz\b[^>]*/>", A4_PAGE, xml)
 
 
 def pandoc_default_styles() -> str:
@@ -273,16 +283,21 @@ def build(source: Path, out: Path) -> None:
             zout.writestr(info, data)
 
 
-def restyle_requirements(path: Path) -> None:
-    """Rewrite the requirement styles of an existing reference document, every
-    other part byte for byte."""
+def restyle_in_place(path: Path) -> None:
+    """Rewrite the house styles (RESTYLED, the requirement idiom) and the page size
+    of an existing reference document, every other part byte for byte."""
     with zipfile.ZipFile(path) as zin:
         entries = [(info, zin.read(info.filename)) for info in zin.infolist()]
     tmp = path.with_suffix(".docx.tmp")
     with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
         for info, data in entries:
             if info.filename == "word/styles.xml":
-                data = requirement_styles(data.decode("utf-8")).encode("utf-8")
+                xml = data.decode("utf-8")
+                for sid, (ppr, rpr) in RESTYLED.items():
+                    xml = restyle(xml, sid, ppr, rpr)
+                data = requirement_styles(xml).encode("utf-8")
+            elif info.filename == "word/document.xml":
+                data = a4_page(data.decode("utf-8")).encode("utf-8")
             zout.writestr(info, data)
     tmp.replace(path)
 
@@ -291,13 +306,13 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--from", dest="source", type=Path, help="an approved .docx to take the house style from")
-    src.add_argument("--requirements-only", action="store_true",
-                     help="rewrite only the requirement styles of --out, in place")
+    src.add_argument("--restyle-only", action="store_true",
+                     help="rewrite the house styles and the page size of --out, in place")
     ap.add_argument("--out", default=DEFAULT_OUT, type=Path)
     args = ap.parse_args(argv)
-    if args.requirements_only:
-        restyle_requirements(args.out)
-        print(f"OK: requirement styles rewritten in {args.out}")
+    if args.restyle_only:
+        restyle_in_place(args.out)
+        print(f"OK: house styles and A4 page rewritten in {args.out}")
         return 0
     if not args.source.is_file():
         print(f"no such file: {args.source}", file=sys.stderr)
