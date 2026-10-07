@@ -67,6 +67,33 @@ Sections:
   outputs, declared thresholds. Processing in 2–3 sentences (what is computed,
   not the step chain — that is the SDD and Methods).
 
+## PMP — Project Management Plan
+
+The PMP is a QMS plan in the house text; it follows the approved plan almost
+word for word and adds only what the project really needs.
+
+- **No list of deliverables.** Numbering follows the QMS document-identification
+  instruction; the technical-file tree is the list. A hand-kept table in a signed
+  plan drifts and becomes an audit finding.
+- **Roles, not people's merits.** The team table states roles and names; no
+  sentence describing one person as the designer of the software.
+- **WBS task types** come from the QMS procedure; a new letter (e.g. cybersecurity,
+  regulatory submissions) exists only once quality has confirmed it.
+- **Machine learning.** Two sentences at most: the locked ML components, *each one
+  named* (verify against the SRS/SDD off-the-shelf components — every network
+  counts, not only the obvious one), and the rule that any change follows the
+  device change process. Training data, AI regulation and governance belong to the
+  model card(s), one per component.
+- **Planning annex**: the Gantt only. Never date a design review that the
+  review records (DHF) do not hold; align the dates on the minutes.
+- **No tools section** when the development plan already holds the tool list.
+- **Validation tasks** state exactly what is performed (e.g. standalone only, no
+  reader study) — the same statement as the performance report; never leave the
+  two documents contradicting each other.
+- **Abbreviations** ≤ ~10; terms refer to the PMAP glossary.
+- **Zero TODO at signature**: each open fact (task owner, supplier, target
+  release) is resolved with the owner before export, or the sentence goes.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -82,3 +109,4 @@ instead.
 
 - 2026-10-07 — transverse rules, PMAP, requirement cartouche (CINA-CTP review,
   decisions S00.1–S00.11).
+- 2026-10-07 — PMP (decisions S01.1–S01.10).
