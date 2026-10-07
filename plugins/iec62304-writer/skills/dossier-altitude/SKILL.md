@@ -145,6 +145,45 @@ whose report states the testers' independence and has the protocol and results
 reviewed by someone who did not develop the device; the cyber report then says
 why no external test was performed.
 
+## SRS — Software Requirements Specification
+
+**Granularity.** One requirement per quantity or behaviour the user receives, not
+per algorithm step. A quantitative device specifies each output quantity (≈ 9
+for a perfusion device: preparation ×3, input-function selection ×1, maps ×2,
+volumes ×3); the "how" is a one-line reference to the Methods document. Outputs
+≈ 7 requirements, quality control ≈ 2 (technical-quality flag on the outputs;
+stop without a plausible result on a non-recoverable failure). Each requirement
+states what the user sees; engineering properties (display windows, page
+self-identification, default consistency) belong to the SDD.
+
+**What leaves the SRS.**
+- Acceptance-criteria tables: they become the expected results of the test
+  cases, summarised in the test description. A threshold that the user observes
+  may stay in the requirement text.
+- Per-requirement parameter tables and configuration chapters: the settable
+  parameters fit one short "System environment" table; frozen parameters are not
+  listed. Only deployment and presentation settings are settable in production
+  (folders, language, series and pages emitted, log level); every processing
+  setting is frozen in code with a named refusal.
+- Process requirements (development, security lifecycle): one-line reference to
+  the plans.
+- Full traceability: the SRS carries SRS → user requirement only; risk, test and
+  design links live in the traceability matrix.
+- Per-area clinical preambles and the bibliography: one clinical introduction of
+  ≈ 150 words; the bibliography goes to the Methods; only normative references
+  stay. No drafting rules inside the deliverable.
+
+**Cybersecurity.** 4–5 product requirements without values (bounded ingestion,
+restricted decoding, no PHI in logs, no network interface, clinical parameters
+not modifiable), 60–80 words each; numeric limits go to the SDD and the cyber
+risk assessment. Never a bare reference to the security plan for a US filing.
+
+**Always present.** Device Description (taken from the PMAP, never rewritten) with
+an interface figure (device, host platform, PACS); a LOG requirement (levels
+ERROR/WARNING/INFO/DEBUG, level settable); a product requirement that every
+output DICOM object carries the UDI; a section on what the host platform must
+provide; a one-line reference to the test plan for verification.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -162,3 +201,4 @@ instead.
   decisions S00.1–S00.11).
 - 2026-10-07 — PMP (decisions S01.1–S01.10).
 - 2026-10-07 — Risk management (decisions S05.1–S05.16).
+- 2026-10-07 — SRS (decisions S06.1–S06.8).
