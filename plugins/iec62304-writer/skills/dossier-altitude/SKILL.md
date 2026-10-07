@@ -256,6 +256,33 @@ no traceability, no package versions.
 **Known anomalies.** Listed in the VDD only (IEC 62304 §5.8.2–5.8.3), with a
 reference to the risk file — never in the SDD or the test report.
 
+## Methods (algorithm description and verification)
+
+**Algorithms.** Write values, never configuration keys ("10 mm", not
+`motion_dl_deadband_px`). Each step ≈ 250 words: purpose, principle, what is
+rejected; no "Specified by / Designed in" blocks, no parameter tables (trace lives
+in SRS and SDD). About ten figures (workflow, examples of each major step, curves,
+maps, a QC refusal). Output formatting is two sentences, not a method.
+
+**Results belong here.** One "Performance verification" subsection per major
+component (dataset, n, metric, result) and a pilot chapter with the main results
+table and a conclusion, plus a reference to the clinical report for detail.
+Figures are injected by the generator from the same metrics files the clinical
+report reads — duplication without divergence; never typed by hand.
+
+**Machine-learning components.** Every ML component (including one embedded in a
+pre-processing step such as motion correction) gets Goals / Architecture (figure)
+/ Training data (source, n, vendors, separation from test data) / Training
+workflow / Performance verification. Facts come from the team that trained the
+model: prepare the sections and a question list, never invent; open TODOs block
+the submission.
+
+**Data and ground truth.** A datasets table (source, n, vendors, use:
+development / verification / validation, declared independence) and one
+subsection per ground truth: who established it, how, qualification; ground
+truthers and data providers in an annex. "Reference software", never a
+competitor name.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -276,3 +303,4 @@ instead.
 - 2026-10-07 — SRS (decisions S06.1–S06.8).
 - 2026-10-07 — SDD (decisions S07.1–S07.5).
 - 2026-10-07 — STP, STDR, STR (decisions S08.1–S10.2).
+- 2026-10-07 — Methods (decisions S12.1–S12.4).
