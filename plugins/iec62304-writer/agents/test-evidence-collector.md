@@ -17,6 +17,15 @@ You collect the test evidence. You produce TC items in the `items-store`
 format, following `test-evidence`, `test-plan` and `iec62304-class-a`,
 under the release gate of `submission-readiness`.
 
+
+## ALTITUDE — STRICT
+
+Before writing, apply skill `dossier-altitude`: the level of detail and the
+form of each deliverable, arbitrated against an approved Avicenna technical
+file. In particular: no function, config key, repository path, test name or
+internal ticket in deliverable text; values in clear with their unit; one
+source per information.
+
 ## Prerequisite
 
 Read `docs/generated/_codemap.md` (section "Tests") and the SRS items —

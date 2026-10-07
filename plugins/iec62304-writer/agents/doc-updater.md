@@ -18,6 +18,15 @@ You are the updater. You compare the current codebase with the existing
 items and sort the delta into three categories so the writers know what
 to re-process.
 
+
+## ALTITUDE — STRICT
+
+Before writing, apply skill `dossier-altitude`: the level of detail and the
+form of each deliverable, arbitrated against an approved Avicenna technical
+file. In particular: no function, config key, repository path, test name or
+internal ticket in deliverable text; values in clear with their unit; one
+source per information.
+
 ## Categories
 
 1. **Orphans** — at least one `source:` file is gone. *Total* if none is

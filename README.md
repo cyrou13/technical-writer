@@ -288,6 +288,7 @@ produced and the reviewer applies the rules by hand.
 | Skill | Role |
 |---|---|
 | `iec62304-class-a` | Class A deliverables and their minimal content, writing rules |
+| `dossier-altitude` | Level of detail and form of every deliverable, arbitrated against an approved Avicenna technical file (CINA-CSpine): what each document says, at which altitude, and what it never contains (code identifiers, repo paths, measured results outside results documents) |
 | `items-store` | The item-per-file store (Matrix Requirements equivalent) and the section / frontmatter contract — what goes where, kinds, parameters, references, the anomalies appendix vs the open-points register |
 | `submission-readiness` | The release gate: document control (DC), text lint (TL-1…14), store lint (SL-1…14), decision findings (DEC), how to run it |
 | `srs-extract` | Requirements from the code — kinds, parameters, normative text |

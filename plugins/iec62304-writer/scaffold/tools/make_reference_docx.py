@@ -28,6 +28,7 @@ automatic, left-aligned width); `_lib.finish_docx()` sets them after pandoc runs
 
 Usage:
     python tools/make_reference_docx.py --from <approved.docx> [--out docs/templates/avicenna-reference.docx]
+    python tools/make_reference_docx.py --requirements-only   # requirement styles only, in place
 
 The output is committed: the build must not depend on a file that lives in
 someone's downloads directory.
@@ -57,18 +58,24 @@ HEADER_TOKENS: tuple[tuple[str, str], ...] = (
 #: The requirement idiom of the source document, as named paragraph styles.
 #: Values are (style id, style name, paragraph properties, run properties).
 REQUIREMENT_STYLES: tuple[tuple[str, str, str, str], ...] = (
-    ("RequirementId", "Requirement Id",
+    # The style name equals the id: pandoc maps `custom-style="RequirementId"` by
+    # NAME; any other name makes it append a second, empty style with the same
+    # id, which Word applies instead of this one.
+    # Properties as in the approved Avicenna SRS: the body and the version line
+    # carry no spacing of their own (a blank line separates them, written by
+    # `_lib.finish_docx()` with the closing rule), the version line is black.
+    ("RequirementId", "RequirementId",
      '<w:keepNext/><w:shd w:fill="C0C0C0" w:val="clear"/><w:spacing w:after="120" w:before="360"/><w:jc w:val="left"/>',
      '<w:b/><w:bCs/><w:color w:val="000080"/>'),
-    ("RequirementTitle", "Requirement Title",
+    ("RequirementTitle", "RequirementTitle",
      '<w:keepNext/><w:spacing w:after="120" w:before="120"/><w:ind w:left="284"/><w:jc w:val="left"/>',
      '<w:i/><w:iCs/><w:color w:val="000080"/>'),
-    ("RequirementBody", "Requirement Body",
-     '<w:keepNext/><w:keepLines/><w:spacing w:after="120" w:before="0"/><w:jc w:val="both"/>',
+    ("RequirementBody", "RequirementBody",
+     '<w:keepNext/><w:keepLines/><w:spacing w:after="0" w:before="0"/><w:jc w:val="both"/>',
      '<w:color w:val="0000FF"/>'),
-    ("RequirementVersion", "Requirement Version",
-     '<w:keepNext/><w:spacing w:after="200" w:before="0"/><w:jc w:val="left"/>',
-     '<w:color w:val="0000FF"/><w:sz w:val="18"/><w:szCs w:val="18"/>'),
+    ("RequirementVersion", "RequirementVersion",
+     '<w:keepNext/><w:spacing w:after="0" w:before="0"/><w:jc w:val="both"/>',
+     '<w:color w:val="000000"/>'),
 )
 
 def _heading(level: int, *, before: int, indent: int, page_break: bool, rpr: str) -> tuple[str, str]:
@@ -188,10 +195,14 @@ def add_styles(xml: str, defaults: str) -> str:
         xml = restyle(xml, sid, ppr, rpr)
     xml = re.sub(r'<w:style w:type="table" w:styleId="Table">.*?</w:style>', "", xml, flags=re.S)
     xml = xml.replace("</w:styles>", TABLE_STYLE + "</w:styles>")
+    return requirement_styles(xml)
+
+
+def requirement_styles(xml: str) -> str:
+    """Write the requirement idiom into a styles part: one definition per style,
+    named as its id, with the properties of REQUIREMENT_STYLES."""
     for sid, name, ppr, rpr in REQUIREMENT_STYLES:
-        if f'w:styleId="{sid}"' in xml:
-            xml = restyle(xml, sid, ppr, rpr)
-            continue
+        xml = re.sub(rf'<w:style\b(?=[^>]*w:styleId="{sid}")[^>]*>.*?</w:style>', "", xml, flags=re.S)
         xml = xml.replace(
             "</w:styles>",
             f'<w:style w:type="paragraph" w:styleId="{sid}"><w:name w:val="{name}"/>'
@@ -262,11 +273,32 @@ def build(source: Path, out: Path) -> None:
             zout.writestr(info, data)
 
 
+def restyle_requirements(path: Path) -> None:
+    """Rewrite the requirement styles of an existing reference document, every
+    other part byte for byte."""
+    with zipfile.ZipFile(path) as zin:
+        entries = [(info, zin.read(info.filename)) for info in zin.infolist()]
+    tmp = path.with_suffix(".docx.tmp")
+    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+        for info, data in entries:
+            if info.filename == "word/styles.xml":
+                data = requirement_styles(data.decode("utf-8")).encode("utf-8")
+            zout.writestr(info, data)
+    tmp.replace(path)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--from", dest="source", required=True, type=Path, help="an approved .docx to take the house style from")
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--from", dest="source", type=Path, help="an approved .docx to take the house style from")
+    src.add_argument("--requirements-only", action="store_true",
+                     help="rewrite only the requirement styles of --out, in place")
     ap.add_argument("--out", default=DEFAULT_OUT, type=Path)
     args = ap.parse_args(argv)
+    if args.requirements_only:
+        restyle_requirements(args.out)
+        print(f"OK: requirement styles rewritten in {args.out}")
+        return 0
     if not args.source.is_file():
         print(f"no such file: {args.source}", file=sys.stderr)
         return 2

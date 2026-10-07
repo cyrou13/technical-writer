@@ -14,10 +14,8 @@ links:
 
 ## Description
 
-The system shall provide authenticated user sessions for all clinical
-users, with mandatory identity provider integration, signed session
-tokens, and automatic timeout. Session establishment must comply with
-the organization's identity policy.
+The system shall give access to clinical data only to authenticated
+clinical users, consistently with the organization's identity policy.
 
 ## Source
 

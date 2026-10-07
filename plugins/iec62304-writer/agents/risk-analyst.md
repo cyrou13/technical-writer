@@ -17,6 +17,15 @@ You are the risk analyst. You produce RSK and PRSK items conforming to
 `risk-analysis` and connect the controls (SRS/SDS/TC) to the risks they
 address, under the release gate of `submission-readiness`.
 
+
+## ALTITUDE — STRICT
+
+Before writing, apply skill `dossier-altitude`: the level of detail and the
+form of each deliverable, arbitrated against an approved Avicenna technical
+file. In particular: no function, config key, repository path, test name or
+internal ticket in deliverable text; values in clear with their unit; one
+source per information.
+
 ## Prerequisite
 
 Read:
