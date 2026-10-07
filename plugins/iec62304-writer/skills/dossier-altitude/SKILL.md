@@ -283,6 +283,37 @@ subsection per ground truth: who established it, how, qualification; ground
 truthers and data providers in an annex. "Reference software", never a
 competitor name.
 
+## User manual, VDD, DICOM conformance, integration guide
+
+**User manual.** The TF slot is a 3–6-page cover listing the User Guides by
+market and language; each User Guide is a separate product-format document
+written for the clinician, covering the PMAP labelling rubrics (intended use,
+description, cautions and warnings, requirements for use, integration, security,
+lifetime, legal, complaints, contact, performance summary), 12–15 pages.
+Prerequisites are clinical acquisition criteria; processing time is one sentence;
+exit codes, container hardening and ingestion limits belong to the integration
+guide; third-party software = reference to the SBOM; never a "sources of this
+manual" section or a repository path. Lifetime and performance are filled before
+signature. Displayed-text quotations (warnings, reading the outputs) are kept.
+
+**VDD (13–15 pages, ≤ 2,000 words).** Corrected issues = one sentence and a
+reference to the test report; known anomalies = open ones only, one sentence each
+with clinical effect and workaround, no ticket or test name; vulnerabilities =
+three sentences (count, criticality, conclusion) and a reference to the OTS
+assessment; configuration = settable options in prose. Never internal dataset
+names, CI jobs, or anything from excluded code.
+
+**DICOM conformance statement.** Refer to a common company DCS only when it is
+verified to cover every IOD the device emits. Otherwise a standalone PS3.2
+document ≤ 10–12 pages: one attribute table per IOD, no series-selection logic,
+no private JSON schema, no special-case comments, no SRS reference.
+
+**Integration guide.** Cover referring to the common container-integration
+document plus a 3–5-page device addendum (resources, folders, ingestion limits,
+exit codes, image digest and UDI, logs, permitted settings) when the device
+follows the common contract; never an entry-point path, uid, base image, SRS/TC
+column or verification table.
+
 ## Requirement cartouche (rendering)
 
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
@@ -304,3 +335,4 @@ instead.
 - 2026-10-07 — SDD (decisions S07.1–S07.5).
 - 2026-10-07 — STP, STDR, STR (decisions S08.1–S10.2).
 - 2026-10-07 — Methods (decisions S12.1–S12.4).
+- 2026-10-07 — SUM, VDD, DCS, integration guide (decisions S13.1, S14.1, S15.1, S36.1).
