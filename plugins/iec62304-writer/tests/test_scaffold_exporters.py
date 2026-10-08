@@ -120,3 +120,18 @@ def test_requirement_id_band_is_one_exact_line():
 
     ppr = dict((sid, p) for sid, _n, p, _r in ref.REQUIREMENT_STYLES)["RequirementId"]
     assert 'w:line="240" w:lineRule="exact"' in ppr
+
+
+def _risk(cat: str, **fm: object) -> _lib.Item:
+    return _lib.Item(id=f"{cat}-T-001", category=cat, path=Path(f"{cat}-T-001.md"),
+                     fm={"status": "Draft", **fm})
+
+
+def test_risk_cell_caps_cover_the_production_and_use_related_registers():
+    """The S05.7 caps apply to RSK, PRSK and URSK; a use error takes the sequence cap."""
+    long_hazard = " ".join(["word"] * 9)
+    assert any("hazard: 9 words" in o for o in _lib.risk_cell_offenders([_risk("PRSK", hazard=long_hazard)]))
+    ursk = _risk("URSK", hazard="Wrong map", use_error=" ".join(["w"] * 26), hazardous_situation="Reader misled")
+    offenders = _lib.risk_cell_offenders([ursk])
+    assert offenders == ["word-cap: URSK-T-001 use_error: 26 words (cap 1–25)"]
+    assert _lib.risk_cell_offenders([_risk("SRS", hazard=long_hazard)]) == []

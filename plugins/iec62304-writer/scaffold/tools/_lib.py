@@ -782,6 +782,18 @@ RISK_CELL_CAPS: dict[str, tuple[int, int]] = {
 _RISK_CELL_SECTIONS = {
     "hazard": "Hazard", "initiating_causes": "Initiating causes",
     "foreseeable_sequence": "Foreseeable sequence of events", "hazardous_situation": "Hazardous situation",
+    "use_error": "Use error",
+}
+#: The capped cells of each register — design, production and use-related risks
+#: alike: field of the record → the cap of RISK_CELL_CAPS it takes. A use error
+#: lands in the foreseeable-sequence column of the risk table and takes its cap; a
+#: use-related risk has no initiating-cause cell and no control-measure text (its
+#: controls are the linked items).
+RISK_CELL_FIELDS: dict[str, dict[str, str]] = {
+    "RSK": {f: f for f in RISK_CELL_CAPS},
+    "PRSK": {f: f for f in RISK_CELL_CAPS},
+    "URSK": {"hazard": "hazard", "use_error": "foreseeable_sequence",
+             "hazardous_situation": "hazardous_situation"},
 }
 _ENUMERATOR_RE = re.compile(r"\(?\d+[.)]|[-*+→—–]")
 _DRAFT_SPAN_RE = re.compile(r"\[(?:DRAFT|TODO)[^\]]*\]")
@@ -846,12 +858,15 @@ def control_measure_text(item: Item) -> str:
 
 
 def risk_cell_offenders(items: list[Item]) -> list[str]:
-    """Design-register cells (RSK) outside their cap, kind `word-cap`."""
+    """Risk-table cells outside their cap on the design, production and use-related
+    registers (RSK, PRSK, URSK), kind `word-cap`."""
     out: list[str] = []
     for it in sorted(items, key=lambda i: i.id):
-        if it.category != "RSK" or not _active(it):
+        fields = RISK_CELL_FIELDS.get(it.category)
+        if not fields or not _active(it):
             continue
-        for field, (lo, hi) in RISK_CELL_CAPS.items():
+        for field, cap in fields.items():
+            lo, hi = RISK_CELL_CAPS[cap]
             if field == "control_measure":
                 text = control_measure_text(it)
             else:

@@ -138,7 +138,11 @@ word for word and adds only what the project really needs.
 - Always consider "validation data not representative of the intended population".
 - The house 26-column template; the control measure is written in text (30–60
   words), never only a list of IDs or "(see linked items)". Caps: hazard ≤ 8 words,
-  causes ≤ 20, sequence ≤ 25, situation ≤ 15; ≈ 165 words per row.
+  causes ≤ 20, sequence ≤ 25, situation ≤ 15; ≈ 165 words per row. The caps apply
+  to the three registers alike — design (RSK), production (PRSK) and use-related
+  (URSK; the use error takes the sequence cap) — and the lint covers all three. A
+  record over cap is rewritten without losing a cause or a control: the detail
+  stays in the item body.
 - The ISO/TR 24971 Annex A sheet answers every question (≈ 47) with the patient
   hazard and the register risk.
 

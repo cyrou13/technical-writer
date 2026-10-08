@@ -839,8 +839,9 @@ def main() -> int:
     print(str(md_path))
 
     # Transverse rules of the dossier (skill dossier-altitude): blocking under --strict.
+    # The risk-table cells are capped on the design, production and use-related registers.
     if args.strict:
-        offenders = altitude_lint(md, doc="RAR", extra=risk_cell_offenders(rsk))
+        offenders = altitude_lint(md, doc="RAR", extra=risk_cell_offenders(rsk + prsk + ursk))
         if offenders:
             report_altitude_lint("RAR", offenders)
             return 1
