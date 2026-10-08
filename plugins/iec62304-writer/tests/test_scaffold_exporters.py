@@ -155,3 +155,56 @@ def test_the_benefit_level_is_computed_and_compared_with_the_highest_residual():
     rsk = [_risk("RSK", residual_severity="Serious", residual_probability="Occasional")]
     assert "The benefit level 12 exceeds the highest residual risk level, RL 9." in risk.benefit_risk_lines(ctx, rsk)
     assert risk.benefit_level({"risk_management": {"benefit_level": {"probability": None}}}) == (None, "")
+
+
+# ---------------------------------------------------------------------------
+# Text handed to pandoc: dollars and figure captions
+# ---------------------------------------------------------------------------
+
+
+def test_a_bare_dollar_is_escaped_outside_code():
+    """pandoc reads "$...$" as TeX math: two "$" in one table row merge its cells."""
+    md = "| A | +X/$$7001 | +Y/$$7002 |\n\n`a $b`\n\n```\ncost $5\n```\nalready \\$ escaped"
+    out = _lib.escape_dollars(md)
+    assert "| A | +X/\\$\\$7001 | +Y/\\$\\$7002 |" in out
+    assert "`a $b`" in out and "cost $5" in out
+    assert "already \\$ escaped" in out
+
+
+def test_pandoc_input_escapes_dollars_and_keeps_the_markdown(tmp_path, monkeypatch):
+    monkeypatch.setattr(_lib, "_mmdc_path", lambda: None)
+    md = tmp_path / "doc.md"
+    md.write_text("Price $5 and $6.\n", encoding="utf-8")
+    src, is_temp = _lib.pandoc_input(md, tmp_path / "figures")
+    assert is_temp and src.read_text(encoding="utf-8") == "Price \\$5 and \\$6.\n"
+    assert md.read_text(encoding="utf-8") == "Price $5 and $6.\n"
+
+
+def _fence(source: str) -> str:
+    return f"```mermaid\n{source}```\n"
+
+
+def test_every_diagram_gets_one_numbered_caption_with_a_title(tmp_path, monkeypatch):
+    """Figure N: title — N counted over the figures of the document; the caption the
+    exporter wrote under the fence is consumed, else the section heading is the title."""
+    import hashlib
+
+    monkeypatch.setattr(_lib, "_mmdc_path", lambda: "/nonexistent/mmdc")
+    figs = tmp_path / "figures"
+    figs.mkdir()
+    sources = ["flowchart LR\n  A --> B\n", "flowchart LR\n  C --> D\n"]
+    for src in sources:
+        _png(figs / f"fig-{hashlib.sha1(src.encode()).hexdigest()[:12]}.png", 10, 5)
+    md = ("# 2. GENERAL ARCHITECTURE\n\n![Figure 1: Existing picture](x.png)\n\n" + _fence(sources[0])
+          + "\n## 3.6 Decomposition\n\n" + _fence(sources[1])
+          + "\n*Figure 3: Decomposition of the system.*\n\nNext paragraph.\n")
+    out = _lib.render_mermaid_for_pandoc(md, figs)
+    assert "![Figure 2: General architecture](" in out
+    assert "![Figure 3: Decomposition of the system](" in out
+    assert "*Figure 3:" not in out and "Next paragraph." in out
+
+
+def test_a_cited_figure_takes_the_number_it_is_rendered_with():
+    md = ("```mermaid\nA\n```\n\nFigure {f} shows it.\n\n```mermaid\nB\n```\n\n*Figure {f}: Title.*\n")
+    out = _lib.number_figure_placeholder(md, "{f}")
+    assert "Figure 2 shows it." in out and "*Figure 2: Title.*" in out

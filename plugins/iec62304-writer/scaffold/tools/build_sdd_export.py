@@ -42,6 +42,7 @@ from _lib import (  # noqa: E402
     load_items,
     load_ots_hazard_contribution,
     pandoc_input,
+    number_figure_placeholder,
     parse_yaml,
     section_with_fallback,
     strip_internal_sections,
@@ -363,6 +364,11 @@ def build_section_3(ctx: BuildContext) -> list[str]:
 DECOMPOSITION_ROW_ITEMS = 5
 
 
+#: Placeholder of the §3.6 figure number, resolved over the whole document
+#: (`_lib.number_figure_placeholder`): the diagrams before it shift its number.
+DECOMPOSITION_FIGURE = "{decomposition-figure}"
+
+
 def build_decomposition_figure(ctx: BuildContext) -> list[str]:
     """§3.6 — the decomposition of the system into items, generated from the
     `links.parent` of the SDS items.
@@ -384,7 +390,8 @@ def build_decomposition_figure(ctx: BuildContext) -> list[str]:
     roots = {a for a, _ in edges}
     flat = len(roots) == 1 and not {b for _, b in edges} & roots
     lines = [
-        "Figure 1 shows the decomposition of the software system into the software items of §3.5.1.",
+        f"Figure {DECOMPOSITION_FIGURE} shows the decomposition of the software system into the "
+        "software items of §3.5.1.",
         "",
         "```mermaid",
         "flowchart TB" if flat else "flowchart LR",
@@ -398,7 +405,8 @@ def build_decomposition_figure(ctx: BuildContext) -> list[str]:
         rows = [kids[i:i + DECOMPOSITION_ROW_ITEMS] for i in range(0, len(kids), DECOMPOSITION_ROW_ITEMS)]
         for upper, lower in zip(rows, rows[1:]):  # invisible links rank the next row below
             lines += [f"    {upper[min(j, len(upper) - 1)]} ~~~ {k}" for j, k in enumerate(lower)]
-    lines += ["```", "", "*Figure 1 — Decomposition of the software system into software items.*", ""]
+    lines += ["```", "", f"*Figure {DECOMPOSITION_FIGURE}: Decomposition of the software system into software items.*",
+              ""]
     return lines
 
 
@@ -772,6 +780,7 @@ def build_section_5(ctx: BuildContext) -> list[str]:
 
 
 def render_markdown(ctx: BuildContext) -> str:
+    """The deliverable; the §3.6 figure is cited by the number it is rendered with."""
     parts: list[str] = []
     parts += build_cover(ctx)
     parts += build_revision_history(ctx)
@@ -780,7 +789,8 @@ def render_markdown(ctx: BuildContext) -> str:
     parts += build_section_3(ctx)
     parts += build_section_4(ctx)
     parts += build_section_5(ctx)
-    return "\n".join(parts).rstrip() + "\n"
+    md = "\n".join(parts).rstrip() + "\n"
+    return number_figure_placeholder(md, DECOMPOSITION_FIGURE)
 
 
 def try_pandoc(md_path: Path, docx_path: Path, reference_docx: Path | None, ctx: BuildContext) -> bool:

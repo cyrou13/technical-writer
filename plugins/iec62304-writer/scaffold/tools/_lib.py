@@ -518,6 +518,54 @@ def _figure_size(png: Path) -> str:
     return f"{{height={FIGURE_MAX_HEIGHT_CM:g}cm}}"
 
 
+#: A figure image whose alt text is its caption ("Figure N: ...") or a mermaid fence:
+#: the things a document numbers as figures, in reading order.
+_FIGURE_IMAGE_RE = re.compile(r"!\[Figure\b[^\]]*\]\(")
+#: The caption an exporter writes under a diagram, as its own paragraph: "Figure N:
+#: title", "Figure N. title" or "Figure N — title", optionally in italics. It is taken
+#: as the caption of the rendered figure (one caption, not two).
+_CAPTION_PARAGRAPH_RE = re.compile(
+    r"\A(?:[ \t]*\n)*[ \t]*(\*?)Figure\s+\d+\s*[.:\u2014\u2013-]\s*(.+?)\1[ \t]*(?:\n|\Z)")
+_ATX_HEADING_RE = re.compile(r"^#{1,6}[ \t]+(.+?)[ \t#]*$", re.M)
+_HEADING_NUMBER_RE = re.compile(r"^(?:Annex\s+[A-Z]|Appendix\s+[A-Z]|[A-Z]?\d+(?:\.\d+)*)\.?\s+")
+
+
+def figure_number_at(md: str, pos: int) -> int:
+    """The number of the figure that starts at `pos`: one more than the figures
+    (captioned images and mermaid fences) before it in the document."""
+    before = md[:pos]
+    return len(_FIGURE_IMAGE_RE.findall(before)) + len(MERMAID_FENCE_RE.findall(before)) + 1
+
+
+def number_figure_placeholder(md: str, placeholder: str) -> str:
+    """`md` with `placeholder` replaced by the number of the first diagram that follows
+    its first occurrence: an exporter that cites its own figure ("Figure {x} shows ...")
+    cites it by the number it is rendered with, whatever figures precede it."""
+    at = md.find(placeholder)
+    if at < 0:
+        return md
+    fence = md.find("```mermaid", at)
+    return md.replace(placeholder, str(figure_number_at(md, fence if fence >= 0 else at)))
+
+
+def _figure_caption_after(md: str, pos: int) -> tuple[str, int]:
+    """(caption title, end of the caption paragraph) when the paragraph following
+    `pos` is a figure caption, else ("", pos)."""
+    m = _CAPTION_PARAGRAPH_RE.match(md[pos:])
+    if not m:
+        return "", pos
+    return m.group(2).strip().rstrip(".").strip(), pos + m.end()
+
+
+def _heading_before(md: str, pos: int) -> str:
+    """The text of the last heading before `pos`, without its section number."""
+    headings = _ATX_HEADING_RE.findall(md[:pos])
+    if not headings:
+        return ""
+    text = _HEADING_NUMBER_RE.sub("", headings[-1].strip()).strip()
+    return text[:1].upper() + text[1:].lower() if text.isupper() else text
+
+
 def render_mermaid_for_pandoc(
     md: str,
     figures_dir: Path,
@@ -528,8 +576,12 @@ def render_mermaid_for_pandoc(
     """Return `md` with every mermaid fence replaced by a rendered PNG reference.
 
     Returns None when there is nothing to do — no fences, or no renderer — which
-    tells the caller to hand pandoc the original file. A block that fails to
-    render is left as a fence; one bad diagram does not cost the others.
+    tells the caller to hand pandoc the original file. Each figure gets one
+    caption, "Figure N: title", N counted over every figure of the document: the
+    title is the caption paragraph the exporter wrote under the fence (consumed, so
+    the figure is not captioned twice), else the heading of the section the diagram
+    sits in. A block that fails to render is left as a fence; one bad diagram does
+    not cost the others.
 
     PNGs are named by the SHA-1 of the diagram source, so an unchanged diagram is
     not re-rendered on the next build (mmdc costs a browser launch per figure)
@@ -553,7 +605,8 @@ def render_mermaid_for_pandoc(
     out: list[str] = []
     cursor = 0
     rendered = 0
-    for n, m in enumerate(blocks, 1):
+    for i, m in enumerate(blocks, 1):
+        n = figure_number_at(md, m.start())
         source = m.group(1)
         digest = hashlib.sha1(source.encode("utf-8")).hexdigest()[:12]
         png = figures_dir / f"fig-{digest}.png"
@@ -568,19 +621,21 @@ def render_mermaid_for_pandoc(
                 proc = subprocess.run(cmd, capture_output=True, text=True,
                                       timeout=MERMAID_RENDER_TIMEOUT_S)
             except subprocess.TimeoutExpired:
-                _log(f"WARN: figure {n} timed out after {MERMAID_RENDER_TIMEOUT_S}s — left as a code block")
+                _log(f"WARN: figure {i} timed out after {MERMAID_RENDER_TIMEOUT_S}s — left as a code block")
                 continue
             finally:
                 mmd.unlink(missing_ok=True)
             if proc.returncode != 0 or not png.is_file():
                 detail = (proc.stderr or proc.stdout or "").strip().splitlines()
                 reason = next((ln for ln in detail if "rror" in ln), detail[0] if detail else "no output")
-                _log(f"WARN: figure {n} did not render ({reason[:200]}) — left as a code block")
+                _log(f"WARN: figure {i} did not render ({reason[:200]}) — left as a code block")
                 continue
 
+        title, end = _figure_caption_after(md, m.end())
+        title = title or _heading_before(md, m.start()) or "Diagram"
         out.append(md[cursor:m.start()])
-        out.append(f"![Figure {n}]({png}){_figure_size(png)}\n")
-        cursor = m.end()
+        out.append(f"![Figure {n}: {title}]({png}){_figure_size(png)}\n")
+        cursor = end
         rendered += 1
 
     if not rendered:
@@ -625,15 +680,51 @@ def load_ots_hazard_contribution(path: Path) -> str:
     return "" if "[TODO" in text else text
 
 
+_FENCE_LINE_RE = re.compile(r"^[ \t]*(```|~~~)")
+_CODE_SPAN_SPLIT_RE = re.compile(r"(`+[^`\n]*`+)")
+_BARE_DOLLAR_RE = re.compile(r"(?<!\\)\$")
+
+
+def escape_dollars(md: str) -> str:
+    """`md` with every bare "$" escaped, outside code blocks and code spans.
+
+    pandoc reads the text between two "$" as TeX math (`tex_math_dollars`): two
+    identifiers carrying a "$" in one table (a UDI carrier, a price) merge the cells
+    between them into one formula. No deliverable writes TeX, so a "$" is a dollar.
+    """
+    out: list[str] = []
+    fence: str | None = None
+    for line in md.split("\n"):
+        m = _FENCE_LINE_RE.match(line)
+        if fence is not None:
+            if m and m.group(1) == fence:
+                fence = None
+            out.append(line)
+            continue
+        if m:
+            fence = m.group(1)
+            out.append(line)
+            continue
+        if "$" in line:
+            parts = _CODE_SPAN_SPLIT_RE.split(line)
+            line = "".join(p if i % 2 else _BARE_DOLLAR_RE.sub(r"\\$", p) for i, p in enumerate(parts))
+        out.append(line)
+    return "\n".join(out)
+
+
 def pandoc_input(md_path: Path, figures_dir: Path, *, log=None) -> tuple[Path, bool]:
-    """Return (path to hand pandoc, whether it is a temporary file to delete)."""
-    swapped = render_mermaid_for_pandoc(
-        md_path.read_text(encoding="utf-8"), figures_dir, log=log
-    )
-    if swapped is None:
+    """Return (path to hand pandoc, whether it is a temporary file to delete).
+
+    The text pandoc reads has its mermaid fences rendered to captioned figures and
+    its bare "$" escaped (`escape_dollars`); the deliverable .md is left as written.
+    """
+    original = md_path.read_text(encoding="utf-8")
+    swapped = render_mermaid_for_pandoc(original, figures_dir, log=log)
+    text = escape_dollars(original if swapped is None else swapped)
+    if text == original:
         return md_path, False
     tmp = md_path.with_suffix(".pandoc.md")
-    tmp.write_text(swapped, encoding="utf-8")
+    tmp.write_text(text, encoding="utf-8")
     return tmp, True
 
 
