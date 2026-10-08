@@ -181,12 +181,59 @@ def build_revision_history(ctx: BuildContext) -> list[str]:
     return lines
 
 
+def _styled(style: str, text: str) -> list[str]:
+    """One paragraph in a named style of the reference document (pandoc custom-style div)."""
+    return [f'::: {{custom-style="{style}"}}', text, ":::", ""]
+
+
+def build_conventions(ctx: BuildContext) -> list[str]:
+    """§1.4 — the conventions of the approved reference SRS.
+
+    The brand sentence (what the suite is, what the application name designates),
+    then the four-part requirement structure in the four `Requirement*` paragraph
+    styles, a styled example and its legend. The identifier pattern is never printed
+    as a format string; the "how" is left to the SDD.
+    """
+    prod = (ctx.config.get("product") or {}) if ctx.config else {}
+    suite = str(prod.get("suite") or "[TODO product.suite]")
+    app = str(prod.get("application") or "[TODO product.application]")
+    scope = str(prod.get("suite_scope") or "[TODO product.suite_scope]").strip().rstrip(".")
+    designation = str(prod.get("designation") or "[TODO product.designation]").strip().rstrip(".")
+    docs = (ctx.config.get("documents") or {}) if ctx.config else {}
+    sdd = str(docs.get("sdd") or "").strip()
+    sdd_ref = f" ({sdd})" if sdd and "TODO" not in sdd else ""
+    return [
+        f"{suite} is the brand name of the {suite} software suite, made of {scope}. "
+        f"In the context of this project and document, {suite}-{app} refers to the "
+        f"{suite} application that {designation}.",
+        "",
+        "Requirements listed in this document are constructed according to the "
+        "following structure:",
+        "",
+        *_styled("RequirementId", "Requirement identifier"),
+        *_styled("RequirementTitle", "Requirement title"),
+        *_styled("RequirementBody", "Requirement description"),
+        *_styled("RequirementVersion", "Last modification"),
+        "Example:",
+        "",
+        *_styled("RequirementId", "SRS-XXX-NN-AAA-000"),
+        *_styled("RequirementTitle", "Title of AAA-000 requirement"),
+        *_styled("RequirementBody", "Description of AAA-000 requirement"),
+        *_styled("RequirementVersion", "V1.0"),
+        "Where:",
+        "",
+        f"- XXX is the name of the software suite ({suite});",
+        f"- NN is the name of the image processing application ({app});",
+        "- AAA is an abbreviation for a subset of functions.",
+        "",
+        "The description says what the software does, in the present tense; how it "
+        f"does it is left to the Software Design Description{sdd_ref}.",
+        "",
+    ]
+
+
 def build_introduction(ctx: BuildContext) -> list[str]:
     refs = ctx.config.get("project_references") or [] if ctx.config else []
-    id_fmt = (ctx.config.get("id_format") or {}) if ctx.config else {}
-    default_fmt = id_fmt.get("default") if isinstance(id_fmt, dict) else None
-    if not default_fmt:
-        default_fmt = "{CAT}-{DOMAIN}-{NNN:03d}"
 
     lines: list[str] = [
         "# 1. Introduction",
@@ -226,20 +273,7 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "",
         "## 1.4 Conventions",
         "",
-        "Requirements listed in this document follow the format:",
-        "",
-        "```",
-        default_fmt,
-        "<title>",
-        "<description>",
-        "V<version>",
-        "```",
-        "",
-        "where the variables are: `{CAT}` is the category (SRS, MAP, …), "
-        "`{SUITE}` and `{APP}` come from `dt-config.yaml: product`, "
-        "`{DOMAIN}` is a short uppercase identifier per functional area, "
-        "and `{NNN}` is a zero-padded counter.",
-        "",
+        *build_conventions(ctx),
         "---",
         "",
     ]

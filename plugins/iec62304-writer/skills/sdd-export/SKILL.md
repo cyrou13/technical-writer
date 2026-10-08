@@ -52,12 +52,18 @@ consommé en daily review. Le SDD est un **document QMS-ready** avec :
   - §3.3 Processing Workflow + §3.4 Application Workflow (narratif)
   - §3.5 Software Design Description (Main items + Software Units +
     Error codes)
-  - §3.6 Class Diagram (image / Mermaid externe)
+  - §3.6 Decomposition diagram, generated from the SDS `links.parent`:
+    one level under one root → `flowchart TB`, the items in rows of 5
+    (`DECOMPOSITION_ROW_ITEMS`) ranked by invisible `~~~` links so the
+    figure is wider than tall; a deeper tree → `flowchart LR`. The
+    optional `class-diagram` anchor follows it when written.
   - §3.7 Application Specific Design (détail SDS items)
 - §4 Security Risk Assessment (depuis THR items, table d'attack
   paths, threat-by-threat, conclusion auto)
 - §5 COTS Control and Identification (auto-detect des manifestes
-  `pyproject.toml` / `requirements.txt` / `package.json`)
+  `pyproject.toml` / `requirements.txt` / `package.json`); §5.3 from
+  `docs/ots.yaml: hazard_contribution` (below), else the `cots-hazards`
+  anchor
 
 ## Inputs requis
 
@@ -107,6 +113,25 @@ Les dépendances **transitives** ne sont PAS listées — l'utilisateur
 doit générer un SBOM complet via `syft` ou `cyclonedx` et référencer
 le fichier dans §5.1 (via `external_resources.cots-control`).
 
+## §5.3 Contribution to hazardous situations
+
+`docs/ots.yaml: hazard_contribution` is written in the structured form and
+rendered (`_lib.render_hazard_contribution`) as the `intro` sentence, a
+three-column table `Contribution | Components | Containment` with one row per
+entry of `ways` (`failure`, `components`, `containment`), then the `note`.
+Free text is still accepted and printed as written; a value still carrying
+`[TODO` falls back to the `cots-hazards` anchor.
+
+```yaml
+hazard_contribution:
+  intro: Off-the-shelf software can contribute to a hazardous situation in three ways, each with a stated containment.
+  ways:
+    - failure: Wrong numeric result
+      components: the numerical libraries and the inference runtime, on the path of every output value
+      containment: pinned versions; accuracy test (SRS-…); release benchmark gate against a versioned baseline
+  note: Components on no device code path cannot alter a result; their only failure mode is an import error.
+```
+
 ### Diagrammes mermaid
 
 Les blocs ```` ```mermaid ```` du livrable sont rendus en PNG et remplacés par
@@ -122,6 +147,10 @@ d'environnement reconnues :
 |---|---|
 | `MMDC` | chemin du binaire `mmdc` si absent du `PATH` |
 | `MERMAID_PUPPETEER_CONFIG` | config puppeteer JSON — typiquement `{"args": ["--no-sandbox"]}` en conteneur ; à défaut `tools/puppeteer.json` est lu s'il existe |
+
+A rendered diagram taller than the page once pandoc has fitted it to the text
+width (16 cm) gets `{height=20cm}` (`_lib._figure_size`): pandoc shrinks a wide
+image on its own, never a tall one.
 
 Absent → les blocs restent tels quels, une ligne INFO est loggée et l'export
 n'échoue pas. Un diagramme qui ne compile pas est laissé en bloc de code : il ne

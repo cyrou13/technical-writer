@@ -63,9 +63,11 @@ REQUIREMENT_STYLES: tuple[tuple[str, str, str, str], ...] = (
     # id, which Word applies instead of this one.
     # Properties as in the approved Avicenna SRS: the body and the version line
     # carry no spacing of their own (a blank line separates them, written by
-    # `_lib.finish_docx()` with the closing rule), the version line is black.
+    # `_lib.finish_docx()` with the closing rule), the version line is black. The
+    # identifier band is one exact 12-pt line, so the grey band is no taller than
+    # the bold identifier it carries.
     ("RequirementId", "RequirementId",
-     '<w:keepNext/><w:shd w:fill="C0C0C0" w:val="clear"/><w:spacing w:after="120" w:before="360"/><w:jc w:val="left"/>',
+     '<w:keepNext/><w:shd w:fill="C0C0C0" w:val="clear"/><w:spacing w:after="120" w:before="360" w:line="240" w:lineRule="exact"/><w:jc w:val="left"/>',
      '<w:b/><w:bCs/><w:color w:val="000080"/>'),
     ("RequirementTitle", "RequirementTitle",
      '<w:keepNext/><w:spacing w:after="120" w:before="120"/><w:ind w:left="284"/><w:jc w:val="left"/>',

@@ -40,6 +40,11 @@ documents:
 product:
   suite: "[TODO suite]"                 # e.g. CINA
   application: "[TODO application]"    # e.g. CTP
+  # SRS §1.4 brand sentence: "<suite> is the brand name of the <suite> software
+  # suite, made of <suite_scope>. In the context of this project and document,
+  # <suite>-<application> refers to the <suite> application that <designation>."
+  suite_scope: "[TODO e.g. several radiological image-processing applications dedicated to different pathologies]"
+  designation: "[TODO what the application does, e.g. computes perfusion parameter maps]"
 
 # -----------------------------------------------------------------------------
 # ID format — how new item IDs are minted by the writers.

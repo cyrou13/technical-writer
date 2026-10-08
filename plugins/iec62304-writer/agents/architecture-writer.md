@@ -56,7 +56,10 @@ the dependency manifests (`pyproject.toml`, `requirements*.txt`,
    `hazard_review` says what the scanner does not cover (pip-audit does
    not scan conda or OS packages) and, for `safety_relevant: false`,
    the reason after the dash. The base image is one entry. Fill
-   `control_procedure` and `hazard_contribution`. Unknown `supplier`,
+   `control_procedure` and `hazard_contribution` — the latter in the
+   structured form (`intro`, `ways` of `failure` / `components` /
+   `containment`, `note`), rendered as SDD §5.3's sentence, table and
+   note. Unknown `supplier`,
    `eol_status` or `sbom_ref` → `"[TODO]"` in the registry (the
    registry is internal until the SDD export, where SL-3 refuses a
    TODO). Reference every component in `interfaces.depends_on` by its

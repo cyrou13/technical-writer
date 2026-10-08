@@ -126,7 +126,9 @@ The architecture-writer creates or updates the registry from the
 dependency **locks** (exact versions); the security-analyst reads it for
 supply-chain threats; the exporter renders the registry as the SDD's
 SOUP table, below the `control_procedure` and `hazard_contribution`
-narratives of the same file. A version or supplier written in an item
+narratives of the same file (`hazard_contribution` in the structured form
+`intro` / `ways[failure, components, containment]` / `note`, rendered as a
+sentence, a three-column table and the note). A version or supplier written in an item
 body fails SL-3. The registry rules (SL-12):
 
 - **one row per installed component at its exact version** — no range

@@ -203,6 +203,14 @@ ERROR/WARNING/INFO/DEBUG, level settable); a product requirement that every
 output DICOM object carries the UDI; a section on what the host platform must
 provide; a one-line reference to the test plan for verification.
 
+**Conventions (§1.4).** As in the approved reference SRS and the PMAP: the brand
+sentence (what the suite is, what the application name designates), the
+four-part structure (identifier, title, description, last modification) in the
+four requirement paragraph styles, a styled example (SRS-XXX-NN-AAA-000), a
+"Where:" legend (XXX suite, NN application, AAA subset of functions), and one
+sentence leaving the "how" to the SDD. Never an identifier format string in a
+code block.
+
 ## SDD — Software Design Description
 
 **Altitude.** Architecture and identified units, not developer documentation. For
@@ -231,7 +239,15 @@ source path; class and method names only in tables.
 mitigation, 40–60 words) referring to the cyber risk assessment, the single
 detailed source; multi-patient, patchability and use-case views half a page each.
 SOUP: direct dependencies only (≈ 12) with version constraint and role, then
-"the authoritative list is the SBOM" and a reference to the OTS assessment.
+"the authoritative list is the SBOM" and a reference to the OTS assessment. The
+contribution to hazardous situations is one sentence, a three-column table
+(contribution, components, containment; one row per way an OTS component can
+contribute) and a closing note on the components on no device path, never one
+dense paragraph.
+
+**Figures.** The decomposition figure of a one-level tree fans out top-down in
+rows of five, not as one column; every rendered diagram fits the page (height
+bound 20 cm once fitted to the 16 cm text width).
 
 **Inactive code.** When inactive code ships in the image, an appendix lists the
 groups (reason, unreachability control) and a compact generated list of regions
@@ -408,7 +424,8 @@ applies from the first revision after a release.
 Every requirement (MAP and SRS) is rendered as the approved cartouche: the
 identifier on a grey band (bold navy), the title in italic navy indented, the
 text in blue without spacing, a blank line, the version line in black at body
-size, then a 6-pt grey closing rule after the version line or after the tables
+size (the grey identifier band is one exact 12-pt line, no taller than the bold
+identifier), then a 6-pt grey closing rule after the version line or after the tables
 that follow it, and a blank line. The pandoc `custom-style` names must equal the
 style names of the reference document (`RequirementId`, …): pandoc maps them by
 name, and a mismatch makes it append an empty twin style that Word renders
@@ -428,3 +445,5 @@ instead.
 - 2026-10-07 — clinical and bench performance reports (decisions S18.1–S18.4).
 - 2026-10-07 — usability, labels, lifetime, declarations, reviews, model card (decisions S21.1–S37.1).
 - 2026-10-07 — standards checklists and transverse rules T1–T7 (decisions S29.1, T1–T7); arbitration closed.
+- 2026-10-08 — SRS §1.4 conventions as in the reference SRS, identifier band height,
+  decomposition figure in rows and page-height bound, structured SOUP hazard contribution.

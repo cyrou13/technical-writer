@@ -46,7 +46,17 @@
 #
 # Narrative keys rendered above the table (exported, present tense, no dates):
 #   control_procedure   how components are identified, pinned, audited, re-assessed
-#   hazard_contribution how OTS can contribute to a hazardous situation and what contains it
+#   hazard_contribution how OTS can contribute to a hazardous situation and what contains it.
+#                       Structured form (SDD §5.3 renders it as the intro sentence, a
+#                       three-column table Contribution | Components | Containment with
+#                       one row per way, then the note); free text is still accepted:
+#     intro: one sentence — how many ways, each with a stated containment
+#     ways:               one entry per way an OTS component can contribute
+#       - failure:     the contribution, a noun phrase ("Wrong numeric result")
+#         components:  the components on that path, by name, and why they are on it
+#         containment: the controls that contain it (tests, gates, pins), with the
+#                      requirement or threat ids that carry them
+#     note: what the components on no device path can and cannot do
 #
 # Example:
 #   - component: numpy
@@ -89,7 +99,29 @@
 control_procedure: |
   [TODO how components are identified, pinned, audited and re-assessed at each release]
 
-hazard_contribution: |
-  [TODO how an off-the-shelf component can contribute to a hazardous situation and what contains it]
+hazard_contribution:
+  intro: |
+    [TODO e.g. Off-the-shelf software can contribute to a hazardous situation in
+    three ways, each with a stated containment.]
+  ways:
+    - failure: "[TODO e.g. Wrong numeric result]"
+      components: |
+        [TODO e.g. the numerical libraries and the inference runtime, on the path
+        of every output value]
+      containment: |
+        [TODO e.g. pinned versions; accuracy test on a reference dataset
+        (SRS-XXX-NNN); release benchmark gate against a versioned baseline]
+    - failure: "[TODO e.g. Wrong or unreadable output object]"
+      components: "[TODO e.g. the library that writes every output object]"
+      containment: "[TODO e.g. output conformance tests]"
+    - failure: "[TODO e.g. Security failure on untrusted input]"
+      components: "[TODO e.g. the decoders of untrusted input data]"
+      containment: |
+        [TODO e.g. input allowlist, pre-decode gates, isolated decode worker
+        (THR-XXX-NNN); dependency audit, SBOM and hash-pinned locks]
+  note: |
+    [TODO e.g. Components on no device code path (declared but unused
+    dependencies, build-time tools) cannot alter a result; their only failure
+    mode is an import error that aborts the run.]
 
 components: []

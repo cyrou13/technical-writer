@@ -98,7 +98,7 @@ TABLE OF CONTENTS
   §1.1 Document overview        ← dt-clinical-context: ## document-overview
   §1.2 Abbreviations & Glossary ← dt-clinical-context: ## abbreviations + ## glossary
   §1.3 Project References       ← dt-config.yaml: project_references (table)
-  §1.4 Conventions              ← derived from dt-config.yaml: id_format
+  §1.4 Conventions              ← dt-config.yaml: product (suite, application, suite_scope, designation)
 
 §2 REQUIREMENTS
   §2.1 Introduction
@@ -127,6 +127,29 @@ TABLE OF CONTENTS
   Table: SRS ID | SRS Title | MAP Parent ID | MAP Title
   Sorted by SRS ID. Rows where SRS has no parent get "(no parent)" — flagged in log.
 ```
+
+## §1.4 Conventions — as in the approved reference SRS
+
+§1.4 never prints the identifier pattern as a format string or a code block.
+It reads, in this order:
+
+1. The brand sentence: "<suite> is the brand name of the <suite> software
+   suite, made of <suite_scope>. In the context of this project and document,
+   <suite>-<application> refers to the <suite> application that
+   <designation>." — all four from `dt-config.yaml: product`.
+2. "Requirements listed in this document are constructed according to the
+   following structure:" then the four parts, each in its own paragraph
+   style: `Requirement identifier` (RequirementId), `Requirement title`
+   (RequirementTitle), `Requirement description` (RequirementBody),
+   `Last modification` (RequirementVersion).
+3. "Example:" then the same four styles: `SRS-XXX-NN-AAA-000`,
+   `Title of AAA-000 requirement`, `Description of AAA-000 requirement`,
+   `V1.0`.
+4. "Where:" and a three-line list — XXX is the name of the software suite;
+   NN is the name of the image processing application; AAA is an
+   abbreviation for a subset of functions.
+5. One sentence: the description says what the software does, in the
+   present tense; how it does it is left to the Software Design Description.
 
 ## Règles d'omission
 
@@ -234,6 +257,10 @@ d'environnement reconnues :
 |---|---|
 | `MMDC` | chemin du binaire `mmdc` si absent du `PATH` |
 | `MERMAID_PUPPETEER_CONFIG` | config puppeteer JSON — typiquement `{"args": ["--no-sandbox"]}` en conteneur ; à défaut `tools/puppeteer.json` est lu s'il existe |
+
+A rendered diagram taller than the page once pandoc has fitted it to the text
+width (16 cm) gets `{height=20cm}` (`_lib._figure_size`): pandoc shrinks a wide
+image on its own, never a tall one.
 
 Absent → les blocs restent tels quels, une ligne INFO est loggée et l'export
 n'échoue pas. Un diagramme qui ne compile pas est laissé en bloc de code : il ne

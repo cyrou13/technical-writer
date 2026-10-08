@@ -39,6 +39,7 @@ from _lib import (  # noqa: E402
     Item,
     load_clinical_context,
     load_items,
+    load_ots_hazard_contribution,
     pandoc_input,
     parse_yaml,
     section_with_fallback,
@@ -51,6 +52,7 @@ CONFIG_PATH = ROOT / "dt-config.yaml"
 CLINICAL_PATH = ROOT / "docs" / "dt-clinical-context.md"
 ITEMS_DIR = ROOT / "docs" / "items"
 EXPORT_DIR = ROOT / "docs" / "export"
+OTS_PATH = ROOT / "docs" / "ots.yaml"
 
 
 # ---------------------------------------------------------------------------
@@ -342,18 +344,60 @@ def build_section_3(ctx: BuildContext) -> list[str]:
             "meaning, and recovery action.",
         ),
         "",
-        "## 3.6 Class Diagram",
+        "## 3.6 Decomposition diagram",
         "",
-        _section(
-            ctx,
-            "class-diagram",
-            "Insert the UML class diagram of the main software items. "
-            "Tool: PlantUML / Mermaid / draw.io. Reference upstream SDS items.",
-        ),
-        "",
+        *build_decomposition_figure(ctx),
     ]
+    if ctx.clinical.get("class-diagram", "").strip() or ((ctx.config or {}).get("external_resources") or {}).get("class-diagram"):
+        lines += [
+            _section(ctx, "class-diagram", "Insert the UML class diagram of the main software items."),
+            "",
+        ]
     lines += build_application_specific_design(ctx)
     lines += ["---", ""]
+    return lines
+
+
+#: Items per row of the one-level decomposition figure (§3.6).
+DECOMPOSITION_ROW_ITEMS = 5
+
+
+def build_decomposition_figure(ctx: BuildContext) -> list[str]:
+    """§3.6 — the decomposition of the system into items, generated from the
+    `links.parent` of the SDS items.
+
+    One level under one root fans out top-down in rows of
+    DECOMPOSITION_ROW_ITEMS (invisible `~~~` links rank each row below the
+    previous one, item order kept row by row), so the figure is wider than tall
+    and fits the page; a deeper tree keeps the left-to-right layout.
+    """
+    active = sorted((s for s in ctx.sds if s.status != "Deprecated"), key=lambda i: i.id)
+    if not active:
+        return ["_(no SDS items)_", ""]
+    ids = {s.id: f"N{n}" for n, s in enumerate(active, 1)}
+    edges = [(ids[str(parent)], ids[s.id]) for s in active
+             for parent in (s.fm.get("links") or {}).get("parent") or [] if str(parent) in ids]
+    if not edges:
+        return [todo_marker("decomposition", "No SDS item has a `links.parent`: the decomposition "
+                            "diagram is generated from the parent links of the software items."), ""]
+    roots = {a for a, _ in edges}
+    flat = len(roots) == 1 and not {b for _, b in edges} & roots
+    lines = [
+        "Figure 1 shows the decomposition of the software system into the software items of §3.5.1.",
+        "",
+        "```mermaid",
+        "flowchart TB" if flat else "flowchart LR",
+    ]
+    for s in active:
+        label = s.title.replace('"', "'")
+        lines.append(f'    {ids[s.id]}["{label}"]')
+    lines += [f"    {a} --> {b}" for a, b in edges]
+    if flat:
+        kids = [b for _, b in edges]
+        rows = [kids[i:i + DECOMPOSITION_ROW_ITEMS] for i in range(0, len(kids), DECOMPOSITION_ROW_ITEMS)]
+        for upper, lower in zip(rows, rows[1:]):  # invisible links rank the next row below
+            lines += [f"    {upper[min(j, len(upper) - 1)]} ~~~ {k}" for j, k in enumerate(lower)]
+    lines += ["```", "", "*Figure 1 — Decomposition of the software system into software items.*", ""]
     return lines
 
 
@@ -706,12 +750,15 @@ def build_section_5(ctx: BuildContext) -> list[str]:
     lines += [
         "## 5.3 Contribution to hazardous situations",
         "",
-        _section(
+        # `docs/ots.yaml: hazard_contribution` first (structured form: a sentence,
+        # one table row per way of contributing, a closing note), else the
+        # clinical-context anchor.
+        load_ots_hazard_contribution(OTS_PATH) or _section(
             ctx,
             "cots-hazards",
-            "For each COTS component, identify the hazardous situations it "
-            "may contribute to. Reference the relevant RSK items via "
-            "`links.mitigates`.",
+            "State how an off-the-shelf component can contribute to a hazardous "
+            "situation and what contains each way, in `docs/ots.yaml: "
+            "hazard_contribution` (intro, ways, note).",
         ),
         "",
     ]

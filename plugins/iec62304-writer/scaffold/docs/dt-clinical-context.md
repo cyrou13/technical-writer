@@ -38,7 +38,7 @@
     ## hardware-and-software-requirements   → §3.2
     ## processing-workflow                  → §3.3
     ## application-workflow                 → §3.4
-    ## class-diagram                        → §3.6
+    ## class-diagram                        → §3.6 (optional, after the generated decomposition figure)
     ## error-code-standardization           → §3.5.3
     ## cots-control                         → §5
     ## cots-hazards                         → §5

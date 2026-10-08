@@ -483,6 +483,26 @@ def _puppeteer_config() -> str | None:
     return str(local) if local.is_file() else None
 
 
+#: Text area of the A4 portrait page of the reference document, in cm: pandoc
+#: shrinks a wide image to the width on its own, never a tall one to the height.
+PAGE_TEXT_WIDTH_CM = 16.0
+FIGURE_MAX_HEIGHT_CM = 20.0
+
+
+def _figure_size(png: Path) -> str:
+    """Pandoc size attribute that keeps a rendered diagram inside the page: empty
+    when the image fits once pandoc has fitted its width, else a height bound."""
+    try:
+        with open(png, "rb") as fh:
+            head = fh.read(24)
+        w, h = int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+    except OSError:
+        return ""
+    if not w or PAGE_TEXT_WIDTH_CM * h / w <= FIGURE_MAX_HEIGHT_CM:
+        return ""
+    return f"{{height={FIGURE_MAX_HEIGHT_CM:g}cm}}"
+
+
 def render_mermaid_for_pandoc(
     md: str,
     figures_dir: Path,
@@ -544,7 +564,7 @@ def render_mermaid_for_pandoc(
                 continue
 
         out.append(md[cursor:m.start()])
-        out.append(f"![Figure {n}]({png})\n")
+        out.append(f"![Figure {n}]({png}){_figure_size(png)}\n")
         cursor = m.end()
         rendered += 1
 
@@ -554,6 +574,40 @@ def render_mermaid_for_pandoc(
     out.append(md[cursor:])
     _log(f"OK: rendered {rendered}/{len(blocks)} mermaid diagram(s) to {figures_dir.name}/")
     return "".join(out)
+
+
+def render_hazard_contribution(value: object) -> str:
+    """The OTS hazard contribution of `docs/ots.yaml` as Markdown.
+
+    Free text is returned as written. The structured form — ``intro``, ``ways``
+    (each ``failure`` / ``components`` / ``containment``) and ``note`` — reads as
+    an introductory sentence, one table row per way of contributing, and the
+    closing note.
+    """
+    if not isinstance(value, dict):
+        return str(value or "").strip()
+
+    def flat(v: object) -> str:
+        return " ".join(str(v or "").split()).replace("|", "\\|")
+
+    out = [flat(value.get("intro")), ""]
+    ways = [w for w in value.get("ways") or [] if isinstance(w, dict)]
+    if ways:
+        out += ["| Contribution | Components | Containment |", "|---|---|---|"]
+        out += ["| " + " | ".join(flat(w.get(k)) or "—" for k in ("failure", "components", "containment")) + " |"
+                for w in ways]
+        out.append("")
+    out.append(flat(value.get("note")))
+    return "\n".join(out).strip()
+
+
+def load_ots_hazard_contribution(path: Path) -> str:
+    """`hazard_contribution` of the OTS registry, rendered; empty when the file is
+    absent or the entry is still a `[TODO …]` placeholder."""
+    if not path.is_file():
+        return ""
+    text = render_hazard_contribution(parse_yaml(path.read_text(encoding="utf-8")).get("hazard_contribution"))
+    return "" if "[TODO" in text else text
 
 
 def pandoc_input(md_path: Path, figures_dir: Path, *, log=None) -> tuple[Path, bool]:
