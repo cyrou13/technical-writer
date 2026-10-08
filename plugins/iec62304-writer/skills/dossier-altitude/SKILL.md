@@ -61,7 +61,9 @@ quantitative device keeps what makes it differ (rule marked *adapted*).
 - **Cover signature table.** A grid table with the columns (blank) | First/Last
   Name | Date (MM/DD/YYYY) | Signature; the role label (Written by, Verified by,
   Approved by) in bold on the first row of its role; the signatory's function in
-  its own paragraph under the name; one row per signatory (a role may list
+  its own paragraph under the name, the name printed as first name + FAMILY NAME
+  (`_lib.cover_name`: "Isaure de Noblet" -> "Isaure DE NOBLET"; a statement in
+  the name cell is left as written); one row per signatory (a role may list
   several). Date and signature boxes stay blank. No "Signatures" heading. Marker
   highlighting never touches a grid table (a longer cell breaks its alignment).
   The scaffolded working-draft exporters, whose output does not fill the running

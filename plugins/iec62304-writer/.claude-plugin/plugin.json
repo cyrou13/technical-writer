@@ -1,6 +1,6 @@
 {
   "name": "iec62304-writer",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "description": "IEC 62304 class A technical-file pipeline — SRS, SDS, STD, traceability, safety (ISO 14971 §C.2 causal chain + §7.2 control hierarchy + §7.4 quantitative residual + §7.5 cascade), production, cyber (IEC 81001-5-1) and usability (IEC 62366-1 — UEF + Summative Evaluation + IECEE checklist, platform-rich and clinical-narrow modes) risk analyses, incremental update, RAQA-ready exports (SRS + SDD + STP + STDR + STR + Risk Analysis Report + Risk Table xlsx + UEF + USE + UEF-Annex1), and a submission contract (normative vs internal sections, requirement kinds, parameter registry, OTS registry, cybersecurity architecture views) enforced by a gated --release export. Reproduces locally the useful features of Matrix Requirements.",
   "author": {
     "name": "cyrou13"

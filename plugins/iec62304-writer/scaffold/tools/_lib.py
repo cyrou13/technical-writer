@@ -391,8 +391,20 @@ def cover_people(config: dict | None, role: str) -> list[tuple[str, str]]:
         else:
             name, function = str(e or "").strip(), ""
         if name:
-            people.append((name, function))
+            people.append((cover_name(name), function))
     return people or [(f"[TODO approvals.{role}]", "")]
+
+
+def cover_name(name: str) -> str:
+    """A signatory as the covers print it: the first name as entered, the family
+    name in capitals ("Isaure de Noblet" -> "Isaure DE NOBLET"); anything that is
+    not a person's name (one word, an open marker, a statement such as "not
+    applicable — development run") is left as entered."""
+    parts = name.split()
+    if len(parts) < 2 or not parts[0][:1].isupper() or not all(
+            re.fullmatch(r"[^\W\d_][^\W\d_'’-]*(?:['’-][^\W\d_]+)*", w) for w in parts):
+        return name
+    return " ".join([parts[0]] + [w.upper() for w in parts[1:]])
 
 
 def _grid_table(header: list[str], rows: list[list[list[str]]]) -> list[str]:

@@ -9,7 +9,7 @@
     {
       "name": "iec62304-writer",
       "description": "IEC 62304 class A technical-file pipeline — SRS, SDS, STD, traceability, safety + production + cyber + usability risk analyses (IEC 62366-1: UEF + Summative Evaluation + IECEE Annex 1), RAQA-ready exports, with a submission contract and a gated release export. Reproduces locally the useful features of Matrix Requirements.",
-      "version": "0.17.0",
+      "version": "0.17.1",
       "source": "./plugins/iec62304-writer"
     }
   ]

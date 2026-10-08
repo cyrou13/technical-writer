@@ -232,10 +232,17 @@ def test_the_cover_prints_each_name_with_its_function_under_it():
     md = _cover()
     assert "| First/Last Name" in md and "| Date (MM/DD/YYYY) |" in md and "| Signature |" in md
     assert "## Signatures" not in md and "**Written by**" in md
-    assert _lib.cover_rows(md) == [("Written by", "Ann Writer", "R&D Engineer"), ("", "Bob Second", ""),
-                                   ("Verified by", "Carl Check", "R&D Manager"),
+    assert _lib.cover_rows(md) == [("Written by", "Ann WRITER", "R&D Engineer"), ("", "Bob SECOND", ""),
+                                   ("Verified by", "Carl CHECK", "R&D Manager"),
                                    ("Approved by", "[TODO approvals.approved_by]", "")]
     assert "2026-01-01 |" not in md.split("+=")[1], "no date is pre-filled in the signature boxes"
+
+
+def test_a_cover_name_prints_the_family_name_in_capitals():
+    assert _lib.cover_name("Isaure de Noblet") == "Isaure DE NOBLET"
+    assert _lib.cover_name("Cyril DI GRANDI") == "Cyril DI GRANDI"
+    assert _lib.cover_name("not applicable — development run") == "not applicable — development run"
+    assert _lib.cover_name("[TODO approvals.written_by]") == "[TODO approvals.written_by]"
 
 
 def test_a_highlighted_marker_does_not_break_the_cover_grid():
@@ -276,7 +283,7 @@ def test_the_cover_renders_as_a_signature_table_in_the_docx(tmp_path):
     table = xml[xml.index("<w:tbl>"):xml.index("</w:tbl>")]
     import re
 
-    assert len(re.findall(r"<w:tr[ >]", table)) == 5 and "Ann Writer" in table and "R&amp;D Engineer" in table
+    assert len(re.findall(r"<w:tr[ >]", table)) == 5 and "Ann WRITER" in table and "R&amp;D Engineer" in table
 
 
 # ---------------------------------------------------------------------------
