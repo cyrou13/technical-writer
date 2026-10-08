@@ -328,7 +328,25 @@ the submission.
 development / verification / validation, declared independence) and one
 subsection per ground truth: who established it, how, qualification; ground
 truthers and data providers in an annex. "Reference software", never a
-competitor name.
+competitor name. A ground truth no activity of the released device uses is
+deleted, not described. A reference set made in-house names its author by role
+and qualification (e.g. "the product expert, a medical image processing
+engineer").
+
+**Sources of facts.** The facts of a public cohort (centres, countries,
+manufacturers, acquisition years, who delineated the reference and how) are
+transcribed from its publication and cited; a fact the publication does not
+distribute (e.g. the manufacturer of each study) is stated as not distributed,
+and the stratification is then at population level. The facts of an internal ML
+component come from its component description document; when none exists, a
+short questionnaire to the team that trained it. A clinical site or data partner
+is described, never named ("a US academic medical centre, under a data-sharing
+agreement with the manufacturer"); the agreement reference stays with RAQA.
+
+**Design figures.** Every figure that justifies a design choice is produced by an
+evidence script of the regeneration chain and injected, with its build; a figure
+whose record cannot be traced leaves the sentence. A design choice is justified
+by its effect on the claimed endpoint, not on an internal reference.
 
 ## User manual, VDD, DICOM conformance, integration guide
 
@@ -363,7 +381,9 @@ column or verification table.
 
 ## Clinical and bench performance reports
 
-**Clinical validation report (30–40 pages + image annex).** Skeleton: introduction
+**Clinical validation report (30–40 pages + image annex).** Titled "Clinical
+Validation Report" (slot 18, every citation and checklist follows the title); the
+bench report stays a separate document. Skeleton: introduction
 with explicit objectives; intended use quoted; methodology (material; data with
 sources, inclusion/exclusion, protocol, independence from development; reference
 standard; statistics in bullets); results (data distribution, primary endpoint,
@@ -371,6 +391,27 @@ secondary endpoints, stratification on ≥ 4 axes, discordant cases in an append
 with a cause per case, processing time); affirmative conclusion. Numbered tables,
 no teaching prose. Substantial-equivalence argument belongs to the 510(k) SE
 section; engineering step reviews to the test report; image plates to an annex.
+
+**Claim scope.** The claim is what the agreement study measures (e.g. agreement
+of the volumes with the reference device); an internal non-regression reference
+between builds (e.g. the acute diffusion lesion) is named for what it is and is
+never worded as a clinical truth the device predicts.
+
+**Supporting cohort.** A cohort that does not carry the reference device's output
+enters for stratification only: processing success, quality flags, manufacturer
+and scanner distribution, and agreement on a categorical finding against a stated
+ground truth (readers, qualification, blinding, adjudication). No volume agreement
+against a device that is not the submission's reference device. When its source
+and ground truth are another product's validation report, that report is listed
+with the project references under an inline label ([C1]) and cited; the data
+partner is not named; a study is cited only by its pseudonym. Its figures are
+read from its own result file, of the build under release.
+
+**Step reviews.** The per-step review of the computation steps names the role
+that read the plates and prints a one-sentence rationale under the step table; a
+verdict read by another role names it. Technical steps are verification steps;
+the clinical validity of the outputs is shown by the clinical validation report,
+not by a step review.
 
 **Acceptance criteria.** Pre-specified, dated and signed before the validation
 data are scored, derived from the predicate and literature, never from the
@@ -400,7 +441,27 @@ organised by scenario with participants, cases, environment, data and criteria i
 **Expected lifetime.** One page: duration and a 3–5-sentence rationale tied to
 the support windows of the base OS and interpreter, and to the corrective
 releases that keep them supported. Check the base image's support end against
-the claimed duration.
+the claimed duration. When the base reaches its end of support inside the
+lifetime, the duration is conditional on a maintenance version moving the base
+before that date: the condition is written in the justification and is an action
+of the maintenance plan (the PMP when no separate plan exists). The security
+support horizon is the declared lifetime; the disclosure contact and the place
+the disclosure policy is published are two separate facts.
+
+**510(k) Summary (21 CFR 807.92).** A generated deliverable in the product
+registration slot, linted like every other: identification (submitter,
+correspondent, common or usual name, regulation and product code), predicate,
+device description, indications for use, performance (figures injected from the
+result files of the clinical and bench reports, never typed), substantial
+equivalence with the characteristics table read from the sourced predicate
+comparison. It is the one document besides the PMAP and the clinical report that
+names the predicate and the reference device; it names no item-store identifier.
+A hand-written draft and its alignment brief are internal engineering notes,
+never filed in the submission.
+
+**User guides by market.** One User Guide per market with the same clinical
+content (e.g. EN-US and EN-OUS), listed on the SUM cover; the market-specific
+facts (CE marking, contacts) differ, nothing else.
 
 **Declarations (e.g. animal origin).** A signed letter, no TF apparatus.
 
@@ -457,5 +518,9 @@ instead.
 - 2026-10-07 — clinical and bench performance reports (decisions S18.1–S18.4).
 - 2026-10-07 — usability, labels, lifetime, declarations, reviews, model card (decisions S21.1–S37.1).
 - 2026-10-07 — standards checklists and transverse rules T1–T7 (decisions S29.1, T1–T7); arbitration closed.
+- 2026-10-08 — post-wave owner rulings P1–P20: 510(k) Summary, clinical validation
+  report title, claim scope, supporting cohort, ground truths and sources of facts,
+  design figures, step reviews, lifetime condition and security support, user
+  guides by market, signatories, benefit level, risk-cell caps on three registers.
 - 2026-10-08 — SRS §1.4 conventions as in the reference SRS, identifier band height,
   decomposition figure in rows and page-height bound, structured SOUP hazard contribution.

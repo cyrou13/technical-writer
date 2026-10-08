@@ -682,7 +682,7 @@ def strip_internal_sections(body: str, headers: tuple[str, ...] = INTERNAL_SECTI
 #: Documents outside the verification chain (T5), by the `doc` tag the exporter passes.
 NON_VERIFICATION_DOCS = frozenset({
     "SUM", "USER-GUIDE", "UEF", "USE", "INTEGRATION-GUIDE", "DICOM-CS", "LABELS",
-    "MODEL-CARD", "LIFETIME", "DECLARATION",
+    "MODEL-CARD", "LIFETIME", "DECLARATION", "FDA-510K",
 })
 
 #: Between these two lines the code-in-text, evidence-list and internal-id rules do
