@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     build_revision_history as revision_history,
     document_cover,
+    number_references,
     with_document_approvals,
     altitude_lint,
     report_altitude_lint,
@@ -351,7 +352,7 @@ def render_markdown(ctx: BuildContext) -> str:
     parts += build_automated_platform(ctx)
     parts += build_local_platforms(ctx)
     parts += build_overview(ctx)
-    return "\n".join(parts).rstrip() + "\n"
+    return number_references("\n".join(parts).rstrip() + "\n")
 
 
 def try_pandoc(

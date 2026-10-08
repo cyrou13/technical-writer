@@ -574,6 +574,45 @@ def section_with_fallback(
 
 
 # ---------------------------------------------------------------------------
+# References — one contiguous numbering per document
+# ---------------------------------------------------------------------------
+
+#: A row of a references table: `| [R7] | ...`.
+_REFERENCE_ROW_RE = re.compile(r"^\|\s*\\?\[(R\d+)\\?\]\s*\|", re.M)
+_REFERENCE_LABEL_RE = re.compile(r"(\\?\[)(R\d+)(\\?\])")
+
+
+def reference_label_map(md: str) -> dict[str, str]:
+    """{label as configured: label in this document} that numbers the references
+    tables of `md` contiguously, in the order they are listed.
+
+    The project references share one id space in dt-config (`[R6]` is one document
+    everywhere) and a document may list only some of them, so its labels can jump
+    ("R5" then "R9"). A reader sees one numbering per document, from R1 (or R0 when
+    the list starts there). Empty when the labels are already contiguous.
+    """
+    labels = list(dict.fromkeys(_REFERENCE_ROW_RE.findall(md)))
+    if not labels:
+        return {}
+    start = 0 if labels[0] == "R0" else 1
+    mapping = {old: f"R{start + i}" for i, old in enumerate(labels)}
+    return {} if all(old == new for old, new in mapping.items()) else mapping
+
+
+def relabel_references(text: str, mapping: dict[str, str]) -> str:
+    """`text` with every `[Rn]` of `mapping` (table labels and citations) renamed."""
+    if not mapping:
+        return text
+    return _REFERENCE_LABEL_RE.sub(
+        lambda m: f"{m.group(1)}{mapping.get(m.group(2), m.group(2))}{m.group(3)}", text)
+
+
+def number_references(md: str) -> str:
+    """`md` with its references numbered contiguously and its citations following."""
+    return relabel_references(md, reference_label_map(md))
+
+
+# ---------------------------------------------------------------------------
 # Risk scoring helpers
 # ---------------------------------------------------------------------------
 

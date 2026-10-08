@@ -36,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     build_revision_history as revision_history,
     document_cover,
+    number_references,
     with_document_approvals,
     altitude_lint,
     report_altitude_lint,
@@ -753,7 +754,7 @@ def render_markdown(ctx: BuildContext) -> str:
     parts += build_section_4(ctx)
     parts += build_section_5(ctx)
     md = "\n".join(parts).rstrip() + "\n"
-    return number_figure_placeholder(md, DECOMPOSITION_FIGURE)
+    return number_references(number_figure_placeholder(md, DECOMPOSITION_FIGURE))
 
 
 def try_pandoc(md_path: Path, docx_path: Path, reference_docx: Path | None, ctx: BuildContext) -> bool:

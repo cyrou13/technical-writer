@@ -50,6 +50,7 @@ from _lib import (  # noqa: E402
     build_revision_history as revision_history,
     cover_people,
     document_cover,
+    number_references,
     with_document_approvals,
     altitude_lint,
     report_altitude_lint,
@@ -1069,7 +1070,7 @@ def render_uef(ctx: BuildContext, identifiers: dict[str, str], doc_title: str) -
     parts += build_uef_risk_assessment(ctx)
     parts += build_uef_formative(ctx)
     parts += build_uef_summative(ctx, identifiers)
-    return "\n".join(parts).rstrip() + "\n"
+    return number_references("\n".join(parts).rstrip() + "\n")
 
 
 def render_use(ctx: BuildContext, identifiers: dict[str, str], doc_title: str) -> str:
@@ -1083,7 +1084,7 @@ def render_use(ctx: BuildContext, identifiers: dict[str, str], doc_title: str) -
     )
     parts += build_revision_history(ctx)
     parts += build_use_document(ctx, identifiers, doc_title)
-    return "\n".join(parts).rstrip() + "\n"
+    return number_references("\n".join(parts).rstrip() + "\n")
 
 
 def render_annex1(ctx: BuildContext, identifiers: dict[str, str], doc_title: str) -> str:
@@ -1096,7 +1097,7 @@ def render_annex1(ctx: BuildContext, identifiers: dict[str, str], doc_title: str
         date=identifiers["date"],
     )
     parts += build_uef_annex1(ctx, identifiers, doc_title)
-    return "\n".join(parts).rstrip() + "\n"
+    return number_references("\n".join(parts).rstrip() + "\n")
 
 
 def derive_doc_titles(config: dict) -> dict[str, str]:

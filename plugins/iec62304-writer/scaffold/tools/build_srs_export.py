@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     build_revision_history as revision_history,
     document_cover,
+    number_references,
     highlight_markers,
     with_document_approvals,
     altitude_lint,
@@ -451,7 +452,7 @@ def render_markdown(ctx: BuildContext) -> str:
     parts += build_traceability(ctx)
     parts += build_configuration(ctx)
     parts += build_appendix_deprecated(ctx)
-    return highlight_markers("\n".join(parts).rstrip() + "\n")
+    return highlight_markers(number_references("\n".join(parts).rstrip() + "\n"))
 
 
 def try_pandoc(md_path: Path, docx_path: Path, reference_docx: Path | None, ctx: BuildContext) -> bool:

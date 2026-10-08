@@ -277,3 +277,23 @@ def test_the_cover_renders_as_a_signature_table_in_the_docx(tmp_path):
     import re
 
     assert len(re.findall(r"<w:tr[ >]", table)) == 5 and "Ann Writer" in table and "R&amp;D Engineer" in table
+
+
+# ---------------------------------------------------------------------------
+# References: one contiguous numbering per document
+# ---------------------------------------------------------------------------
+
+
+def test_references_are_numbered_contiguously_and_citations_follow():
+    md = ("As stated in [R5] and \\[R9\\].\n\n| # | Document |\n|---|---|\n"
+          "| [R5] | Plan |\n| [R9] | Report |\n\nSee [R9].\n")
+    out = _lib.number_references(md)
+    assert "| [R1] | Plan |" in out and "| [R2] | Report |" in out
+    assert "As stated in [R1] and \\[R2\\]." in out and "See [R2]." in out
+    assert _lib.reference_label_map("| [R1] | A |\n| [R2] | B |\n") == {}
+    assert _lib.reference_label_map("| [R0] | A |\n| [R3] | B |\n") == {"R0": "R0", "R3": "R1"}
+
+
+@pytest.mark.parametrize("name", EXPORTERS)
+def test_every_exporter_numbers_its_references_per_document(name):
+    assert "number_references(" in (TOOLS / f"{name}.py").read_text(encoding="utf-8")
