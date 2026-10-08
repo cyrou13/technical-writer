@@ -55,6 +55,44 @@ quantitative device keeps what makes it differ (rule marked *adapted*).
   checklists, reviews, lifetime, post-market plan). The signature date stays blank
   until signature.
 
+**House format (every exported document).** Implemented by the shared helpers of
+`_lib.py`; an exporter never keeps its own copy.
+
+- **Cover signature table.** A grid table with the columns (blank) | First/Last
+  Name | Date (MM/DD/YYYY) | Signature; the role label (Written by, Verified by,
+  Approved by) in bold on the first row of its role; the signatory's function in
+  its own paragraph under the name; one row per signatory (a role may list
+  several). Date and signature boxes stay blank. No "Signatures" heading. Marker
+  highlighting never touches a grid table (a longer cell breaks its alignment).
+  The scaffolded working-draft exporters, whose output does not fill the running
+  head of the reference document, keep the title and identification lines above
+  the table.
+- **Revision history.** One form for every document: | **Version:** | **Date:** |
+  **Part(s):** | **Reason:** |, right after the cover, with no heading above it
+  and no rule below it.
+- **No horizontal rules.** No `---` line between chapters or after the front
+  matter; a chapter starts on its heading.
+- **Dollars.** Every bare "$" is escaped outside code before pandoc reads the
+  text (pandoc takes the text between two "$" as TeX math and merges the table
+  cells between them); the tracked Markdown stays as written.
+- **Figures.** Each diagram gets exactly one caption, "Figure N: title", N counted
+  over every figure of the document. The title is the caption paragraph written
+  under the diagram (consumed, never printed twice), else the heading of the
+  section that holds it. A sentence that cites a generated figure uses the number
+  it is rendered with, never a hard-coded "Figure 1".
+- **References.** Each document numbers its references tables contiguously from
+  R1 (R0 only when the list starts there) and rewrites its citations with the same
+  map: a document listing R5 and R9 of the project id space reads R1 and R2. A
+  top-level references section is a numbered H1; an empty references chapter is
+  not emitted.
+- **Identifier conventions.** Every document that defines or cites identifiers
+  of its own records opens its conventions with the brand sentence ("<suite> is
+  the brand name of the <suite> software suite, made of …; <suite>-<app> refers
+  to the <suite> application that …"), then the structure in bold, "Example:" with
+  a real identifier of the store and its title or objective, and "Where:" with
+  one line per field. The format string of the configuration and code blocks are
+  never printed.
+
 ## PMAP — Project Master Plan (MAP items)
 
 The PMAP states stakeholder needs. A MAP requirement is atomic, ≤ ~50 words,
@@ -153,6 +191,14 @@ word for word and adds only what the project really needs.
   stays in the item body.
 - The ISO/TR 24971 Annex A sheet answers every question (≈ 47) with the patient
   hazard and the register risk.
+- Stored keys print as reader labels: the control hierarchy as the ISO 14971
+  §7.1 option ("Inherent safety by design", …), STRIDE as category names, the
+  attacker model as a phrase ("compromised supply chain"). The cyber sheet groups
+  its severity columns under a two-row header (before / after remediation,
+  acceptance).
+- Asset and characteristic texts name the asset for a reader (the release signing
+  key, the deployment configuration), never a file path, package list or
+  backticked name.
 
 **Report.**
 - No risk is rewritten in the report: team, update note, two P×S matrices
@@ -175,6 +221,12 @@ on the release image (method NIST SP 800-115, each trial and result recorded)
 whose report states the testers' independence and has the protocol and results
 reviewed by someone who did not develop the device; the cyber report then says
 why no external test was performed.
+
+**OTS / SBOM security assessment.** Triaged advisories are a reader table —
+Component | Advisories | Severity | Disposition | Justification — never the
+verbatim notes of the audit-ignore file (that file stays the engineering record).
+An action column says what is done in reader terms; a registry cell names the
+record, never its repository path.
 
 ## SRS — Software Requirements Specification
 
@@ -371,7 +423,10 @@ names, CI jobs, or anything from excluded code.
 **DICOM conformance statement.** Refer to a common company DCS only when it is
 verified to cover every IOD the device emits. Otherwise a standalone PS3.2
 document ≤ 10–12 pages: one attribute table per IOD, no series-selection logic,
-no private JSON schema, no special-case comments, no SRS reference.
+no private JSON schema, no special-case comments, no SRS reference. A transfer
+syntax is printed with its PS3.6 name read from the DICOM data dictionary (UID →
+name), never from a source-code comment. A section that only records a departure
+or an internal ambiguity is deleted, with every cross-reference to it.
 
 **Integration guide.** Cover referring to the common container-integration
 document plus a 3–5-page device addendum (resources, folders, ingestion limits,
@@ -448,6 +503,14 @@ of the maintenance plan (the PMP when no separate plan exists). The security
 support horizon is the declared lifetime; the disclosure contact and the place
 the disclosure policy is published are two separate facts.
 
+**Software safety class in plans and checklists.** Printed as the class alone
+("Class B") once approved, "Class B (not yet approved)" before; never a status
+word such as "(approved)" after an approved class.
+
+**Post-market surveillance plan.** Outside the verification chain (lint T5): its
+indicators and threat watch list cite risks and threats by their titles, never
+by RSK-/PRSK-/THR- or SRS- identifiers.
+
 **510(k) Summary (21 CFR 807.92).** A generated deliverable in the product
 registration slot, linted like every other: identification (submitter,
 correspondent, common or usual name, regulation and product code), predicate,
@@ -459,15 +522,47 @@ names the predicate and the reference device; it names no item-store identifier.
 A hand-written draft and its alignment brief are internal engineering notes,
 never filed in the submission.
 
+It is rendered in the FDA public form of a cleared summary, not the house form:
+- no cover, signature table, revision history, table of contents, running head,
+  footer or "End of Document" line;
+- opens on the 510(k)-number line, then a centred title "510(K) SUMMARY" and
+  "<manufacturer>'s <device>";
+- unnumbered title-case sections: Submitter, Device Identification, Predicate
+  Device, Device Description, Intended Use, Indications for Use, Summary of
+  Performance Data, Substantial Equivalence, Conclusion;
+- Submitter, Device Identification and Predicate Device as label/value line
+  blocks (address on lines, contact person, date prepared; classification panel
+  derived from the regulation number), never header-less key/value tables; no
+  UDI;
+- the comparison table has three columns, Feature | Subject device | Predicate
+  device; a difference is stated in the discussion under it, not in a verdict
+  column;
+- the conclusion is the list of substantial-equivalence findings, then
+  "Accordingly, <device> is substantially equivalent to <predicate>";
+- performance evidence is named by activity (software test plan, test report,
+  risk analysis, clinical validation report, …) — no internal document number,
+  no § number; table captions are unnumbered bold titles. The Form FDA 3881 is a
+  separate form and is not imitated in the summary.
+
 **User guides by market.** One User Guide per market with the same clinical
 content (e.g. EN-US and EN-OUS), listed on the SUM cover; the market-specific
 facts (CE marking, contacts) differ, nothing else.
 
 **Declarations (e.g. animal origin).** A signed letter, no TF apparatus.
 
-**Design reviews.** A workbook, one tab per phase, header with an independent
-reviewer and participants, checklist OK/KO/NA/Comments/Action, filled from
-reviews actually held. Never prose about missing reviews.
+**Design reviews.** An xlsx workbook, one tab per phase (no Markdown or Word
+rendering of the reviews), header with an independent reviewer, the participants
+and the signatories' functions, checklist OK/KO/NA/Document reference/Comments/
+Action/Resp./Time, filled from reviews actually held; the design-transfer
+section sits on the validation tab; the go/no-go line, date, attendees, verdicts
+and minutes stay blank until the review is held. A document reference spells the
+document and its section in full, never a submission slot number. Never prose
+about missing reviews.
+
+**Usability Annex 1 (IEC 62366-1 clause checklist).** A clause that rests on a
+formative or summative evaluation is P only once that evaluation is performed and
+recorded; until then its verdict is F and its remark says which evaluation is to
+be performed. The verdict column holds P/F/NA only, never a DRAFT marker.
 
 **Model card.** One CHAI card at device level covering every ML component, with
 key metrics including stratified (fairness) results; no gap-tracking preamble.
@@ -480,7 +575,12 @@ procedure; evidence = document number and section. No section describing how the
 checklist is built, no open-points chapter, no "Open point:" in cells (gap
 tracking stays internal; at issue there is no partial or open verdict). 81001
 includes the normative Annexes F and G and a Gap/Notes prose column. Landscape,
-Regulatory Affairs header.
+Regulatory Affairs header. A "No" verdict states in its cell what is missing; a
+partial row (PC) states in Gap/Notes which cited section is not complete. A
+standard's edition is read from the file that cites it. The software safety class
+paragraph appears only in the checklist whose standard classes the software
+(IEC 62304). A reference cites a document section by its heading as generated,
+never a repository path or a test identifier.
 
 ## Identifier numbering in a first release
 
@@ -524,3 +624,9 @@ instead.
   guides by market, signatories, benefit level, risk-cell caps on three registers.
 - 2026-10-08 — SRS §1.4 conventions as in the reference SRS, identifier band height,
   decomposition figure in rows and page-height bound, structured SOUP hazard contribution.
+- 2026-10-08 — format fixes: house format (cover signature table, revision-history
+  form, no rules, dollar escaping, one numbered caption per figure, contiguous
+  references, identifier conventions block); risk register labels and asset text;
+  OTS assessment reader table; DCS transfer-syntax names; class without status
+  word; PMS by titles; checklist "No" reasons; Annex 1 verdicts; review workbook;
+  510(k) Summary in the FDA public form.

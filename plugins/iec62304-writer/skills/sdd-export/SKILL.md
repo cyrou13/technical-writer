@@ -165,6 +165,19 @@ fin de vie, SBOM et note), chacun rappelant le nom du composant. De même §3.5.
 paramètre de sa traçabilité. Règle : au-delà de cinq ou six colonnes sur A4
 portrait, découper — voir « Lisibilité des tableaux » dans le skill `srs-export`.
 
+## Front matter, figures and references (house format)
+
+Applied by the shared helpers of `_lib.py` (skill `dossier-altitude`, "House
+format"): the cover ends on the signature grid table (role in bold, one row per
+signatory, the function under the name, date and signature blank); the
+revision history follows in the form | **Version:** | **Date:** | **Part(s):** |
+**Reason:** | with no heading and no rule; no `---` line between chapters; bare
+"$" escaped before pandoc; one caption "Figure N: title" per diagram, N counted
+over the document; references renumbered from R1 in listing order, citations
+rewritten with them.
+
+§1.4 opens on the brand sentence, then the identifier convention of software items (SDS): the structure in bold derived from `id_format`, "Example:" with the first active identifier of the store and its title or objective, "Where:" with one line per field. The format string itself is never printed. §3.6 cites the decomposition figure by the number it is rendered with.
+
 ## Garde-fous
 
 - L'export **ne modifie aucun item** sous `docs/items/`. Lecture seule.

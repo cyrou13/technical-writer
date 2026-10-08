@@ -122,7 +122,7 @@ Anchors héritées (partagées avec `/doc-srs-export`) :
 COVER PAGE
   Title — Software Test Plan
   Identifier / version / date
-  Signatures (Written / Verified / Approved by)
+  Signature table (grid: Written / Verified / Approved by, name + function, date, signature)
 
 REVISION HISTORY TABLE
 
@@ -130,7 +130,7 @@ REVISION HISTORY TABLE
   §1.1 Document overview      ← test-environment-overview (or TODO)
   §1.2 Abbreviations & Glossary
   §1.3 Project References     ← dt-config.yaml: project_references
-  §1.4 Conventions            ← id_format from dt-config.yaml
+  §1.4 Conventions            ← brand sentence (product); identifier convention in §3.5
 
 §2 TEST ENVIRONMENT
   §2.1 Test process           ← test-environment-overview
@@ -159,6 +159,19 @@ REVISION HISTORY TABLE
 
 §6 QUALIFICATION              ← qualification (or TODO)
 ```
+
+## Front matter, figures and references (house format)
+
+Applied by the shared helpers of `_lib.py` (skill `dossier-altitude`, "House
+format"): the cover ends on the signature grid table (role in bold, one row per
+signatory, the function under the name, date and signature blank); the
+revision history follows in the form | **Version:** | **Date:** | **Part(s):** |
+**Reason:** | with no heading and no rule; no `---` line between chapters; bare
+"$" escaped before pandoc; one caption "Figure N: title" per diagram, N counted
+over the document; references renumbered from R1 in listing order, citations
+rewritten with them.
+
+§1.4 is the brand sentence and a pointer to §3.5, which holds the identifier convention of test cases: the structure in bold derived from `id_format`, "Example:" with the first active identifier of the store and its title or objective, "Where:" with one line per field. The format string itself is never printed.
 
 ## Mode `--strict`
 

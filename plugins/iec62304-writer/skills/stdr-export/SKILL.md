@@ -119,6 +119,19 @@ Anchors consommés par ce livrable :
 # 5. Rationale for Decisions
 ```
 
+## Front matter, figures and references (house format)
+
+Applied by the shared helpers of `_lib.py` (skill `dossier-altitude`, "House
+format"): the cover ends on the signature grid table (role in bold, one row per
+signatory, the function under the name, date and signature blank); the
+revision history follows in the form | **Version:** | **Date:** | **Part(s):** |
+**Reason:** | with no heading and no rule; no `---` line between chapters; bare
+"$" escaped before pandoc; one caption "Figure N: title" per diagram, N counted
+over the document; references renumbered from R1 in listing order, citations
+rewritten with them.
+
+§1.4 opens on the brand sentence, then the identifier convention of test cases: the structure in bold derived from `id_format`, "Example:" with the first active identifier of the store and its title or objective, "Where:" with one line per field. The format string itself is never printed.
+
 ## Outputs
 
 | Fichier | Format | Toujours produit |

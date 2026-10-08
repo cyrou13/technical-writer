@@ -87,9 +87,9 @@ COVER PAGE
   Title (from document.title)
   Identifier (from document.identifier + version_label)
   Date
-  Signatures table (Written/Verified/Approved by)
+  Signature table (grid: Written/Verified/Approved by, name + function, date, signature)
 
-REVISION HISTORY TABLE
+REVISION HISTORY TABLE (no heading, no rule)
   one row per entry in dt-config.yaml: revision_history
 
 TABLE OF CONTENTS
@@ -150,6 +150,17 @@ It reads, in this order:
    abbreviation for a subset of functions.
 5. One sentence: the description says what the software does, in the
    present tense; how it does it is left to the Software Design Description.
+
+## Front matter, figures and references (house format)
+
+Applied by the shared helpers of `_lib.py` (skill `dossier-altitude`, "House
+format"): the cover ends on the signature grid table (role in bold, one row per
+signatory, the function under the name, date and signature blank); the
+revision history follows in the form | **Version:** | **Date:** | **Part(s):** |
+**Reason:** | with no heading and no rule; no `---` line between chapters; bare
+"$" escaped before pandoc; one caption "Figure N: title" per diagram, N counted
+over the document; references renumbered from R1 in listing order, citations
+rewritten with them.
 
 ## Règles d'omission
 

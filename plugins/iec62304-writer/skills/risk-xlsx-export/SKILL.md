@@ -118,6 +118,18 @@ Le format CIA reproduit exactement la structure du sheet Avicenna
 "Cybersecurity risk analysis" (annex1 de `RISK-TABLE`), avec sévérité
 par dimension `n/a | Low | Medium | High`.
 
+## Reader labels and asset text
+
+- `control_hierarchy` prints as the ISO 14971 §7.1 option (Inherent safety by
+  design; Protective measures in the medical device itself or in the
+  manufacturing process; Information for safety and, where appropriate,
+  training to users), `stride` as category names (Tampering, Denial of
+  service, …), `attacker` as a phrase (unauthenticated external attacker,
+  compromised supply chain, …). A stored key never reaches a cell.
+- `asset_at_risk` (PRSK) and `asset` (THR) name the asset for a reader. One
+  that names a file or repository path is logged as a WARN and fails
+  `--strict`.
+
 ## Formatage
 
 - **Ligne 1 (headers)** : bold, fond gris (`#DDDDDD`), wrap text, hauteur 32 px, freeze pane après.
@@ -134,4 +146,4 @@ par dimension `n/a | Low | Medium | High`.
 - L'export écrit **uniquement** dans `docs/export/`.
 - Idempotent : la re-génération produit le même fichier (sauf metadata
   date inhérente au format Excel — non comparable au binaire).
-- Mode `--strict` : exit 1 si ≥ 1 risque a `residual_acceptable: False`.
+- Mode `--strict` : exit 1 si ≥ 1 risque a `residual_acceptable: False`, ou si un texte d'actif nomme un chemin.

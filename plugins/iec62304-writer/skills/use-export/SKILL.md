@@ -102,7 +102,7 @@ depuis `usability.document.version_label` (fallback :
 ## Structure du livrable UEF (mode `platform-rich`)
 
 ```
-COVER + Signatures + Revision history + TOC                  (auto)
+COVER + signature table + revision history + TOC            (auto)
 
 §1 Introduction
    §1.1 Document overview                                     ← clinical-context: document-overview
@@ -163,7 +163,7 @@ Identique au mode `platform-rich`, sauf §3.1.1 et §3.1.2 qui sont
 ## Structure du livrable USE
 
 ```
-COVER + Signatures + Revision history + TOC                  (auto)
+COVER + signature table + revision history + TOC            (auto)
 
 §1 Introduction
    §1.1 Document overview                                     ← clinical-context: document-overview (or default narrative)
@@ -202,9 +202,27 @@ Table 3 — IEC 62366-1 clauses 5 (Usability Engineering Process) ← static: ie
 
 Each row: Clause | Requirement | Result / Remark | Verdict (P/F/NA)
 
+A row whose `evaluation` column names an evaluation (5.8 formative, 5.9
+summative) is P only when `usability.evaluations.<kind>: true`; until then its
+verdict is F and the remark ends "The <kind> evaluation is to be performed."
+No DRAFT marker in the verdict column.
+
 Placeholders {UEF_REF}, {USE_REF}, {SRS_REF}, {RISK_REPORT_REF}
 substituted at build time from the resolved identifiers.
 ```
+
+## Front matter, figures and references (house format)
+
+Applied by the shared helpers of `_lib.py` (skill `dossier-altitude`, "House
+format"): the cover ends on the signature grid table (role in bold, one row per
+signatory, the function under the name, date and signature blank); the
+revision history follows in the form | **Version:** | **Date:** | **Part(s):** |
+**Reason:** | with no heading and no rule; no `---` line between chapters; bare
+"$" escaped before pandoc; one caption "Figure N: title" per diagram, N counted
+over the document; references renumbered from R1 in listing order, citations
+rewritten with them.
+
+§1.4 of the UEF and the USE opens on the brand sentence, then the identifier convention of use scenarios and use-related risks (USC, URSK): the structure in bold derived from `id_format`, "Example:" with the first active identifier of the store and its title or objective, "Where:" with one line per field. The format string itself is never printed.
 
 ## Règles d'omission
 
