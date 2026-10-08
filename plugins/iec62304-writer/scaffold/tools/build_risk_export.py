@@ -47,6 +47,8 @@ from _lib import (  # noqa: E402
     load_items,
     pandoc_input,
     parse_yaml,
+    PROBABILITY_INT,
+    SEVERITY_INT,
     risk_index,
     section_or_todo,
 )
@@ -562,12 +564,48 @@ def build_conclusion(ctx: BuildContext) -> list[str]:
         "",
         "## 4.3 Benefit/Risk analysis",
         "",
-        "[TODO — human judgement required. Insert verbatim from the QMS",
-        "Benefit-Risk Analysis document. ISO 14971 §8: the manufacturer asserts",
-        "that the clinical benefit outweighs the residual risks. Cannot be",
-        "auto-generated from code. Signed by the Regulatory Manager.]",
-        "",
+        *benefit_risk_lines(ctx, active_rsk),
     ]
+
+
+def benefit_level(config: dict | None) -> tuple[int | None, str]:
+    """`risk_management.benefit_level` (probability × magnitude of the expected
+    benefit, on the plan's probability and severity scales) as (BL, sentence).
+
+    The benefits themselves come from the clinical evaluation; an optional
+    `statement` is printed before the computed sentence.
+    """
+    rm = ((config or {}).get("risk_management") or {})
+    raw = rm.get("benefit_level") if isinstance(rm, dict) else None
+    if not isinstance(raw, dict):
+        return None, ""
+    pname, mname = str(raw.get("probability") or ""), str(raw.get("magnitude") or "")
+    p, m = PROBABILITY_INT.get(pname), SEVERITY_INT.get(mname)
+    if not (p and m):
+        return None, ""
+    sentence = (f"The probability that the patient experiences the expected benefit is rated {pname} ({p}) "
+                f"and the magnitude of the benefit {mname} ({m}) on the scales of the risk management plan: "
+                f"BL = {p} × {m} = {p * m}.")
+    extra = str(raw.get("statement") or "").strip()
+    return p * m, f"{extra} {sentence}".strip()
+
+
+def benefit_risk_lines(ctx: BuildContext, active_rsk: list[Item]) -> list[str]:
+    """§4.3 — the benefit level against the highest residual risk index (BL > RL)."""
+    bl, sentence = benefit_level(ctx.config)
+    if bl is None:
+        return [
+            "[TODO — set `risk_management.benefit_level` (probability, magnitude) in",
+            "dt-config.yaml from the clinical evaluation; ISO 14971 §8: the clinical",
+            "benefit outweighs the residual risks. Signed by the Regulatory Manager.]",
+            "",
+        ]
+    residuals = [risk_index(r.get("residual_severity"), r.get("residual_probability")) for r in active_rsk]
+    rl = max((x for x in residuals if x is not None), default=None)
+    if rl is None:
+        return [sentence, ""]
+    verdict = "exceeds" if bl > rl else "does not exceed"
+    return [sentence, "", f"The benefit level {bl} {verdict} the highest residual risk level, RL {rl}.", ""]
 
 
 def render_markdown(ctx: BuildContext) -> str:

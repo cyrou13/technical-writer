@@ -107,6 +107,19 @@ classification:
     Frequent: "[TODO e.g. more than 1 in 10^3 uses]"
 
 # -----------------------------------------------------------------------------
+# Benefit level of the device (risk report §4.3): probability that the patient
+# experiences the expected benefit × its magnitude, on the probability and
+# severity scales above. The benefits themselves are those of the clinical
+# evaluation report; the report prints BL = P × M and compares it with the
+# highest residual risk level (BL > RL).
+# -----------------------------------------------------------------------------
+risk_management:
+  benefit_level:
+    probability: null     # Improbable | Remote | Occasional | Probable | Frequent
+    magnitude: null       # Negligible | Minor | Serious | Critical | Catastrophic
+    statement: null       # optional sentence printed before the computed one
+
+# -----------------------------------------------------------------------------
 # Requirement ordering — functional areas of the SRS in logical order; domains
 # not listed fall back to alphabetical after these. `domain_names` gives the
 # human-readable heading of each domain.

@@ -128,7 +128,9 @@ word for word and adds only what the project really needs.
   unacceptable; a caution ("could") for 1–6 and a warning ("should") for 7–10 in
   the instructions for use. Never invent another scale.
 - A benefit-risk section with a Benefit Level scale (probability × magnitude of
-  benefit) and the rule BL > RL; benefits come from the clinical evaluation.
+  benefit) and the rule BL > RL; benefits come from the clinical evaluation. The
+  rating is configured once (`risk_management.benefit_level`: probability,
+  magnitude) and the report prints "BL = P × M = n" against the highest residual RL.
 - The software-safety-class justification lives in the report only.
 - Security plan: C/I/A scales defined in four levels before use (never a count of
   register entries beside a level); activities named (SAST, SCA/SBOM, image scan,

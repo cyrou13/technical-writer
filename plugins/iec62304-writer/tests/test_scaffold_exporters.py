@@ -144,3 +144,14 @@ def test_document_approvals_override_the_default_signatories_role_by_role():
     assert sdd["written_by"] == {"name": "B"} and sdd["approved_by"] == {"name": "C"}
     assert _lib.with_document_approvals(config, "srs")["approvals"]["written_by"] == {"name": "A"}
     assert config["approvals"]["written_by"] == {"name": "A"}, "the input is not mutated"
+
+
+def test_the_benefit_level_is_computed_and_compared_with_the_highest_residual():
+    risk = importlib.import_module("build_risk_export")
+    config = {"risk_management": {"benefit_level": {"probability": "Probable", "magnitude": "Serious"}}}
+    bl, sentence = risk.benefit_level(config)
+    assert bl == 12 and sentence.endswith("BL = 4 × 3 = 12.")
+    ctx = type("C", (), {"config": config})()
+    rsk = [_risk("RSK", residual_severity="Serious", residual_probability="Occasional")]
+    assert "The benefit level 12 exceeds the highest residual risk level, RL 9." in risk.benefit_risk_lines(ctx, rsk)
+    assert risk.benefit_level({"risk_management": {"benefit_level": {"probability": None}}}) == (None, "")
