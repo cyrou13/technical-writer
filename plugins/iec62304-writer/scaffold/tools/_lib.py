@@ -353,6 +353,21 @@ def section_or_todo(ctx: dict[str, str], anchor: str) -> str:
     return val if val else f"[TODO {anchor}]"
 
 
+def with_document_approvals(config: dict | None, doc_key: str) -> dict:
+    """`config` with `approvals` replaced by the signatories of document `doc_key`.
+
+    `document_approvals.<doc_key>` (written_by / verified_by / approved_by) overrides
+    the default `approvals` role by role; a document with no entry keeps the default.
+    Keys are the `documents:` keys (`rar` for the risk file, `use` for the usability
+    triplet).
+    """
+    config = dict(config or {})
+    own = (config.get("document_approvals") or {}).get(doc_key) or {}
+    if isinstance(own, dict) and own:
+        config["approvals"] = {**(config.get("approvals") or {}), **own}
+    return config
+
+
 def todo_marker(anchor: str, hint: str) -> str:
     """Render a yellow-highlighted TODO marker.
 

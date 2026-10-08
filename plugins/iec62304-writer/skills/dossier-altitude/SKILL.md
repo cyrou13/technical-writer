@@ -48,6 +48,12 @@ quantitative device keeps what makes it differ (rule marked *adapted*).
   build date (draft state = version + empty signature table); signature table
   role / name and function / date / Signature; no title H1 or identifier block in
   the body (the header carries them).
+- **Signatories.** Every deliverable carries a signature block, the declarations
+  included (a single approver may sign one). `dt-config.yaml: document_approvals.<doc>`
+  overrides `approvals` role by role; the documents of one family are signed alike
+  (security and interface documents; Methods; user guide, labels, model card;
+  checklists, reviews, lifetime, post-market plan). The signature date stays blank
+  until signature.
 
 ## PMAP — Project Master Plan (MAP items)
 

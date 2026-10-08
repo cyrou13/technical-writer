@@ -140,6 +140,21 @@ approvals:
     name: "[TODO]"
     role: "[TODO Regulatory Manager / Quality Manager / ...]"
 
+# Signatories per document, overriding `approvals` above role by role for that
+# document. Keys are the `documents:` keys (`rar` = the risk file, `use` = the
+# usability triplet). Every deliverable carries a signature block: a document
+# without an entry is signed by the defaults, and the documents of one family
+# (security, interface, labelling, checklists and reviews, …) are signed alike.
+# The signature date stays blank until signature, never a planned date.
+document_approvals: {}
+#  sdd:
+#    written_by:
+#      name: "[TODO]"
+#      role: "[TODO]"
+#    approved_by:
+#      name: "[TODO]"
+#      role: "[TODO]"
+
 # -----------------------------------------------------------------------------
 # Revision history — one row per released version of THIS document.
 # Versions of individual items are tracked separately in their frontmatter and

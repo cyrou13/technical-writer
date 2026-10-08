@@ -30,6 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    with_document_approvals,
     altitude_lint,
     report_altitude_lint,
     test_card_offenders,
@@ -565,6 +566,7 @@ def main() -> int:
     if CONFIG_PATH.is_file():
         try:
             config = parse_yaml(CONFIG_PATH.read_text(encoding="utf-8"))
+            config = with_document_approvals(config, "stdr")
         except Exception as e:
             print(f"ERROR: failed to parse dt-config.yaml: {e}", file=sys.stderr)
             return 1

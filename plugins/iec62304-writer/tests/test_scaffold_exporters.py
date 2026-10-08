@@ -135,3 +135,12 @@ def test_risk_cell_caps_cover_the_production_and_use_related_registers():
     offenders = _lib.risk_cell_offenders([ursk])
     assert offenders == ["word-cap: URSK-T-001 use_error: 26 words (cap 1–25)"]
     assert _lib.risk_cell_offenders([_risk("SRS", hazard=long_hazard)]) == []
+
+
+def test_document_approvals_override_the_default_signatories_role_by_role():
+    config = {"approvals": {"written_by": {"name": "A"}, "approved_by": {"name": "C"}},
+              "document_approvals": {"sdd": {"written_by": {"name": "B"}}}}
+    sdd = _lib.with_document_approvals(config, "sdd")["approvals"]
+    assert sdd["written_by"] == {"name": "B"} and sdd["approved_by"] == {"name": "C"}
+    assert _lib.with_document_approvals(config, "srs")["approvals"]["written_by"] == {"name": "A"}
+    assert config["approvals"]["written_by"] == {"name": "A"}, "the input is not mutated"
