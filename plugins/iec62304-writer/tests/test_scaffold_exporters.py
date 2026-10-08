@@ -378,3 +378,9 @@ def test_the_scaffold_checklist_ties_the_evaluation_clauses_to_their_evaluation(
     assert tied == {("5.8", "formative"), ("5.9", "summative")}
     config = _lib.parse_yaml((TOOLS.parent / "dt-config.yaml").read_text(encoding="utf-8"))
     assert config["usability"]["evaluations"] == {"formative": False, "summative": False}
+
+
+def test_the_post_market_plan_refuses_a_store_identifier():
+    """The PMS plan cites risks and threats by their titles (T5)."""
+    assert any(o.startswith("internal-id") for o in _lib.altitude_lint("Watch RSK-ACME-IN-001.", doc="PMS"))
+    assert not any(o.startswith("internal-id") for o in _lib.altitude_lint("Watch wrong input.", doc="PMS"))
