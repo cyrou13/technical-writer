@@ -34,6 +34,8 @@ from pathlib import Path
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    build_revision_history as revision_history,
+    document_cover,
     with_document_approvals,
     altitude_lint,
     report_altitude_lint,
@@ -84,14 +86,6 @@ def _section(ctx: BuildContext, anchor: str, hint: str) -> str:
     )
 
 
-def fmt_signatory(ctx: BuildContext, role: str) -> str:
-    approvals = (ctx.config.get("approvals") or {}) if ctx.config else {}
-    entry = approvals.get(role) or {}
-    name = entry.get("name") or "[TODO]"
-    job = entry.get("role") or "[TODO]"
-    return f"{name} — {job}"
-
-
 def build_cover(ctx: BuildContext) -> list[str]:
     doc = (ctx.config.get("document") or {}) if ctx.config else {}
     title = doc.get("title") or "[TODO document.title]"
@@ -107,41 +101,12 @@ def build_cover(ctx: BuildContext) -> list[str]:
     sdd_identifier = identifier.replace("SRS", "SDD") if "SRS" in identifier else f"{identifier}-SDD"
     version_label = doc.get("version_label") or "V01"
     date = doc.get("date") or "[TODO document.date]"
-    return [
-        f"# {base_title}",
-        "",
-        f"**Document identifier:** {sdd_identifier}  ",
-        f"**Version:** {version_label}  ",
-        f"**Date:** {date}",
-        "",
-        "## Signatures",
-        "",
-        "| Role | Name and role | Date |",
-        "|---|---|---|",
-        f"| Written by | {fmt_signatory(ctx, 'written_by')} | {date} |",
-        f"| Verified by | {fmt_signatory(ctx, 'verified_by')} | {date} |",
-        f"| Approved by | {fmt_signatory(ctx, 'approved_by')} | {date} |",
-        "",
-    ]
+    return document_cover(ctx.config, title=base_title, identifier=sdd_identifier,
+                          version_label=version_label, date=date)
 
 
 def build_revision_history(ctx: BuildContext) -> list[str]:
-    history = ctx.config.get("revision_history") or [] if ctx.config else []
-    lines = ["## Revision history", "", "| Version | Date | Parts | Reason |", "|---|---|---|---|"]
-    if not history:
-        lines.append("| [TODO] | [TODO] | [TODO] | [TODO] |")
-    else:
-        for entry in history:
-            if not isinstance(entry, dict):
-                continue
-            lines.append(
-                f"| {entry.get('version') or '[TODO]'} "
-                f"| {entry.get('date') or '[TODO]'} "
-                f"| {entry.get('parts') or '[TODO]'} "
-                f"| {entry.get('reason') or '[TODO]'} |"
-            )
-    lines += ["", "---", ""]
-    return lines
+    return revision_history(ctx.config)
 
 
 def build_introduction(ctx: BuildContext) -> list[str]:
@@ -192,7 +157,6 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "dependencies), responsibilities and invariants. Traceability to",
         "requirements is held in `links.implements` (SRS IDs).",
         "",
-        "---",
         "",
     ]
     return lines
@@ -217,7 +181,6 @@ def build_section_2(ctx: BuildContext) -> list[str]:
             "diagram.",
         ),
         "",
-        "---",
         "",
     ]
 
@@ -356,7 +319,7 @@ def build_section_3(ctx: BuildContext) -> list[str]:
             "",
         ]
     lines += build_application_specific_design(ctx)
-    lines += ["---", ""]
+    lines += [""]
     return lines
 
 
@@ -646,7 +609,7 @@ def build_section_4(ctx: BuildContext) -> list[str]:
                 "risks, link to the Risk Management File.",
             )
         )
-    lines += ["", "---", ""]
+    lines += [""]
     return lines
 
 

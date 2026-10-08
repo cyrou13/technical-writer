@@ -47,6 +47,9 @@ from pathlib import Path
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    build_revision_history as revision_history,
+    cover_people,
+    document_cover,
     with_document_approvals,
     altitude_lint,
     report_altitude_lint,
@@ -174,51 +177,20 @@ def _strip_html_comments(md: str) -> str:
 
 
 def fmt_signatory(ctx: BuildContext, role: str) -> str:
-    approvals = (ctx.config.get("approvals") or {}) if ctx.config else {}
-    entry = approvals.get(role) or {}
-    name = entry.get("name") or "[TODO]"
-    job = entry.get("role") or "[TODO]"
-    return f"{name} — {job}"
+    """The signatories of `role` on one line (Annex 1 identification table)."""
+    return "; ".join(f"{name} — {function}" if function else name
+                     for name, function in cover_people(ctx.config, role))
 
 
 def build_cover(
     ctx: BuildContext, *, title: str, identifier: str, version_label: str, date: str
 ) -> list[str]:
-    return [
-        f"# {title}",
-        "",
-        f"**Document identifier:** {identifier}  ",
-        f"**Version:** {version_label}  ",
-        f"**Date:** {date}",
-        "",
-        "## Signatures",
-        "",
-        "| Role | Name and role | Date |",
-        "|---|---|---|",
-        f"| Written by | {fmt_signatory(ctx, 'written_by')} | {date} |",
-        f"| Verified by | {fmt_signatory(ctx, 'verified_by')} | {date} |",
-        f"| Approved by | {fmt_signatory(ctx, 'approved_by')} | {date} |",
-        "",
-    ]
+    return document_cover(ctx.config, title=title, identifier=identifier,
+                          version_label=version_label, date=date)
 
 
 def build_revision_history(ctx: BuildContext) -> list[str]:
-    history = ctx.config.get("revision_history") or [] if ctx.config else []
-    lines = ["## Revision history", "", "| Version | Date | Parts | Reason |", "|---|---|---|---|"]
-    if not history:
-        lines.append("| [TODO] | [TODO] | [TODO] | [TODO] |")
-    else:
-        for entry in history:
-            if not isinstance(entry, dict):
-                continue
-            lines.append(
-                f"| {entry.get('version') or '[TODO]'} "
-                f"| {entry.get('date') or '[TODO]'} "
-                f"| {entry.get('parts') or '[TODO]'} "
-                f"| {entry.get('reason') or '[TODO]'} |"
-            )
-    lines += ["", "---", ""]
-    return lines
+    return revision_history(ctx.config)
 
 
 def build_intro_block(
@@ -300,7 +272,6 @@ def build_intro_block(
         "`{DOMAIN}` is a short uppercase identifier per functional area, "
         "and `{NNN}` is a zero-padded counter.",
         "",
-        "---",
         "",
     ]
     return lines
@@ -363,7 +334,6 @@ def build_uef_use_specification(ctx: BuildContext) -> list[str]:
             "Minimum hardware/software/network configuration required to operate the device safely.",
         ),
         "",
-        "---",
         "",
     ]
 
@@ -609,7 +579,7 @@ def _build_risk_assessment_platform(ctx: BuildContext) -> list[str]:
             )
     else:
         lines.append("| — | — | — | — |")
-    lines += ["", "---", ""]
+    lines += [""]
     return lines
 
 
@@ -685,7 +655,6 @@ def _build_risk_assessment_narrow(ctx: BuildContext) -> list[str]:
         "specification is documented in the software requirement specification "
         "document.",
         "",
-        "---",
         "",
     ]
     return lines
@@ -703,7 +672,6 @@ def build_uef_formative(ctx: BuildContext) -> list[str]:
             "QMS-side — not derivable from code.",
         ),
         "",
-        "---",
         "",
     ]
 
@@ -836,7 +804,6 @@ def build_use_document(
             "performance-related criteria (latency, accuracy), state them as well.",
         ),
         "",
-        "---",
         "",
     ]
 
@@ -873,7 +840,6 @@ def build_use_document(
             "validated, and any follow-up actions if not.",
         ),
         "",
-        "---",
         "",
     ]
 
@@ -987,7 +953,6 @@ def build_uef_annex1(
         "",
         "**Verdict legend:** P = Pass · F = Fail · NA = Not Applicable.",
         "",
-        "---",
         "",
     ]
 
@@ -1043,7 +1008,7 @@ def build_uef_annex1(
         lines += ["", ""]
         table_index += 1
 
-    lines += ["---", ""]
+    lines += [""]
     return lines
 
 

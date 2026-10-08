@@ -38,6 +38,8 @@ from pathlib import Path
 # Shared helpers — see tools/_lib.py
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    build_revision_history as revision_history,
+    document_cover,
     with_document_approvals,
     altitude_lint,
     report_altitude_lint,
@@ -88,14 +90,6 @@ class BuildContext:
         return [m for m in self.mitigators if risk_id in m.mitigates]
 
 
-def fmt_signatory(ctx: BuildContext, role: str) -> str:
-    approvals = (ctx.config.get("approvals") or {}) if ctx.config else {}
-    entry = approvals.get(role) or {}
-    name = entry.get("name") or "[TODO]"
-    job = entry.get("role") or "[TODO]"
-    return f"{name} — {job}"
-
-
 def build_cover(ctx: BuildContext) -> list[str]:
     doc = (ctx.config.get("document") or {}) if ctx.config else {}
     title = doc.get("title") or "[TODO document.title]"
@@ -106,41 +100,12 @@ def build_cover(ctx: BuildContext) -> list[str]:
     risk_identifier = identifier.replace("SRS", "RAR") if "SRS" in identifier else f"{identifier}-RAR"
     version_label = doc.get("version_label") or "V01"
     date = doc.get("date") or "[TODO document.date]"
-    return [
-        f"# {base_title}",
-        "",
-        f"**Document identifier:** {risk_identifier}  ",
-        f"**Version:** {version_label}  ",
-        f"**Date:** {date}",
-        "",
-        "## Signatures",
-        "",
-        "| Role | Name and role | Date |",
-        "|---|---|---|",
-        f"| Written by | {fmt_signatory(ctx, 'written_by')} | {date} |",
-        f"| Verified by | {fmt_signatory(ctx, 'verified_by')} | {date} |",
-        f"| Approved by | {fmt_signatory(ctx, 'approved_by')} | {date} |",
-        "",
-    ]
+    return document_cover(ctx.config, title=base_title, identifier=risk_identifier,
+                          version_label=version_label, date=date)
 
 
 def build_revision_history(ctx: BuildContext) -> list[str]:
-    history = ctx.config.get("revision_history") or [] if ctx.config else []
-    lines = ["## Revision history", "", "| Version | Date | Parts | Reason |", "|---|---|---|---|"]
-    if not history:
-        lines.append("| [TODO] | [TODO] | [TODO] | [TODO] |")
-    else:
-        for entry in history:
-            if not isinstance(entry, dict):
-                continue
-            lines.append(
-                f"| {entry.get('version') or '[TODO]'} "
-                f"| {entry.get('date') or '[TODO]'} "
-                f"| {entry.get('parts') or '[TODO]'} "
-                f"| {entry.get('reason') or '[TODO]'} |"
-            )
-    lines += ["", "---", ""]
-    return lines
+    return revision_history(ctx.config)
 
 
 def build_introduction(ctx: BuildContext) -> list[str]:
@@ -193,7 +158,6 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "The risk index is computed as `severity × probability` per the",
         "ranking system in §2.4 below.",
         "",
-        "---",
         "",
     ]
     return lines
@@ -417,7 +381,6 @@ def build_risk_section(ctx: BuildContext) -> list[str]:
         "cannot be auto-generated. The RAQA / Regulatory Manager must",
         "complete and sign this section before submission.]",
         "",
-        "---",
         "",
     ]
     return lines
@@ -479,13 +442,12 @@ def build_production_section(ctx: BuildContext) -> list[str]:
         lines += [
             "_(no active PRSK items — production phase may not be applicable to this project)_",
             "",
-            "---",
             "",
         ]
         return lines
     for p in sorted(active, key=lambda i: i.id):
         lines += render_prsk_detail(ctx, p)
-    lines += ["---", ""]
+    lines += [""]
     return lines
 
 
@@ -511,7 +473,6 @@ def build_cyber_section(ctx: BuildContext) -> list[str]:
         "disclosure (CVD) policy, post-market monitoring, end-of-support",
         "transition.]",
         "",
-        "---",
         "",
     ]
     return lines

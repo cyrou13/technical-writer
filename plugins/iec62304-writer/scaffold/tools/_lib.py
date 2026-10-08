@@ -368,6 +368,141 @@ def with_document_approvals(config: dict | None, doc_key: str) -> dict:
     return config
 
 
+# ---------------------------------------------------------------------------
+# Front matter — cover signature table and revision history (one form for all)
+# ---------------------------------------------------------------------------
+
+#: The signature table of every cover: the role in bold, the name with its function
+#: under it, date and signature boxes left blank (signed on paper or in the eQMS).
+COVER_COLUMNS = ("First/Last Name", "Date (MM/DD/YYYY)", "Signature")
+COVER_ROLES = (("written_by", "Written by"), ("verified_by", "Verified by"), ("approved_by", "Approved by"))
+_GRID_BORDER_RE = re.compile(r"^\+-+(?:\+-+)+\+$")
+
+
+def cover_people(config: dict | None, role: str) -> list[tuple[str, str]]:
+    """[(name, function)] signing in `role` of `approvals` (after
+    `with_document_approvals`). An entry is a dict {name, role}, a list of them or a
+    bare name; with nobody configured the one row is an open marker."""
+    entry = ((config.get("approvals") or {}).get(role)) if config else None
+    people: list[tuple[str, str]] = []
+    for e in entry if isinstance(entry, list) else [entry]:
+        if isinstance(e, dict):
+            name, function = str(e.get("name") or "").strip(), str(e.get("role") or "").strip()
+        else:
+            name, function = str(e or "").strip(), ""
+        if name:
+            people.append((name, function))
+    return people or [(f"[TODO approvals.{role}]", "")]
+
+
+def _grid_table(header: list[str], rows: list[list[list[str]]]) -> list[str]:
+    """A pandoc grid table: `rows` are lists of cells, a cell a list of lines (an
+    empty line separates two paragraphs of the cell)."""
+    n = len(header)
+    widths = [max([len(header[c])] + [len(ln) for r in rows for ln in r[c]] + [3]) for c in range(n)]
+    border = "+" + "+".join("-" * (w + 2) for w in widths) + "+"
+
+    def line(cells: list[str]) -> str:
+        return "|" + "|".join(f" {t.ljust(w)} " for t, w in zip(cells, widths)) + "|"
+
+    out = [border, line(header), "+" + "+".join("=" * (w + 2) for w in widths) + "+"]
+    for r in rows:
+        for i in range(max(len(cell) for cell in r) or 1):
+            out.append(line([cell[i] if i < len(cell) else "" for cell in r]))
+        out.append(border)
+    return out
+
+
+def signature_table(people_by_role: list[tuple[str, list[tuple[str, str]]]]) -> list[str]:
+    """The cover table from [(role label, [(name, function), ...])]: one row per
+    signatory, the role label in bold on the first row of its role, the function in
+    its own paragraph under the name. A grid table, so a cell holds two paragraphs."""
+    rows: list[list[list[str]]] = []
+    for label, people in people_by_role:
+        for n, (name, function) in enumerate(people):
+            rows.append([[f"**{label}**" if n == 0 else ""],
+                         [name, "", function] if function else [name], [""], [""]])
+    return _grid_table(["", *COVER_COLUMNS], rows) + [""]
+
+
+def cover_rows(md: str) -> list[tuple[str, str, str]]:
+    """[(role label, name, function)] of the first signature table of `md` (the
+    reading of `signature_table`; empty when there is none)."""
+    lines = md.splitlines()
+    start = next((i for i, ln in enumerate(lines) if _GRID_BORDER_RE.match(ln)), None)
+    if start is None:
+        return []
+    rows: list[tuple[str, str, str]] = []
+    block: list[list[str]] = []
+    header_done = False
+    for line in lines[start + 1:]:
+        if line.startswith("+"):
+            if header_done and block:
+                cols = list(zip(*block))
+                label = " ".join(c for c in cols[0] if c).strip("* ")
+                paras = list(cols[1])
+                rows.append((label, paras[0] if paras else "", " ".join(c for c in paras[1:] if c)))
+            header_done = header_done or "=" in line
+            block = []
+            continue
+        if not line.startswith("|"):
+            break
+        block.append([c.strip() for c in line.strip("|").split("|")])
+    return rows
+
+
+def document_cover(config: dict | None, *, title: str, identifier: str, version_label: str,
+                   date: str) -> list[str]:
+    """The cover of every deliverable: title, identification lines, then the signature
+    table (`signature_table`, one row per signatory of `approvals`). No heading above
+    the table and no rule below it."""
+    return [
+        f"# {title}",
+        "",
+        f"**Document identifier:** {identifier}  ",
+        f"**Version:** {version_label}  ",
+        f"**Date:** {date}",
+        "",
+        *signature_table([(label, cover_people(config, role)) for role, label in COVER_ROLES]),
+    ]
+
+
+#: The revision-history header: bold, with colons; no heading above the table, no
+#: rule below it.
+REVISION_HISTORY_HEADER = ("| **Version:** | **Date:** | **Part(s):** | **Reason:** |", "|---|---|---|---|")
+
+
+def build_revision_history(config: dict | None) -> list[str]:
+    """The revision-history table that follows the cover (one form for every document)."""
+    history = (config.get("revision_history") or []) if config else []
+    lines = list(REVISION_HISTORY_HEADER)
+    rows = [e for e in history if isinstance(e, dict)]
+    if not rows:
+        lines.append("| [TODO] | [TODO] | [TODO] | [TODO] |")
+    for entry in rows:
+        lines.append(
+            f"| {entry.get('version') or '[TODO]'} | {entry.get('date') or '[TODO]'} "
+            f"| {entry.get('parts') or '[TODO]'} | {entry.get('reason') or '[TODO]'} |"
+        )
+    return lines + [""]
+
+
+# Provisional markers get a yellow highlight in the .docx for quick review. pandoc's
+# docx writer renders a bracketed span with class `.mark` as the Word "Highlight"
+# style; the original brackets are kept visible by escaping them inside the span.
+_MARKER_HIGHLIGHT_RE = re.compile(r"\[((?:TODO|DRAFT|GAP)\b[^\]]*)\]")
+_GRID_BLOCK_RE = re.compile(r"(^\+[-=:+]+\+\n(?:[|+][^\n]*\n)*)", re.M)
+
+
+def highlight_markers(md: str) -> str:
+    """Yellow-highlight every [TODO...] / [DRAFT...] / [GAP-...] marker. A grid table
+    (the cover) is aligned by character: a marker made longer would break it, so the
+    grid blocks are left as written."""
+    parts = _GRID_BLOCK_RE.split(md)
+    return "".join(p if i % 2 else _MARKER_HIGHLIGHT_RE.sub(r"[\\[\1\\]]{.mark}", p)
+                   for i, p in enumerate(parts))
+
+
 def todo_marker(anchor: str, hint: str) -> str:
     """Render a yellow-highlighted TODO marker.
 

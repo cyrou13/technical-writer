@@ -29,6 +29,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    build_revision_history as revision_history,
+    document_cover,
     with_document_approvals,
     altitude_lint,
     report_altitude_lint,
@@ -122,14 +124,6 @@ class BuildContext:
 # ---------------------------------------------------------------------------
 
 
-def fmt_signatory(ctx: BuildContext, role: str) -> str:
-    approvals = (ctx.config.get("approvals") or {}) if ctx.config else {}
-    entry = approvals.get(role) or {}
-    name = entry.get("name") or "[TODO]"
-    job = entry.get("role") or "[TODO]"
-    return f"{name} — {job}"
-
-
 def build_cover(ctx: BuildContext) -> list[str]:
     doc = (ctx.config.get("document") or {}) if ctx.config else {}
     base_title = doc.get("title") or "[TODO document.title]"
@@ -146,41 +140,12 @@ def build_cover(ctx: BuildContext) -> list[str]:
         str_identifier = f"{identifier}-STR"
     version_label = doc.get("version_label") or "V01"
     date = doc.get("date") or "[TODO document.date]"
-    return [
-        f"# {str_title}",
-        "",
-        f"**Document identifier:** {str_identifier}  ",
-        f"**Version:** {version_label}  ",
-        f"**Date:** {date}",
-        "",
-        "## Signatures",
-        "",
-        "| Role | Name and role | Date |",
-        "|---|---|---|",
-        f"| Written by | {fmt_signatory(ctx, 'written_by')} | {date} |",
-        f"| Verified by | {fmt_signatory(ctx, 'verified_by')} | {date} |",
-        f"| Approved by | {fmt_signatory(ctx, 'approved_by')} | {date} |",
-        "",
-    ]
+    return document_cover(ctx.config, title=str_title, identifier=str_identifier,
+                          version_label=version_label, date=date)
 
 
 def build_revision_history(ctx: BuildContext) -> list[str]:
-    history = ctx.config.get("revision_history") or [] if ctx.config else []
-    lines = ["## Revision history", "", "| Version | Date | Parts | Reason |", "|---|---|---|---|"]
-    if not history:
-        lines.append("| [TODO] | [TODO] | [TODO] | [TODO] |")
-    else:
-        for entry in history:
-            if not isinstance(entry, dict):
-                continue
-            lines.append(
-                f"| {entry.get('version') or '[TODO]'} "
-                f"| {entry.get('date') or '[TODO]'} "
-                f"| {entry.get('parts') or '[TODO]'} "
-                f"| {entry.get('reason') or '[TODO]'} |"
-            )
-    lines += ["", "---", ""]
-    return lines
+    return revision_history(ctx.config)
 
 
 def build_introduction(ctx: BuildContext) -> list[str]:
@@ -234,7 +199,6 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "This report is generated automatically from `test-results.json` emitted by CI. "
         "Status values: `passed`, `failed`, `skipped`, `not_run`, `manual_passed`, `manual_failed`.",
         "",
-        "---",
         "",
     ]
     return lines
@@ -253,7 +217,6 @@ def build_automated_platform(ctx: BuildContext) -> list[str]:
             root=ROOT,
         ),
         "",
-        "---",
         "",
     ]
 
@@ -271,7 +234,6 @@ def build_local_platforms(ctx: BuildContext) -> list[str]:
             root=ROOT,
         ),
         "",
-        "---",
         "",
     ]
 
@@ -312,7 +274,6 @@ def build_overview(ctx: BuildContext) -> list[str]:
             "|---|---|---|---|---|",
             "| — | — | — | — | — |",
             "",
-            "---",
             "",
         ]
         return lines
@@ -373,7 +334,7 @@ def build_overview(ctx: BuildContext) -> list[str]:
             lines.append(f"| `{tid}` | {desc} | {notes} | {evidence} |")
         lines.append("")
 
-    lines += ["---", ""]
+    lines += [""]
     return lines
 
 

@@ -208,3 +208,72 @@ def test_a_cited_figure_takes_the_number_it_is_rendered_with():
     md = ("```mermaid\nA\n```\n\nFigure {f} shows it.\n\n```mermaid\nB\n```\n\n*Figure {f}: Title.*\n")
     out = _lib.number_figure_placeholder(md, "{f}")
     assert "Figure 2 shows it." in out and "*Figure 2: Title.*" in out
+
+
+# ---------------------------------------------------------------------------
+# Front matter: cover signature table, revision history, no chapter rules
+# ---------------------------------------------------------------------------
+
+EXPORTERS = ("build_srs_export", "build_sdd_export", "build_stp_export", "build_stdr_export",
+             "build_str_export", "build_risk_export", "build_use_export")
+_COVER_CONFIG = {"approvals": {
+    "written_by": [{"name": "Ann Writer", "role": "R&D Engineer"}, {"name": "Bob Second"}],
+    "verified_by": {"name": "Carl Check", "role": "R&D Manager"}}}
+
+
+def _cover(config: dict | None = None) -> str:
+    return "\n".join(_lib.document_cover(config if config is not None else _COVER_CONFIG, title="T",
+                                         identifier="DOC-1", version_label="V01", date="2026-01-01"))
+
+
+def test_the_cover_prints_each_name_with_its_function_under_it():
+    """One row per signatory, the role label bold on the first row of its role, the
+    function in its own paragraph under the name; date and signature left blank."""
+    md = _cover()
+    assert "| First/Last Name" in md and "| Date (MM/DD/YYYY) |" in md and "| Signature |" in md
+    assert "## Signatures" not in md and "**Written by**" in md
+    assert _lib.cover_rows(md) == [("Written by", "Ann Writer", "R&D Engineer"), ("", "Bob Second", ""),
+                                   ("Verified by", "Carl Check", "R&D Manager"),
+                                   ("Approved by", "[TODO approvals.approved_by]", "")]
+    assert "2026-01-01 |" not in md.split("+=")[1], "no date is pre-filled in the signature boxes"
+
+
+def test_a_highlighted_marker_does_not_break_the_cover_grid():
+    md = _cover({}) + "\nBody [TODO fill] here.\n"
+    out = _lib.highlight_markers(md)
+    grid = [ln for ln in out.splitlines() if ln.startswith(("+", "|")) and "**Version:**" not in ln]
+    assert len({len(ln) for ln in grid if ln.startswith(("+", "| "))}) == 1, "grid rows stay aligned"
+    assert "[TODO approvals.written_by]" in out and "Body [\\[TODO fill\\]]{.mark} here." in out
+
+
+def test_the_revision_history_has_the_house_header_no_heading_and_no_rule():
+    lines = _lib.build_revision_history({"revision_history": [
+        {"version": "V01", "date": "2026-01-01", "parts": "All", "reason": "Initial creation."}]})
+    assert lines[0] == "| **Version:** | **Date:** | **Part(s):** | **Reason:** |"
+    assert "| V01 | 2026-01-01 | All | Initial creation. |" in lines
+    assert not any(ln.startswith("#") or ln == "---" for ln in lines)
+
+
+@pytest.mark.parametrize("name", EXPORTERS)
+def test_no_exporter_keeps_its_own_cover_revision_history_or_chapter_rules(name):
+    src = (TOOLS / f"{name}.py").read_text(encoding="utf-8")
+    assert "## Signatures" not in src and "## Revision history" not in src
+    assert '"---"' not in src, "no horizontal rule between chapters"
+    assert "document_cover(" in src and "return revision_history(ctx.config)" in src
+
+
+def test_the_cover_renders_as_a_signature_table_in_the_docx(tmp_path):
+    import shutil
+    import subprocess
+    import zipfile
+
+    if not shutil.which("pandoc"):
+        pytest.skip("pandoc not installed")
+    md = tmp_path / "c.md"
+    md.write_text(_cover(), encoding="utf-8")
+    subprocess.run(["pandoc", str(md), "-o", str(tmp_path / "c.docx")], check=True)
+    xml = zipfile.ZipFile(tmp_path / "c.docx").read("word/document.xml").decode()
+    table = xml[xml.index("<w:tbl>"):xml.index("</w:tbl>")]
+    import re
+
+    assert len(re.findall(r"<w:tr[ >]", table)) == 5 and "Ann Writer" in table and "R&amp;D Engineer" in table

@@ -32,6 +32,8 @@ from pathlib import Path
 # Shared helpers
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
+    build_revision_history as revision_history,
+    document_cover,
     with_document_approvals,
     altitude_lint,
     report_altitude_lint,
@@ -155,14 +157,6 @@ def version_label(config: dict) -> str:
 # ---------------------------------------------------------------------------
 
 
-def fmt_signatory(config: dict, role: str) -> str:
-    approvals = (config.get("approvals") or {}) if config else {}
-    entry = approvals.get(role) or {}
-    name = entry.get("name") or "[TODO]"
-    job = entry.get("role") or "[TODO]"
-    return f"{name} — {job}"
-
-
 def build_cover(ctx: BuildContext) -> list[str]:
     doc = (ctx.config.get("document") or {}) if ctx.config else {}
     raw_title = doc.get("title") or "[TODO document.title]"
@@ -171,47 +165,12 @@ def build_cover(ctx: BuildContext) -> list[str]:
     identifier = stp_identifier(ctx.config)
     ver = version_label(ctx.config)
     date = doc.get("date") or "[TODO document.date]"
-    lines = [
-        f"# {title}",
-        "",
-        f"**Document identifier:** {identifier}  ",
-        f"**Version:** {ver}  ",
-        f"**Date:** {date}",
-        "",
-        "## Signatures",
-        "",
-        "| Role | Name and role | Date |",
-        "|---|---|---|",
-        f"| Written by | {fmt_signatory(ctx.config, 'written_by')} | {date} |",
-        f"| Verified by | {fmt_signatory(ctx.config, 'verified_by')} | {date} |",
-        f"| Approved by | {fmt_signatory(ctx.config, 'approved_by')} | {date} |",
-        "",
-    ]
-    return lines
+    return document_cover(ctx.config, title=title, identifier=identifier,
+                          version_label=ver, date=date)
 
 
 def build_revision_history(ctx: BuildContext) -> list[str]:
-    history = (ctx.config.get("revision_history") or []) if ctx.config else []
-    lines = [
-        "## Revision history",
-        "",
-        "| Version | Date | Parts | Reason |",
-        "|---|---|---|---|",
-    ]
-    if not history:
-        lines.append("| [TODO] | [TODO] | [TODO] | [TODO] |")
-    else:
-        for entry in history:
-            if not isinstance(entry, dict):
-                continue
-            lines.append(
-                f"| {entry.get('version') or '[TODO]'} "
-                f"| {entry.get('date') or '[TODO]'} "
-                f"| {entry.get('parts') or '[TODO]'} "
-                f"| {entry.get('reason') or '[TODO]'} |"
-            )
-    lines += ["", "---", ""]
-    return lines
+    return revision_history(ctx.config)
 
 
 # ---------------------------------------------------------------------------
@@ -287,7 +246,6 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "the description states what is verified; the SRS traceability column "
         "references the verified requirement.",
         "",
-        "---",
         "",
     ]
     return lines
@@ -338,7 +296,6 @@ def build_test_environment(ctx: BuildContext) -> list[str]:
             root=ROOT,
         ),
         "",
-        "---",
         "",
     ]
     return lines
@@ -461,7 +418,6 @@ def build_tests_identification(ctx: BuildContext) -> list[str]:
         "The description field states what is verified; the SRS traceability column "
         "references the verified requirement identifier.",
         "",
-        "---",
         "",
     ]
     return lines
@@ -583,7 +539,7 @@ def build_planned_tests(ctx: BuildContext) -> list[str]:
         "",
     ]
     lines += _build_planned_tests_table(ctx.tc_items)
-    lines += ["---", ""]
+    lines += [""]
     return lines
 
 
@@ -598,7 +554,6 @@ def build_tests_schedule(ctx: BuildContext) -> list[str]:
         "",
         ctx.swf("tests-schedule"),
         "",
-        "---",
         "",
     ]
 
@@ -614,7 +569,6 @@ def build_qualification(ctx: BuildContext) -> list[str]:
         "",
         ctx.swf("qualification"),
         "",
-        "---",
         "",
     ]
 
