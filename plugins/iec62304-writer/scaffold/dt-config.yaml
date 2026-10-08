@@ -380,6 +380,14 @@ usability:
   # by document type, then to a [TODO] marker.
   risk_report_ref: null          # e.g. "AV-DP-XXX-10-005-RAR-V03"
 
+  # Which usability evaluations are performed and recorded. An Annex 1 clause that
+  # rests on an evaluation (`evaluation` column of the checklist) prints P only once
+  # that evaluation is performed; until then its verdict is F and its remark says
+  # what is still to be performed.
+  evaluations:
+    formative: false
+    summative: false
+
 # -----------------------------------------------------------------------------
 # Where the reference exporters were synced from (scaffold/tools/README.md).
 # -----------------------------------------------------------------------------

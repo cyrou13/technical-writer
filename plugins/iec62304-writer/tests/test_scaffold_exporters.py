@@ -341,7 +341,7 @@ def test_the_stp_states_the_identifier_structure_an_example_and_its_fields():
 
 
 # ---------------------------------------------------------------------------
-# Risk register workbook
+# Risk register workbook and usability Annex 1
 # ---------------------------------------------------------------------------
 
 
@@ -360,3 +360,21 @@ def test_an_asset_text_that_names_a_path_is_reported():
     good = _risk("THR", asset="the release signing key")
     assert [o.split(":")[0] for o in xl.asset_offenders([bad, good])] == ["PRSK-T-001 asset_at_risk"]
 
+
+def test_an_unperformed_evaluation_fails_the_clause_with_its_reason_and_a_performed_one_passes():
+    use = importlib.import_module("build_use_export")
+    row = {"clause": "5.9", "verdict": "P", "evaluation": "summative"}
+    assert use.annex1_verdict({}, row, "See USE §3") == ("F", "See USE §3 — The summative evaluation is to be performed.")
+    done = {"usability": {"evaluations": {"summative": True}}}
+    assert use.annex1_verdict(done, row, "See USE §3") == ("P", "See USE §3")
+    assert use.annex1_verdict({}, {"verdict": "NA"}, "—") == ("NA", "—")
+
+
+def test_the_scaffold_checklist_ties_the_evaluation_clauses_to_their_evaluation():
+    import csv
+
+    rows = list(csv.DictReader((TOOLS.parent / "static" / "iec62366-annex1-checklist.csv").open(encoding="utf-8")))
+    tied = {(r["clause"], r["evaluation"]) for r in rows if r["evaluation"]}
+    assert tied == {("5.8", "formative"), ("5.9", "summative")}
+    config = _lib.parse_yaml((TOOLS.parent / "dt-config.yaml").read_text(encoding="utf-8"))
+    assert config["usability"]["evaluations"] == {"formative": False, "summative": False}

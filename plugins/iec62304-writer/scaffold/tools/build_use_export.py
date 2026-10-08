@@ -907,6 +907,24 @@ def _load_checklist(ctx: BuildContext) -> list[dict[str, str]]:
     return rows
 
 
+def annex1_verdict(config: dict | None, row: dict[str, str], result: str) -> tuple[str, str]:
+    """(verdict, result/remark) of an Annex 1 clause row.
+
+    A clause that rests on an evaluation (`evaluation`: formative | summative) passes
+    only once `usability.evaluations.<kind>` is true; until then it is F and the remark
+    says what is to be performed. Other rows keep the verdict of the checklist.
+    """
+    verdict = row.get("verdict", "—") or "—"
+    kind = (row.get("evaluation") or "").strip().lower()
+    if not kind:
+        return verdict, result
+    done = (((config or {}).get("usability") or {}).get("evaluations") or {}).get(kind)
+    if done is True or str(done).lower() == "true":
+        return "P", result
+    reason = f"The {kind} evaluation is to be performed."
+    return "F", f"{result} — {reason}" if result and result != "—" else reason
+
+
 def build_uef_annex1(
     ctx: BuildContext, identifiers: dict[str, str], doc_title: str
 ) -> list[str]:
@@ -994,7 +1012,7 @@ def build_uef_annex1(
             clause = r.get("clause", "—")
             requirement = _subst(r.get("requirement", "—"))
             result = _subst(r.get("result_pointer", "—"))
-            verdict = r.get("verdict", "—") or "—"
+            verdict, result = annex1_verdict(ctx.config, r, result)
             lines.append(
                 f"| {_escape_cell(clause)} "
                 f"| {_escape_cell(requirement)} "
