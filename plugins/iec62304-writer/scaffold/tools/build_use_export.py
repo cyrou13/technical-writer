@@ -49,7 +49,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     build_revision_history as revision_history,
     cover_people,
+    brand_sentence,
     document_cover,
+    first_active,
+    identifier_convention,
     number_references,
     with_document_approvals,
     altitude_lint,
@@ -202,10 +205,8 @@ def build_intro_block(
     Shared between UEF and USE — they differ only in §1.1 wording.
     """
     refs = ctx.config.get("project_references") or [] if ctx.config else []
-    id_fmt = (ctx.config.get("id_format") or {}) if ctx.config else {}
-    default_fmt = id_fmt.get("default") if isinstance(id_fmt, dict) else None
-    if not default_fmt:
-        default_fmt = "{CAT}-{DOMAIN}-{NNN:03d}"
+    _ex = first_active([*ctx.usc, *ctx.ursk])
+    _ex_id, _ex_text = (_ex.id, str(_ex.get("objective") or _ex.title)) if _ex else ("", "")
 
     overview_hint = (
         f"One short paragraph describing what THIS {document_kind} covers: "
@@ -262,16 +263,10 @@ def build_intro_block(
         "",
         "## 1.4 Conventions",
         "",
-        "Items referenced in this document follow the format:",
+        brand_sentence(ctx.config),
         "",
-        "```",
-        default_fmt,
-        "```",
-        "",
-        "where `{CAT}` is the category prefix (USC, URSK, SRS, RSK, …), "
-        "`{SUITE}` and `{APP}` come from `dt-config.yaml: product`, "
-        "`{DOMAIN}` is a short uppercase identifier per functional area, "
-        "and `{NNN}` is a zero-padded counter.",
+        *identifier_convention(ctx.config, ("USC", "URSK"), subject="a use scenario or a use-related risk",
+                               example_id=_ex_id, example_text=_ex_text),
         "",
         "",
     ]

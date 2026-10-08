@@ -35,7 +35,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     build_revision_history as revision_history,
+    brand_sentence,
     document_cover,
+    first_active,
+    identifier_convention,
     number_references,
     with_document_approvals,
     altitude_lint,
@@ -111,6 +114,8 @@ def build_revision_history(ctx: BuildContext) -> list[str]:
 
 
 def build_introduction(ctx: BuildContext) -> list[str]:
+    _ex = first_active(ctx.sds)
+    _ex_id, _ex_text = (_ex.id, str(_ex.get("objective") or _ex.title)) if _ex else ("", "")
     refs = ctx.config.get("project_references") or [] if ctx.config else []
     lines = [
         "# 1. Introduction",
@@ -153,6 +158,10 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "",
         "## 1.4 Conventions",
         "",
+        brand_sentence(ctx.config),
+        "",
+        *identifier_convention(ctx.config, ("SDS",), subject="a software item or unit",
+                               example_id=_ex_id, example_text=_ex_text),
         "SDS items follow the IEC 62304 §5.3-§5.4 design notation. Each item",
         "documents a software unit with its interfaces (inputs / outputs /",
         "dependencies), responsibilities and invariants. Traceability to",

@@ -297,3 +297,44 @@ def test_references_are_numbered_contiguously_and_citations_follow():
 @pytest.mark.parametrize("name", EXPORTERS)
 def test_every_exporter_numbers_its_references_per_document(name):
     assert "number_references(" in (TOOLS / f"{name}.py").read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Conventions: brand sentence and identifier structure
+# ---------------------------------------------------------------------------
+
+_PRODUCT = {"product": {"suite": "ACME", "application": "XYZ", "suite_scope": "two applications",
+                        "designation": "computes the maps"},
+            "id_format": {"default": "{CAT}-{SUITE}-{APP}-{DOMAIN}-{NNN:03d}"}}
+
+
+def test_the_identifier_convention_states_structure_example_and_fields():
+    md = "\n".join(_lib.identifier_convention(_PRODUCT, ("RSK", "THR"), subject="each record",
+                                              example_id="RSK-ACME-XYZ-IN-001", example_text="Wrong input"))
+    assert "**CAT-SUITE-APP-DOMAIN-NNN**" in md and "{" not in md and "```" not in md
+    assert md.index("structure:") < md.index("Example:") < md.index("Where:")
+    assert "**RSK-ACME-XYZ-IN-001**: Wrong input" in md
+    assert "- CAT is the category of the record (RSK for a design risk; THR for a cybersecurity threat);" in md
+    assert "- SUITE is the name of the software suite (ACME);" in md
+    assert "- APP is the name of the image processing application (XYZ);" in md
+    assert md.rstrip().endswith("within its category and abbreviation.")
+    single = "\n".join(_lib.identifier_convention({}, ("TC",), subject="a test case"))
+    assert "**TC-DOMAIN-NNN**" in single and "- TC marks a test case;" in single and "Example:" not in single
+
+
+@pytest.mark.parametrize("name", ("build_sdd_export", "build_stp_export", "build_stdr_export",
+                                  "build_risk_export", "build_use_export"))
+def test_every_document_that_defines_identifiers_states_brand_and_convention(name):
+    src = (TOOLS / f"{name}.py").read_text(encoding="utf-8")
+    assert "brand_sentence(ctx.config)" in src and "*identifier_convention(" in src
+    assert "default_fmt" not in src, "the id_format string is never printed"
+
+
+def test_the_stp_states_the_identifier_structure_an_example_and_its_fields():
+    stp = importlib.import_module("build_stp_export")
+    tc = _lib.Item(id="TC-ACME-XYZ-IO-001", category="TC", path=Path("t.md"),
+                   fm={"status": "Draft", "title": "Reads the input", "objective": "Verify the reader"})
+    ctx = type("C", (), {"config": _PRODUCT, "tc_items": [tc], "srs_items": [], "coverage": None,
+                         "swf": lambda self, a: f"[{a}]"})()
+    md = "\n".join(stp.build_tests_identification(ctx))
+    assert "**TC-SUITE-APP-DOMAIN-NNN**" in md and "**TC-ACME-XYZ-IO-001**: Verify the reader" in md

@@ -574,6 +574,93 @@ def section_with_fallback(
 
 
 # ---------------------------------------------------------------------------
+# Conventions — brand sentence and identifier structure (§1.4 of every document
+# that defines identifiers)
+# ---------------------------------------------------------------------------
+
+
+def brand_sentence(config: dict | None) -> str:
+    """The brand sentence that opens the conventions of every document (`product.*`)."""
+    prod = (config.get("product") or {}) if config else {}
+    suite = str(prod.get("suite") or "[TODO product.suite]")
+    app = str(prod.get("application") or "[TODO product.application]")
+    scope = str(prod.get("suite_scope") or "[TODO product.suite_scope]").strip().rstrip(".")
+    designation = str(prod.get("designation") or "[TODO product.designation]").strip().rstrip(".")
+    return (f"{suite} is the brand name of the {suite} software suite, made of {scope}. "
+            f"In the context of this project and document, {suite}-{app} refers to the "
+            f"{suite} application that {designation}.")
+
+
+#: What one record of each category of the item store is.
+CATEGORY_NOUNS = {
+    "SRS": "a software requirement", "SDS": "a software item or unit of the design",
+    "TC": "a test case", "RSK": "a design risk", "PRSK": "a production risk",
+    "URSK": "a use-related risk", "THR": "a cybersecurity threat", "USC": "a use scenario",
+    "MAP": "a master-plan requirement",
+}
+#: What each field of an `id_format` pattern stands for.
+ID_FIELD_MEANINGS = {
+    "SUITE": "the name of the software suite ({value})",
+    "APP": "the name of the image processing application ({value})",
+    "DOMAIN": "an abbreviation for the function, area or production phase concerned",
+    "NNN": "the sequence number of the record within its category and abbreviation",
+    "VERSION": "the version of the document the record belongs to",
+}
+_ID_FIELD_RE = re.compile(r"\{([A-Z]+)(?::[^}]*)?\}")
+
+
+def id_format_for(config: dict | None, category: str) -> str:
+    """The `id_format` pattern of `category` (its own key, else `default`)."""
+    fmt = (config.get("id_format") or {}) if config else {}
+    if not isinstance(fmt, dict):
+        return "{CAT}-{DOMAIN}-{NNN:03d}"
+    return str(fmt.get(category) or fmt.get("default") or "{CAT}-{DOMAIN}-{NNN:03d}")
+
+
+def identifier_convention(config: dict | None, categories: tuple[str, ...], *, subject: str,
+                          example_id: str = "", example_text: str = "") -> list[str]:
+    """How the records a document defines are identified, in the conventions form:
+    the structure in bold, "Example:" (a real identifier of the store, with its
+    title or objective) and "Where:" (one line per field). Derived from `id_format`
+    and `product`; the format string itself is never printed.
+
+    `subject` names one record ("a test case", "each record of the risk register").
+    """
+    prod = (config.get("product") or {}) if config else {}
+    values = {"SUITE": str(prod.get("suite") or "[TODO product.suite]"),
+              "APP": str(prod.get("application") or "[TODO product.application]")}
+    fmt = id_format_for(config, categories[0])
+    fields = _ID_FIELD_RE.findall(fmt)
+    structure = _ID_FIELD_RE.sub(lambda m: categories[0] if m.group(1) == "CAT" and len(categories) == 1
+                                 else m.group(1), fmt)
+    lines = [f"The identifier of {subject} is constructed according to the following structure:", "",
+             f"**{structure}**", ""]
+    if example_id:
+        lines += ["Example:", "", f"**{example_id}**" + (f": {example_text}" if example_text else ""), ""]
+    where: list[str] = []
+    for f in fields:
+        if f == "CAT":
+            if len(categories) > 1:
+                kinds = "; ".join(f"{c} for {CATEGORY_NOUNS.get(c, c)}" for c in categories)
+                where.append(f"CAT is the category of the record ({kinds})")
+            else:
+                where.append(f"{categories[0]} marks {CATEGORY_NOUNS.get(categories[0], 'the category')}")
+            continue
+        where.append(f"{f} is " + ID_FIELD_MEANINGS.get(f, f"the {f.lower()} field").format(value=values.get(f, f)))
+    if where:
+        lines += ["Where:", ""]
+        lines += [f"- {w}{'.' if n == len(where) - 1 else ';'}" for n, w in enumerate(where)]
+        lines.append("")
+    return lines
+
+
+def first_active(items: list) -> object | None:
+    """The active item with the smallest identifier (the example of a convention)."""
+    return next((i for i in sorted(items, key=lambda i: i.id)
+                 if getattr(i, "status", "") not in ("Deprecated", "Retired")), None)
+
+
+# ---------------------------------------------------------------------------
 # References — one contiguous numbering per document
 # ---------------------------------------------------------------------------
 

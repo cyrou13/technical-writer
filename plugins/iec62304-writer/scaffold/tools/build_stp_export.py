@@ -33,7 +33,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     build_revision_history as revision_history,
+    brand_sentence,
     document_cover,
+    first_active,
+    identifier_convention,
     number_references,
     with_document_approvals,
     altitude_lint,
@@ -181,10 +184,6 @@ def build_revision_history(ctx: BuildContext) -> list[str]:
 
 def build_introduction(ctx: BuildContext) -> list[str]:
     refs = (ctx.config.get("project_references") or []) if ctx.config else []
-    id_fmt = (ctx.config.get("id_format") or {}) if ctx.config else {}
-    default_fmt = id_fmt.get("default") if isinstance(id_fmt, dict) else None
-    if not default_fmt:
-        default_fmt = "{CAT}-{DOMAIN}-{NNN:03d}"
 
     lines: list[str] = [
         "# 1. Introduction",
@@ -234,18 +233,9 @@ def build_introduction(ctx: BuildContext) -> list[str]:
         "",
         "## 1.4 Conventions",
         "",
-        "Test cases in this document follow the identifier format:",
+        brand_sentence(ctx.config),
         "",
-        "```",
-        default_fmt,
-        "<title>",
-        "<description>",
-        "V<version>",
-        "```",
-        "",
-        "Each test case ID has a two-digit variant counter (NN) appended; "
-        "the description states what is verified; the SRS traceability column "
-        "references the verified requirement.",
+        "Test cases are identified as stated in §3.5.",
         "",
         "",
     ]
@@ -389,9 +379,9 @@ def build_tests_identification(ctx: BuildContext) -> list[str]:
             "then re-run this STP export to populate this table.",
         )
 
-    # §3.5 id format
-    id_fmt = (ctx.config.get("id_format") or {}) if ctx.config else {}
-    default_fmt = id_fmt.get("default") if isinstance(id_fmt, dict) else "{CAT}-{DOMAIN}-{NNN:03d}"
+    # §3.5 identifier convention, exemplified by the first active test case
+    _ex = first_active(ctx.tc_items)
+    _ex_id, _ex_text = (_ex.id, str(_ex.get("objective") or _ex.title)) if _ex else ("", "")
 
     lines: list[str] = [
         "# 3. Tests Identification",
@@ -414,10 +404,11 @@ def build_tests_identification(ctx: BuildContext) -> list[str]:
         "",
         "## 3.5 Test identification and content",
         "",
-        f"Each test case identifier follows the project format `{default_fmt}` "
-        "where the last two digits (NN) are the variant counter within a test suite. "
-        "The description field states what is verified; the SRS traceability column "
-        "references the verified requirement identifier.",
+        "Each test case is unique and states its identifier, its objective, the requirements "
+        "it verifies, the data set it uses and its expected result.",
+        "",
+        *identifier_convention(ctx.config, ("TC",), subject="a test case",
+                               example_id=_ex_id, example_text=_ex_text),
         "",
         "",
     ]

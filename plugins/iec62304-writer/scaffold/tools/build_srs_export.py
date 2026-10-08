@@ -30,6 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _lib import (  # noqa: E402
     build_revision_history as revision_history,
+    brand_sentence,
     document_cover,
     number_references,
     highlight_markers,
@@ -162,15 +163,11 @@ def build_conventions(ctx: BuildContext) -> list[str]:
     prod = (ctx.config.get("product") or {}) if ctx.config else {}
     suite = str(prod.get("suite") or "[TODO product.suite]")
     app = str(prod.get("application") or "[TODO product.application]")
-    scope = str(prod.get("suite_scope") or "[TODO product.suite_scope]").strip().rstrip(".")
-    designation = str(prod.get("designation") or "[TODO product.designation]").strip().rstrip(".")
     docs = (ctx.config.get("documents") or {}) if ctx.config else {}
     sdd = str(docs.get("sdd") or "").strip()
     sdd_ref = f" ({sdd})" if sdd and "TODO" not in sdd else ""
     return [
-        f"{suite} is the brand name of the {suite} software suite, made of {scope}. "
-        f"In the context of this project and document, {suite}-{app} refers to the "
-        f"{suite} application that {designation}.",
+        brand_sentence(ctx.config),
         "",
         "Requirements listed in this document are constructed according to the "
         "following structure:",
