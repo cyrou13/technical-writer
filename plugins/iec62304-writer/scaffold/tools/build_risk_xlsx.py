@@ -48,6 +48,7 @@ from _lib import (  # noqa: E402
     Item,
     load_items,
     parse_yaml,
+    _code_in_text,
     risk_index,
 )
 
@@ -57,6 +58,61 @@ ITEMS_DIR = ROOT / "docs" / "items"
 EXPORT_DIR = ROOT / "docs" / "export"
 
 
+# ---------------------------------------------------------------------------
+# Reader labels — a stored key is never printed as such
+# ---------------------------------------------------------------------------
+
+#: ISO 14971:2019 §7.1 control options, by the value stored in `control_hierarchy`.
+CONTROL_LABELS = {
+    "inherent_design": "Inherent safety by design",
+    "protective_measure": "Protective measures in the medical device itself or in the manufacturing process",
+    "information_for_safety": "Information for safety and, where appropriate, training to users",
+}
+STRIDE_LABELS = {
+    "s": "Spoofing", "spoofing": "Spoofing", "t": "Tampering", "tampering": "Tampering",
+    "r": "Repudiation", "repudiation": "Repudiation", "i": "Information disclosure",
+    "information disclosure": "Information disclosure", "d": "Denial of service", "dos": "Denial of service",
+    "denial of service": "Denial of service", "e": "Elevation of privilege", "eop": "Elevation of privilege",
+    "elevation of privilege": "Elevation of privilege",
+}
+#: The attacker models of the threat template, as a reader names them.
+ATTACKER_LABELS = {
+    "external_unauth": "unauthenticated external attacker",
+    "external_auth": "authenticated external attacker",
+    "internal": "insider",
+    "supply_chain": "compromised supply chain",
+    "physical": "attacker with physical access",
+}
+
+
+def control_label(value) -> str:
+    """The reader label of a stored `control_hierarchy` value."""
+    raw = str(value or "").strip()
+    return CONTROL_LABELS.get(raw, raw.replace("_", " ")) if raw else "—"
+
+
+def attacker_label(value) -> str:
+    raw = str(value or "").strip()
+    return ATTACKER_LABELS.get(raw, raw.replace("_", " ")) if raw else "—"
+
+
+def stride_label(value) -> str:
+    values = value if isinstance(value, list) else [value]
+    labels = [STRIDE_LABELS.get(str(v or "").strip().lower(), str(v or "").strip()) for v in values]
+    return ", ".join(v for v in labels if v) or "—"
+
+
+def asset_offenders(items: list[Item]) -> list[str]:
+    """Asset texts that name a file or repository path (a reader names the asset, not
+    where it lives): `asset_at_risk` of PRSK, `asset` of THR."""
+    out: list[str] = []
+    for it in items:
+        for key in ("asset_at_risk", "asset"):
+            text = str(it.get(key) or "")
+            paths = [t for kind, t in _code_in_text(text) if kind in ("code-path", "repo-path")]
+            if paths:
+                out.append(f"{it.id} {key}: names a path ({paths[0]})")
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -166,7 +222,7 @@ def build_design_sheet(wb, ctx: BuildContext) -> None:
             risk_index(sev, prob) or "—",
             r.get("risk_level") or "—",
             "Yes" if r.get("acceptable") is True else ("No" if r.get("acceptable") is False else "—"),
-            r.get("control_hierarchy") or "—",
+            control_label(r.get("control_hierarchy")),
             ", ".join(c.id for c in controls) if controls else "(none)",
             rprob or "—",
             rsev or "—",
@@ -224,7 +280,7 @@ def build_production_sheet(wb, ctx: BuildContext) -> None:
             risk_index(sev, prob) or "—",
             p.get("risk_level") or "—",
             "Yes" if p.get("acceptable") is True else ("No" if p.get("acceptable") is False else "—"),
-            p.get("control_hierarchy") or "—",
+            control_label(p.get("control_hierarchy")),
             ", ".join(c.id for c in controls) if controls else "(none)",
             rprob or "—",
             rsev or "—",
@@ -314,8 +370,7 @@ def build_cyber_sheet(wb, ctx: BuildContext) -> None:
     for row_idx, t in enumerate(sorted(active, key=lambda i: i.id), start=2):
         controls = ctx.controls_for(t.id)
         triggers = (t.fm.get("links") or {}).get("triggers") or []
-        stride = t.get("stride")
-        stride_str = ", ".join(stride) if isinstance(stride, list) else str(stride or "—")
+        stride_str = stride_label(t.get("stride"))
         # Vulnerability description = hazard if set, else title.
         vuln_desc = t.get("hazard") or t.title
         # Mitigation/remediation = informal "Expected controls" body — fallback to "(see linked items)"
@@ -323,7 +378,7 @@ def build_cyber_sheet(wb, ctx: BuildContext) -> None:
         values = [
             t.id,
             stride_str,
-            t.get("attacker") or "—",
+            attacker_label(t.get("attacker")),
             t.get("asset") or "—",
             vuln_desc,
             t.get("confidentiality_severity") or "n/a",
@@ -426,6 +481,9 @@ def main() -> int:
         f"Usability={len(ursk)} · Cybersecurity={len(thr)}"
     )
     ctx.log(f"Red-highlighted cells (residual_acceptable=False): {ctx.red_cells}")
+    path_offenders = asset_offenders([*prsk, *thr])
+    for o in path_offenders:
+        ctx.log(f"WARN: asset text {o} — name the asset for a reader")
 
     # Log file
     header = [
@@ -438,6 +496,9 @@ def main() -> int:
 
     if args.strict and ctx.red_cells:
         print(f"STRICT: {ctx.red_cells} risks have residual_acceptable=False — failing", file=sys.stderr)
+        return 1
+    if args.strict and path_offenders:
+        print(f"STRICT: {len(path_offenders)} asset text(s) name a path — failing", file=sys.stderr)
         return 1
     return 0
 

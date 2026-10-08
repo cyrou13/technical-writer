@@ -338,3 +338,25 @@ def test_the_stp_states_the_identifier_structure_an_example_and_its_fields():
                          "swf": lambda self, a: f"[{a}]"})()
     md = "\n".join(stp.build_tests_identification(ctx))
     assert "**TC-SUITE-APP-DOMAIN-NNN**" in md and "**TC-ACME-XYZ-IO-001**: Verify the reader" in md
+
+
+# ---------------------------------------------------------------------------
+# Risk register workbook
+# ---------------------------------------------------------------------------
+
+
+def test_stored_values_print_as_reader_labels():
+    xl = importlib.import_module("build_risk_xlsx")
+    assert xl.control_label("inherent_design") == "Inherent safety by design"
+    assert xl.control_label("information_for_safety").startswith("Information for safety")
+    assert xl.stride_label(["T", "dos"]) == "Tampering, Denial of service"
+    assert xl.attacker_label("external_unauth") == "unauthenticated external attacker"
+    assert xl.attacker_label("rogue_vendor") == "rogue vendor" and xl.control_label(None) == "—"
+
+
+def test_an_asset_text_that_names_a_path_is_reported():
+    xl = importlib.import_module("build_risk_xlsx")
+    bad = _risk("PRSK", asset_at_risk="the signing key in prod/keys/release.pem")
+    good = _risk("THR", asset="the release signing key")
+    assert [o.split(":")[0] for o in xl.asset_offenders([bad, good])] == ["PRSK-T-001 asset_at_risk"]
+
